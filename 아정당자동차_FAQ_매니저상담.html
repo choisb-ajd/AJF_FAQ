@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>전담매니저 맞춤상담 가입방법 | 아정당자동차</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#145CE6;--blue-dk:#0c3db0;--blue-lt:#EEF4FF;--navy:#0D1B35;--gray:#697077;--gray-lt:#A2A9B0;--border:#E2E8F0;--bg:#F0F5FB;--white:#fff;--kakao:#FAE300;--kakao-txt:#1A1200;--r:16px;--shadow:0 4px 24px rgba(20,92,230,.10)}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--white);color:var(--navy);-webkit-font-smoothing:antialiased}
+nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);height:64px;display:flex;align-items:center;padding:0 40px;justify-content:space-between;gap:12px}
+.nav-left{display:flex;align-items:center;gap:16px}
+.nav-back{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--gray);text-decoration:none;font-weight:500;transition:color .18s}
+.nav-back:hover{color:var(--blue)}
+.nav-logo img{height:28px}
+.nav-kakao{background:var(--kakao);color:var(--kakao-txt);font-size:14px;font-weight:700;padding:9px 20px;border-radius:999px;text-decoration:none}
+
+/* PAGE HERO */
+.page-hero{background:linear-gradient(135deg,#deeaff 0%,#f0f5fb 100%);padding:64px 40px;text-align:center}
+.back-link{display:inline-flex;align-items:center;gap:6px;color:var(--blue);font-size:13px;font-weight:600;text-decoration:none;margin-bottom:24px}
+.page-tag{display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;font-size:12px;font-weight:700;padding:6px 16px;border-radius:999px;margin-bottom:16px}
+.page-hero h1{font-size:clamp(28px,4vw,46px);font-weight:900;letter-spacing:-1.5px;line-height:1.2;margin-bottom:12px}
+.page-hero p{font-size:16px;color:var(--gray);margin-bottom:28px}
+.badge-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--white);border:1.5px solid var(--border);border-radius:999px;padding:8px 18px;font-size:14px;font-weight:700;color:var(--navy)}
+.badge .b-blue{color:var(--blue)}
+
+.wrap{max-width:760px;margin:0 auto;padding:0 24px}
+
+/* WHO IS IT FOR */
+.section{padding:64px 24px}
+.section.gray{background:var(--bg)}
+.sec-label{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--blue);margin-bottom:10px}
+.sec-title{font-size:clamp(22px,3vw,34px);font-weight:900;letter-spacing:-1px;margin-bottom:10px}
+.sec-sub{font-size:15px;color:var(--gray);margin-bottom:32px;line-height:1.7}
+
+.who-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.who-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:24px 20px;text-align:center;transition:box-shadow .2s,border-color .2s}
+.who-card:hover{border-color:#C8DCFF;box-shadow:var(--shadow)}
+.who-icon{font-size:36px;margin-bottom:12px;display:block}
+.who-title{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px}
+.who-desc{font-size:12.5px;color:var(--gray);line-height:1.6}
+
+/* FLOW STEPS */
+.flow{display:flex;flex-direction:column;gap:0}
+.flow-step{display:flex;gap:20px;position:relative}
+.flow-step:not(:last-child)::after{content:'';position:absolute;left:23px;top:50px;bottom:-4px;width:2px;background:var(--blue-lt)}
+.flow-circle{width:46px;height:46px;border-radius:50%;background:var(--blue);color:#fff;font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;position:relative;z-index:1}
+.flow-body{padding-bottom:32px;flex:1}
+.flow-body h3{font-size:18px;font-weight:800;letter-spacing:-.4px;margin-bottom:8px;color:var(--navy)}
+.flow-body p{font-size:14px;color:var(--gray);line-height:1.75}
+.flow-card{margin-top:14px;background:var(--blue-lt);border-radius:12px;padding:16px 18px}
+.flow-card p{font-size:13px;color:var(--blue);line-height:1.7}
+.flow-warn{margin-top:14px;background:#FFF2F0;border-radius:12px;padding:14px 18px;font-size:13px;color:#C0392B;line-height:1.7}
+
+/* PHONE MOCKUP */
+.mockup-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.phone-mockup{background:var(--navy);border-radius:36px;padding:16px;box-shadow:0 8px 40px rgba(13,27,53,.25)}
+.phone-screen{background:var(--bg);border-radius:24px;overflow:hidden}
+.phone-topbar{background:var(--blue);padding:14px 16px;display:flex;align-items:center;gap:8px}
+.phone-topbar img{height:18px}
+.phone-topbar span{color:#fff;font-size:13px;font-weight:700}
+.phone-content{padding:20px 16px}
+.phone-field{background:var(--white);border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:13px;color:var(--gray);border:1px solid var(--border)}
+.phone-field strong{display:block;font-size:11px;color:var(--blue);font-weight:700;margin-bottom:3px}
+.phone-btn{background:var(--blue);color:#fff;border-radius:10px;padding:14px;text-align:center;font-size:14px;font-weight:800;margin-top:12px}
+.phone-label{text-align:center;font-size:12px;color:var(--gray-lt);margin-top:10px}
+.mockup-text h3{font-size:20px;font-weight:800;letter-spacing:-.5px;margin-bottom:10px}
+.mockup-text p{font-size:14px;color:var(--gray);line-height:1.75;margin-bottom:16px}
+.check-list{list-style:none;display:flex;flex-direction:column;gap:8px}
+.check-list li{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--navy)}
+.check-list li::before{content:'✓';width:20px;height:20px;background:var(--blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px}
+
+/* CTA */
+.cta-box{background:linear-gradient(135deg,#0D1B35,#1a3a7e);border-radius:20px;padding:48px 40px;text-align:center;margin:48px 0}
+.cta-box h3{font-size:24px;font-weight:900;color:#fff;letter-spacing:-.8px;margin-bottom:10px}
+.cta-box p{font-size:15px;color:rgba(255,255,255,.7);margin-bottom:28px}
+.cta-btns{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+.btn-kakao{display:inline-flex;align-items:center;gap:8px;background:var(--kakao);color:var(--kakao-txt);font-size:15px;font-weight:800;padding:14px 28px;border-radius:14px;text-decoration:none}
+.btn-phone{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.3);color:#fff;font-size:15px;font-weight:700;padding:14px 28px;border-radius:14px;text-decoration:none}
+.cta-note{font-size:12px;color:rgba(255,255,255,.4);margin-top:14px}
+
+/* CAUTION */
+.caution-list{display:flex;flex-direction:column;gap:10px}
+.caution-item{display:flex;gap:14px;align-items:flex-start;background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:18px 20px}
+.caution-num{width:28px;height:28px;border-radius:50%;background:#FFF2F0;color:#C0392B;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.caution-txt{font-size:14px;color:var(--navy);line-height:1.7}
+.caution-txt span{color:var(--gray);font-size:13px;display:block;margin-top:3px}
+
+footer{background:var(--bg);border-top:1px solid var(--border);padding:28px 40px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.foot-logo img{height:24px}
+.foot-info{font-size:12px;color:var(--gray-lt);line-height:1.8;text-align:right}
+
+@media(max-width:700px){
+  nav{padding:0 20px}
+  .page-hero{padding:48px 20px}
+  .who-cards{grid-template-columns:1fr}
+  .mockup-row{grid-template-columns:1fr}
+  .cta-box{padding:36px 24px}
+  footer{flex-direction:column;align-items:flex-start}
+  .foot-info{text-align:left}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-left">
+    <a href="아정당자동차_FAQ.html" class="nav-back">← FAQ 홈</a>
+    <div class="nav-logo"><img src="https://ajdcar-landing.vercel.app/assets/logo.png" alt="아정당자동차"></div>
+  </div>
+  <a href="http://pf.kakao.com/_AEJSn/chat" target="_blank" class="nav-kakao">💬 카톡 상담</a>
+</nav>
+
+<!-- PAGE HERO -->
+<div class="page-hero">
+  <div class="page-tag">📞 전화 가입 방법</div>
+  <h1>전담매니저<br>맞춤상담 가입방법</h1>
+  <p>고객 정보만 입력하면, 보험 전문가가 알아서 해드려요.</p>
+  <div class="badge-row">
+    <div class="badge">💰 광고비 <span class="b-blue">6% 적립</span></div>
+    <div class="badge">⚡ 계약 <span class="b-blue">즉시 적립</span></div>
+    <div class="badge">📞 5분 내 <span class="b-blue">고객 연락</span></div>
+  </div>
+</div>
+
+<!-- WHO IS IT FOR -->
+<div class="section">
+  <div class="wrap">
+    <div class="sec-label">이런 경우에 추천!</div>
+    <h2 class="sec-title">전화상담, 누구에게 맞을까요?</h2>
+    <p class="sec-sub">이런 고객이라면 전화비교 신청이 훨씬 편해요.</p>
+    <div class="who-cards">
+      <div class="who-card">
+        <span class="who-icon">📱</span>
+        <div class="who-title">링크 전달이 어려운 경우</div>
+        <div class="who-desc">유선으로 쉽게 안내가 필요한 고객님</div>
+      </div>
+      <div class="who-card">
+        <span class="who-icon">🔍</span>
+        <div class="who-title">빠른 비교가 필요한 경우</div>
+        <div class="who-desc">통화 한 번으로 저렴한 보험사를 추천받고 싶을 때</div>
+      </div>
+      <div class="who-card">
+        <span class="who-icon">🙏</span>
+        <div class="who-title">핸드폰이 서툰 경우</div>
+        <div class="who-desc">직접 링크를 통한 가입이 어려운 고객님</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FLOW STEPS -->
+<div class="section gray">
+  <div class="wrap">
+    <div class="sec-label">How It Works</div>
+    <h2 class="sec-title">이렇게 진행돼요</h2>
+    <p class="sec-sub">3단계로 간편하게 광고비를 받아가세요.</p>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-circle">①</div>
+        <div class="flow-body">
+          <h3>앱 → [전화비교 신청] 클릭</h3>
+          <p>고객님의 정보(이름, 연락처, 차량번호 등)를 입력하고 [상담요청]을 클릭하세요.<br>딜러님이 직접 입력하시면 더 정확한 상담이 가능해요.</p>
+          <div class="flow-warn">⚠️ 오기재(띄어쓰기 포함) 시 광고비 적립이 지연될 수 있어요! 침착하게 입력해주세요.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-circle">②</div>
+        <div class="flow-body">
+          <h3>베테랑 전담 상담사 5분 내 연락</h3>
+          <p>저렴한 보험사 추천부터 맞춤 할인특약까지 전담 상담사가 고객님과 직접 상담해드려요.<br>딜러님은 신청만 하시면 돼요!</p>
+          <div class="flow-card">
+            <p>🕐 <strong>운영시간:</strong> 평일 09:00~18:00<br>
+            그 외 시간 접수 → 다음 영업일 최우선 연락<br>
+            고객님께 "아정당 전화가 올 것"이라고 미리 알려주세요!</p>
+          </div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-circle">③</div>
+        <div class="flow-body">
+          <h3>계약 완료 → 광고비 즉시 적립</h3>
+          <p>계약이 체결되면 <strong>즉시</strong> 앱에 광고비가 적립됩니다.<br>앱 [광고비관리]에서 실시간으로 확인하세요.</p>
+          <div class="flow-card">
+            <p>💰 <strong>광고비 6% 적립</strong><br>
+            오후 3시 전 출금 신청 → 당일 입금<br>
+            오후 3시 이후 → 익일 입금</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PHONE MOCKUP -->
+<div class="section">
+  <div class="wrap">
+    <div class="sec-label">App Screen</div>
+    <h2 class="sec-title">앱 화면으로 보는<br>가입 신청 방법</h2>
+    <div style="margin-top:32px" class="mockup-row">
+      <div>
+        <div class="phone-mockup">
+          <div class="phone-screen">
+            <div class="phone-topbar">
+              <img src="https://ajdcar-landing.vercel.app/assets/logo.png" alt="">
+              <span>전화비교 신청</span>
+            </div>
+            <div class="phone-content">
+              <div class="phone-field"><strong>고객 성명 *</strong>홍길동</div>
+              <div class="phone-field"><strong>연락처 *</strong>010-1234-5678</div>
+              <div class="phone-field"><strong>차량번호 *</strong>12가3456</div>
+              <div class="phone-field"><strong>차량 종류</strong>국산차</div>
+              <div class="phone-btn">상담 요청하기</div>
+              <div class="phone-label">입력 후 5분 내 전담 매니저 연락</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mockup-text">
+        <h3>이것만 기억하세요!</h3>
+        <p>고객 정보 입력 시 아래 사항을 꼭 확인해주세요. 오기재 시 광고비 적립이 늦어질 수 있어요.</p>
+        <ul class="check-list">
+          <li>성명 띄어쓰기 없이 정확히</li>
+          <li>연락처 정확하게 (하이픈 자동 입력)</li>
+          <li>차량번호 띄어쓰기 없이</li>
+          <li>차량 종류 선택 필수</li>
+        </ul>
+        <div style="margin-top:20px;padding:16px;background:var(--blue-lt);border-radius:12px;font-size:13px;color:var(--blue);line-height:1.7">
+          💡 <strong>오탈자 발생 시</strong><br>
+          광고비 확인 절차 후 적립 가능하지만 일정이 늦어져요.<br>즉시 고객센터 1899-6334로 연락해주세요.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CAUTION -->
+<div class="section gray">
+  <div class="wrap">
+    <div class="sec-label">주의사항</div>
+    <h2 class="sec-title">이런 경우 광고비가<br>적립되지 않아요</h2>
+    <p class="sec-sub">아래 기준을 미리 확인하고 신청해주세요.</p>
+    <div class="caution-list">
+      <div class="caution-item">
+        <div class="caution-num">1</div>
+        <div class="caution-txt">다른 비교견적 채널에서 견적 후 아정당에서 가입한 경우<span>타 사이트에서 이미 견적을 냈다면 적립이 되지 않아요.</span></div>
+      </div>
+      <div class="caution-item">
+        <div class="caution-num">2</div>
+        <div class="caution-txt">계약 후 <strong>1개월 내 취소</strong>된 경우<span>이미 출금된 광고비는 이후 적립금에서 차감될 수 있어요.</span></div>
+      </div>
+      <div class="caution-item">
+        <div class="caution-num">3</div>
+        <div class="caution-txt">책임보험 또는 단기보험 가입인 경우</div>
+      </div>
+      <div class="caution-item">
+        <div class="caution-num">4</div>
+        <div class="caution-txt">이륜차(오토바이) 가입인 경우</div>
+      </div>
+      <div class="caution-item">
+        <div class="caution-num">5</div>
+        <div class="caution-txt">갱신 시 기존과 <strong>동일 보험사</strong>로 재가입한 경우</div>
+      </div>
+    </div>
+    <div style="margin-top:20px;padding:16px 20px;background:#FFFBE0;border-radius:12px;font-size:14px;color:#7A5800;line-height:1.7">
+      💛 기준에 맞는데도 미적립됐다면? → <a href="아정당자동차_FAQ_적립예외.html" style="color:var(--blue);font-weight:700">광고비 적립 예외 기준 확인하기 →</a>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="section">
+  <div class="wrap">
+    <div class="cta-box">
+      <h3>문의사항이 있으신가요?</h3>
+      <p>전담 매니저 연결이 어렵다면 고객센터로 연락해주세요.</p>
+      <div class="cta-btns">
+        <a href="http://pf.kakao.com/_AEJSn/chat" target="_blank" class="btn-kakao">💬 카카오톡 문의</a>
+        <a href="tel:18996334" class="btn-phone">📞 1899-6334</a>
+      </div>
+      <div class="cta-note">앱 [☰] → 마이페이지 → 나의 담당자에서 전담 매니저 연락처 확인 가능</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="foot-logo"><img src="https://ajdcar-landing.vercel.app/assets/logo.png" alt="아정당자동차"></div>
+  <div class="foot-info">(주)아정파이낸셜 · 621-86-19033 · 서울 영등포구 영중로 159</div>
+</footer>
+</body>
+</html>

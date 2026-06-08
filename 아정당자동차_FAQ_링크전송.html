@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>고객직접 견적상담 | 아정당자동차</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#145CE6;--blue-dk:#0c3db0;--blue-lt:#EEF4FF;--navy:#0D1B35;--gray:#697077;--gray-lt:#A2A9B0;--border:#E2E8F0;--bg:#F0F5FB;--white:#fff;--kakao:#FAE300;--kakao-txt:#1A1200;--r:16px;--shadow:0 4px 24px rgba(20,92,230,.10)}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--white);color:var(--navy);-webkit-font-smoothing:antialiased}
+nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);height:64px;display:flex;align-items:center;padding:0 40px;justify-content:space-between;gap:12px}
+.nav-left{display:flex;align-items:center;gap:16px}
+.nav-back{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--gray);text-decoration:none;font-weight:500}
+.nav-back:hover{color:var(--blue)}
+.nav-logo img{height:28px}
+.nav-kakao{background:var(--kakao);color:var(--kakao-txt);font-size:14px;font-weight:700;padding:9px 20px;border-radius:999px;text-decoration:none}
+
+.page-hero{background:linear-gradient(135deg,#deeaff 0%,#f0f5fb 100%);padding:64px 40px;text-align:center}
+.page-tag{display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;font-size:12px;font-weight:700;padding:6px 16px;border-radius:999px;margin-bottom:16px}
+.page-hero h1{font-size:clamp(28px,4vw,46px);font-weight:900;letter-spacing:-1.5px;line-height:1.2;margin-bottom:12px}
+.page-hero p{font-size:16px;color:var(--gray);margin-bottom:28px}
+.badge-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--white);border:1.5px solid var(--border);border-radius:999px;padding:8px 18px;font-size:14px;font-weight:700;color:var(--navy)}
+.badge .b-blue{color:var(--blue)}
+
+.wrap{max-width:760px;margin:0 auto;padding:0 24px}
+.section{padding:64px 24px}
+.section.gray{background:var(--bg)}
+.sec-label{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--blue);margin-bottom:10px}
+.sec-title{font-size:clamp(22px,3vw,34px);font-weight:900;letter-spacing:-1px;margin-bottom:10px}
+.sec-sub{font-size:15px;color:var(--gray);margin-bottom:32px;line-height:1.7}
+
+/* COMPARE */
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.cmp-card{border-radius:var(--r);padding:24px;border:1.5px solid var(--border)}
+.cmp-card.active{border-color:var(--blue);background:var(--blue-lt)}
+.cmp-label{font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-lt);margin-bottom:8px}
+.cmp-card.active .cmp-label{color:var(--blue)}
+.cmp-title{font-size:17px;font-weight:800;color:var(--navy);margin-bottom:10px}
+.cmp-list{list-style:none;display:flex;flex-direction:column;gap:7px}
+.cmp-list li{display:flex;align-items:flex-start;gap:8px;font-size:13.5px;color:var(--gray);line-height:1.5}
+.cmp-list li::before{content:'✓';width:18px;height:18px;background:var(--blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;margin-top:1px}
+
+/* FLOW */
+.flow{display:flex;flex-direction:column;gap:0}
+.flow-step{display:flex;gap:20px;position:relative}
+.flow-step:not(:last-child)::after{content:'';position:absolute;left:23px;top:50px;bottom:-4px;width:2px;background:var(--blue-lt)}
+.flow-circle{width:46px;height:46px;border-radius:50%;background:var(--blue);color:#fff;font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;position:relative;z-index:1}
+.flow-body{padding-bottom:32px;flex:1}
+.flow-body h3{font-size:18px;font-weight:800;letter-spacing:-.4px;margin-bottom:8px;color:var(--navy)}
+.flow-body p{font-size:14px;color:var(--gray);line-height:1.75}
+.flow-card{margin-top:14px;background:var(--blue-lt);border-radius:12px;padding:16px 18px;font-size:13px;color:var(--blue);line-height:1.7}
+.flow-warn{margin-top:14px;background:#FFF2F0;border-radius:12px;padding:14px 18px;font-size:13px;color:#C0392B;line-height:1.7}
+
+/* PHONE MOCKUP */
+.mockup-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;margin-top:32px}
+.phone-mockup{background:var(--navy);border-radius:36px;padding:16px;box-shadow:0 8px 40px rgba(13,27,53,.25)}
+.phone-screen{background:var(--bg);border-radius:24px;overflow:hidden}
+.phone-topbar{background:var(--blue);padding:14px 16px;display:flex;align-items:center;gap:8px}
+.phone-topbar img{height:18px}
+.phone-topbar span{color:#fff;font-size:13px;font-weight:700}
+.phone-content{padding:20px 16px}
+.phone-field{background:var(--white);border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:13px;color:var(--gray);border:1px solid var(--border)}
+.phone-field strong{display:block;font-size:11px;color:var(--blue);font-weight:700;margin-bottom:3px}
+.link-box{background:var(--blue-lt);border:1.5px dashed var(--blue);border-radius:10px;padding:12px;text-align:center;margin-top:8px}
+.link-box .link-icon{font-size:24px;margin-bottom:4px}
+.link-box .link-txt{font-size:11px;color:var(--blue);font-weight:700}
+.phone-btn{background:var(--blue);color:#fff;border-radius:10px;padding:14px;text-align:center;font-size:14px;font-weight:800;margin-top:12px}
+.mockup-text h3{font-size:20px;font-weight:800;letter-spacing:-.5px;margin-bottom:10px}
+.mockup-text p{font-size:14px;color:var(--gray);line-height:1.75;margin-bottom:16px}
+
+/* 핵심 포인트 */
+.point-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.point-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:24px 18px;text-align:center}
+.point-icon{font-size:36px;margin-bottom:10px;display:block}
+.point-title{font-size:14px;font-weight:800;color:var(--navy);margin-bottom:5px}
+.point-desc{font-size:12.5px;color:var(--gray);line-height:1.6}
+
+.cta-box{background:linear-gradient(135deg,#0D1B35,#1a3a7e);border-radius:20px;padding:48px 40px;text-align:center;margin:24px 0 48px}
+.cta-box h3{font-size:24px;font-weight:900;color:#fff;letter-spacing:-.8px;margin-bottom:10px}
+.cta-box p{font-size:15px;color:rgba(255,255,255,.7);margin-bottom:28px}
+.cta-btns{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+.btn-kakao{display:inline-flex;align-items:center;gap:8px;background:var(--kakao);color:var(--kakao-txt);font-size:15px;font-weight:800;padding:14px 28px;border-radius:14px;text-decoration:none}
+.btn-phone{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.3);color:#fff;font-size:15px;font-weight:700;padding:14px 28px;border-radius:14px;text-decoration:none}
+
+footer{background:var(--bg);border-top:1px solid var(--border);padding:28px 40px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.foot-logo img{height:24px}
+.foot-info{font-size:12px;color:var(--gray-lt);line-height:1.8;text-align:right}
+
+@media(max-width:700px){
+  nav{padding:0 20px}
+  .page-hero{padding:48px 20px}
+  .compare-grid,.mockup-row,.point-grid{grid-template-columns:1fr}
+  .cta-box{padding:36px 24px}
+  footer{flex-direction:column;align-items:flex-start;padding:24px 20px}
+  .foot-info{text-align:left}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-left">
+    <a href="아정당자동차_FAQ.html" class="nav-back">← FAQ 홈</a>
+    <div class="nav-logo"><img src="https://ajdcar-landing.vercel.app/assets/logo.png" alt="아정당자동차"></div>
+  </div>
+  <a href="http://pf.kakao.com/_AEJSn/chat" target="_blank" class="nav-kakao">💬 카톡 상담</a>
+</nav>
+
+<div class="page-hero">
+  <div class="page-tag">🔗 온라인 링크 전송</div>
+  <h1>고객직접 견적상담<br>(온라인 주소 전송)</h1>
+  <p>링크 하나만 보내면 끝! 고객이 직접 입력하고, 매니저가 연락해요.</p>
+  <div class="badge-row">
+    <div class="badge">💰 광고비 <span class="b-blue">6% 적립</span></div>
+    <div class="badge">🔗 <span class="b-blue">링크 전송만</span> 하면 OK</div>
+    <div class="badge">📞 고객 직접 <span class="b-blue">해피콜</span></div>
+  </div>
+</div>
+
+<!-- 언제 쓰나요 -->
+<div class="section">
+  <div class="wrap">
+    <div class="sec-label">추천 상황</div>
+    <h2 class="sec-title">링크 전송, 이럴 때<br>쓰면 딱이에요!</h2>
+    <p class="sec-sub">두 방법을 비교해보고 상황에 맞게 선택하세요.</p>
+    <div class="compare-grid">
+      <div class="cmp-card active">
+        <div class="cmp-label">✅ 링크 전송 추천</div>
+        <div class="cmp-title">🔗 온라인 링크 전송</div>
+        <ul class="cmp-list">
+          <li>고객 정보 입력이 번거로울 때</li>
+          <li>고객이 스스로 정보를 입력하길 원할 때</li>
+          <li>딜러님 시간을 아끼고 싶을 때</li>
+        </ul>
+      </div>
+      <div class="cmp-card">
+        <div class="cmp-label">📞 전화상담 추천</div>
+        <div class="cmp-title">📞 전담매니저 상담</div>
+        <ul class="cmp-list">
+          <li>고객이 폰을 잘 못 다루시는 경우</li>
+          <li>통화로 바로 진행하고 싶을 때</li>
+          <li>정확한 정보로 빠르게 상담할 때</li>
+        </ul>
+      </div>
+    </div>
+    <a href="아정당자동차_FAQ_매니저상담.html" style="display:inline-flex;align-items:center;gap:6px;color:var(--blue);font-size:14px;font-weight:700;text-decoration:none">전담매니저 상담 자세히 보기 →</a>
+  </div>
+</div>
+
+<!-- FLOW -->
+<div class="section gray">
+  <div class="wrap">
+    <div class="sec-label">진행 방법</div>
+    <h2 class="sec-title">이렇게 진행돼요</h2>
+    <p class="sec-sub">4단계로 간편하게 광고비를 받아가세요.</p>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-circle">①</div>
+        <div class="flow-body">
+          <h3>앱 → [웹주소 전송] 클릭</h3>
+          <p>고객님 연락처를 입력하면 고객님께 <strong>보험 가입 전용 링크</strong>가 문자로 발송돼요.<br>딜러님은 링크만 전달하면 끝!</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-circle">②</div>
+        <div class="flow-body">
+          <h3>고객이 링크에서 직접 정보 입력</h3>
+          <p>고객님이 링크에 접속해 본인 정보(이름, 차량번호, 보험 만료일 등)를 직접 입력해요.</p>
+          <div class="flow-warn">⚠️ 고객이 직접 보험사 사이트에서 가입하면 광고비가 적립되지 않아요! 반드시 아정당 링크를 통해 가입해야 해요.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-circle">③</div>
+        <div class="flow-body">
+          <h3>전담 매니저 해피콜 & 계약 진행</h3>
+          <p>고객님이 정보를 입력하면 전담 매니저가 직접 연락해 맞춤형 상담을 진행해요.</p>
+          <div class="flow-card">🕐 운영시간: 평일 09:00~18:00 / 그 외 시간은 다음 영업일 연락</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-circle">④</div>
+        <div class="flow-body">
+          <h3>계약 완료 → 광고비 즉시 적립</h3>
+          <p>계약 체결 즉시 앱에 광고비 <strong>6%</strong>가 적립돼요.</p>
+          <div class="flow-card">💰 광고비 6% 적립 · 오후 3시 전 출금 신청 → 당일 입금</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div class="section">
+  <div class="wrap">
+    <div class="sec-label">App Screen</div>
+    <h2 class="sec-title">앱 화면으로 보는<br>링크 전송 방법</h2>
+    <div class="mockup-row">
+      <div>
+        <div class="phone-mockup">
+          <div class="phone-screen">
+            <div class="phone-topbar">
+              <img src="https://ajdcar-landing.vercel.app/assets/logo.png" alt="">
+              <span>가입링크 전송</span>
+            </div>
+            <div class="phone-content">
+              <div class="phone-field"><strong>고객 연락처 *</strong>010-1234-5678</div>
+              <div class="phone-field"><strong>고객 성명 (선택)</strong>홍길동</div>
+              <div class="link-box">
+                <div class="link-icon">🔗</div>
+                <div class="link-txt">고객 전용 가입 링크 발송</div>
+              </div>
+              <div class="phone-btn">링크 전송하기</div>
+              <div style="text-align:center;font-size:11px;color:var(--gray-lt);margin-top:8px">고객이 링크 접속 후 직접 정보 입력</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mockup-text">
+        <h3>꼭 알아두세요!</h3>
+        <p>링크 전송 방식은 딜러님 편의를 위한 방법이에요. 단, 아래 사항을 고객에게 꼭 안내해주세요.</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="background:var(--blue-lt);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--blue);line-height:1.7">
+            📌 <strong>고객에게 꼭 전달할 말</strong><br>
+            "링크에서 정보 입력 후, 아정당 매니저에게 전화가 올 거에요!"
+          </div>
+          <div style="background:#FFF2F0;border-radius:12px;padding:14px 16px;font-size:13px;color:#C0392B;line-height:1.7">
+            ⚠️ 고객이 링크를 통하지 않고 직접 보험사 홈페이지에서 가입 시 광고비 미적립
+          </div>
+          <div style="background:#FFFBE0;border-radius:12px;padding:14px 16px;font-size:13px;color:#7A5800;line-height:1.7">
+            💛 광고비 6% 적립 기준은 <strong>계약 체결 기준</strong>이에요.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 핵심 포인트 -->
+<div class="section gray">
+  <div class="wrap">
+    <div class="sec-label">핵심 포인트</div>
+    <h2 class="sec-title">링크 전송의 장점</h2>
+    <div class="point-grid">
+      <div class="point-card">
+        <span class="point-icon">⏱</span>
+        <div class="point-title">딜러님 시간 절약</div>
+        <div class="point-desc">고객 정보를 직접 입력할 필요 없이 링크만 전달하면 끝!</div>
+      </div>
+      <div class="point-card">
+        <span class="point-icon">📋</span>
+        <div class="point-title">정확한 정보 입력</div>
+        <div class="point-desc">고객이 직접 본인 정보를 입력하니 오기재 가능성이 낮아요.</div>
+      </div>
+      <div class="point-card">
+        <span class="point-icon">💰</span>
+        <div class="point-title">동일한 광고비 6%</div>
+        <div class="point-desc">전화 신청과 동일하게 6% 광고비가 적립돼요.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="wrap">
+    <div class="cta-box">
+      <h3>문의사항이 있으신가요?</h3>
+      <p>전담 매니저 또는 고객센터에서 빠르게 도와드려요.</p>
+      <div class="cta-btns">
+        <a href="http://pf.kakao.com/_AEJSn/chat" target="_blank" class="btn-kakao">💬 카카오톡 문의</a>
+        <a href="tel:18996334" class="btn-phone">📞 1899-6334</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="foot-logo"><img src="https://ajdcar-landing.vercel.app/assets/logo.png" alt="아정당자동차"></div>
+  <div class="foot-info">(주)아정파이낸셜 · 621-86-19033 · 서울 영등포구 영중로 159</div>
+</footer>
+</body>
+</html>

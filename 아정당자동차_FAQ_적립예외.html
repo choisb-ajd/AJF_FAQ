@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>광고비 적립 예외 기준 | 아정당자동차</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#145CE6;--blue-dk:#0c3db0;--blue-lt:#EEF4FF;--blue-md:#C8DCFF;
+  --navy:#0D1B35;--gray:#697077;--gray-lt:#A2A9B0;
+  --border:#E2E8F0;--bg:#F0F5FB;--white:#fff;
+  --kakao:#FAE300;--kakao-txt:#1A1200;
+  --red:#E74C3C;--red-lt:#FFF2F0;--red-md:#FECACA;
+  --orange:#F5A623;--orange-lt:#FFF8EE;
+  --r:16px;--shadow:0 4px 24px rgba(20,92,230,.10)
+}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--white);color:var(--navy);-webkit-font-smoothing:antialiased}
+
+nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);height:64px;display:flex;align-items:center;padding:0 40px;justify-content:space-between;gap:12px}
+.nav-left{display:flex;align-items:center;gap:16px}
+.nav-back{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--gray);text-decoration:none;font-weight:500;transition:color .18s}
+.nav-back:hover{color:var(--blue)}
+.nav-logo img{height:28px}
+.nav-kakao{background:var(--kakao);color:var(--kakao-txt);font-size:14px;font-weight:700;padding:9px 20px;border-radius:999px;text-decoration:none}
+
+/* HERO - 경고 무드 */
+.page-hero{background:linear-gradient(135deg,#fff2f0 0%,#f0f5fb 60%,#eef4ff 100%);padding:64px 40px;text-align:center;border-bottom:3px solid var(--red)}
+.page-tag{display:inline-flex;align-items:center;gap:6px;background:var(--red);color:#fff;font-size:12px;font-weight:700;padding:6px 16px;border-radius:999px;margin-bottom:16px}
+.page-hero h1{font-size:clamp(28px,4vw,46px);font-weight:900;letter-spacing:-1.5px;line-height:1.2;margin-bottom:12px}
+.page-hero p{font-size:16px;color:var(--gray);margin-bottom:28px}
+.hero-warning{display:inline-flex;align-items:center;gap:10px;background:var(--red-lt);border:1.5px solid var(--red-md);border-radius:12px;padding:12px 24px;font-size:14px;color:var(--red);font-weight:700}
+
+.wrap{max-width:800px;margin:0 auto;padding:0 24px}
+.section{padding:64px 24px}
+.section.gray{background:var(--bg)}
+.sec-label{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.sec-label.red{color:var(--red)}
+.sec-label.blue{color:var(--blue)}
+.sec-title{font-size:clamp(22px,3vw,34px);font-weight:900;letter-spacing:-1px;margin-bottom:10px}
+.sec-sub{font-size:15px;color:var(--gray);margin-bottom:32px;line-height:1.7}
+
+/* 예외 카드 - 큼직하게 */
+.exception-list{display:flex;flex-direction:column;gap:12px;margin-bottom:32px}
+.ex-card{display:flex;gap:20px;align-items:flex-start;background:var(--white);border:1.5px solid var(--red-md);border-radius:var(--r);padding:24px;transition:box-shadow .2s}
+.ex-card:hover{box-shadow:0 4px 20px rgba(231,76,60,.10)}
+.ex-num{width:40px;height:40px;border-radius:50%;background:var(--red);color:#fff;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-body{flex:1}
+.ex-title{font-size:17px;font-weight:800;color:var(--navy);margin-bottom:6px}
+.ex-desc{font-size:14px;color:var(--gray);line-height:1.7}
+.ex-sub{margin-top:10px;padding:10px 14px;background:var(--red-lt);border-radius:10px;font-size:13px;color:var(--red);line-height:1.6}
+
+/* 오류 예시 - 상세 */
+.error-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.error-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:20px}
+.ec-icon{font-size:28px;margin-bottom:10px;display:block}
+.ec-title{font-size:14px;font-weight:800;color:var(--navy);margin-bottom:6px}
+.ec-desc{font-size:13px;color:var(--gray);line-height:1.65}
+.ec-example{margin-top:10px;background:var(--orange-lt);border-radius:8px;padding:8px 12px;font-size:12px;color:#7A4800;line-height:1.6}
+
+/* 해결 방법 */
+.solution-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sol-card{border-radius:var(--r);padding:24px;border:1.5px solid var(--border);background:var(--white)}
+.sol-icon{font-size:32px;margin-bottom:12px;display:block}
+.sol-title{font-size:15px;font-weight:800;color:var(--navy);margin-bottom:6px}
+.sol-desc{font-size:13.5px;color:var(--gray);line-height:1.7}
+.sol-step{margin-top:10px;padding:10px 13px;background:var(--blue-lt);border-radius:10px;font-size:12.5px;color:var(--blue);line-height:1.6}
+
+/* 체크리스트 */
+.checklist-box{background:var(--blue-lt);border:1.5px solid var(--blue-md);border-radius:var(--r);padding:28px}
+.checklist-box h3{font-size:18px;font-weight:800;color:var(--navy);margin-bottom:16px}
+.checklist{display:flex;flex-direction:column;gap:10px}
+.cl-item{display:flex;align-items:flex-start;gap:12px;font-size:14px;color:var(--navy);line-height:1.6}
+.cl-check{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;margin-top:1px}
+
+/* 적립 OK 배너 */
+.ok-banner{background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border:1.5px solid #A5D6A7;border-radius:var(--r);padding:24px 28px;display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.ok-icon{font-size:40px;flex-shrink:0}
+.ok-text h4{font-size:16px;font-weight:800;color:#1B5E20;margin-bottom:4px}
+.ok-text p{font-size:13.5px;color:#2E7D32;line-height:1.6}
+
+/* CTA */
+.cta-box{background:linear-gradient(135deg,#0D1B35,#1a3a7e);border-radius:20px;padding:48px 40px;text-align:center;margin-top:16px}
+.cta-box h3{font-size:24px;font-weight:900;color:#fff;letter-spacing:-.8px;margin-bottom:10px}
+.cta-box p{font-size:15px;color:rgba(255,255,255,.7);margin-bottom:28px}
+.cta-btns{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+.btn-kakao{display:inline-flex;align-items:center;gap:8px;background:var(--kakao);color:var(--kakao-txt);font-size:15px;font-weight:800;padding:14px 28px;border-radius:14px;text-decoration:none}
+.btn-phone{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.3);color:#fff;font-size:15px;font-weight:700;padding:14px 28px;border-radius:14px;text-decoration:none}
+.cta-note{font-size:12px;color:rgba(255,255,255,.4);margin-top:14px}
+
+footer{background:var(--bg);border-top:1px solid var(--border);padding:28px 40px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.foot-logo img{height:24px}
+.foot-info{font-size:12px;color:var(--gray-lt);line-height:1.8;text-align:right}
+
+@media(max-width:700px){
+  nav{padding:0 20px}
+  .page-hero{padding:48px 20px}
+  .error-grid,.solution-cards{grid-template-columns:1fr}
+  .cta-box{padding:36px 24px}
+  footer{flex-direction:column;align-items:flex-start;padding:24px 20px}
+  .foot-info{text-align:left}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-left">
+    <a href="아정당자동차_FAQ.html" class="nav-back">← FAQ 홈</a>
+    <div class="nav-logo"><img src="https://ajdcar-landing.vercel.app/assets/logo.png" alt="아정당자동차"></div>
+  </div>
+  <a href="http://pf.kakao.com/_AEJSn/chat" target="_blank" class="nav-kakao">💬 카톡 상담</a>
+</nav>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="page-tag">⚠️ 적립 예외 기준</div>
+  <h1>광고비 적립<br>예외 기준 안내</h1>
+  <p>계약이 완료되어도 아래 경우엔 광고비가 적립되지 않아요.</p>
+  <div class="hero-warning">⚠️ 신청 전 반드시 확인해주세요!</div>
+</div>
+
+<!-- 5가지 예외 기준 -->
+<div class="section">
+  <div class="wrap">
+    <div class="sec-label red">적립 불가 기준</div>
+    <h2 class="sec-title">이 경우엔 광고비가<br>적립되지 않아요</h2>
+    <p class="sec-sub">아래 5가지 예외 기준을 미리 확인하고 신청해주세요.</p>
+
+    <div class="exception-list">
+      <div class="ex-card">
+        <div class="ex-num">1</div>
+        <div class="ex-body">
+          <div class="ex-title">다른 비교견적 채널 이용 후 아정당에서 가입한 경우</div>
+          <div class="ex-desc">타 사이트나 앱에서 이미 견적을 조회한 후 아정당으로 가입하면 광고비가 적립되지 않아요.</div>
+          <div class="ex-sub">💡 고객에게 "처음부터 아정당 링크로만 가입하세요"라고 안내해주세요.</div>
+        </div>
+      </div>
+
+      <div class="ex-card">
+        <div class="ex-num">2</div>
+        <div class="ex-body">
+          <div class="ex-title">계약 후 1개월 내에 취소된 경우</div>
+          <div class="ex-desc">계약 체결 후 1개월 이내 취소 시, 이미 적립·출금된 광고비는 이후 적립금에서 차감될 수 있어요.</div>
+          <div class="ex-sub">⚠️ 출금까지 완료된 광고비도 환수 대상이 될 수 있으니 주의하세요.</div>
+        </div>
+      </div>
+
+      <div class="ex-card">
+        <div class="ex-num">3</div>
+        <div class="ex-body">
+          <div class="ex-title">책임보험 또는 단기보험 가입인 경우</div>
+          <div class="ex-desc">책임보험(의무보험)과 단기보험은 광고비 지원 대상에서 제외돼요.</div>
+        </div>
+      </div>
+
+      <div class="ex-card">
+        <div class="ex-num">4</div>
+        <div class="ex-body">
+          <div class="ex-title">이륜차(오토바이) 가입인 경우</div>
+          <div class="ex-desc">이륜자동차 보험은 광고비 지원 대상에서 제외돼요.</div>
+        </div>
+      </div>
+
+      <div class="ex-card">
+        <div class="ex-num">5</div>
+        <div class="ex-body">
+          <div class="ex-title">갱신 시 기존과 동일한 보험사로 재가입한 경우</div>
+          <div class="ex-desc">보험 갱신 시 기존 보험사와 동일한 보험사로 다시 가입하면 광고비 적립이 되지 않아요.</div>
+          <div class="ex-sub">💡 다른 보험사로 변경하면 광고비 적립이 가능해요! 매니저가 최저가 보험사로 안내해드려요.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 기준은 맞는데 미적립된 경우 -->
+<div class="section gray">
+  <div class="wrap">
+    <div class="sec-label red">간혹 발생하는 미적립 케이스</div>
+    <h2 class="sec-title">기준에 맞는데도<br>적립이 안 됐나요?</h2>
+    <p class="sec-sub">아래 실수들 때문인 경우가 많아요. 확인해보세요.</p>
+
+    <div class="error-grid">
+      <div class="error-card">
+        <span class="ec-icon">✏️</span>
+        <div class="ec-title">고객 정보 오기재</div>
+        <div class="ec-desc">고객 성명란에 딜러 본인 이름을 적거나, 고객 정보를 잘못 입력한 경우</div>
+        <div class="ec-example">예) 고객 성명란에 "홍길동(딜러)" 입력 → 미적립</div>
+      </div>
+      <div class="error-card">
+        <span class="ec-icon">🔢</span>
+        <div class="ec-title">차량번호 입력 오류</div>
+        <div class="ec-desc">차량번호 띄어쓰기, 고객 성함이나 전화번호 오기재</div>
+        <div class="ec-example">예) "12가 3456" (띄어쓰기 포함) → 미적립 가능성</div>
+      </div>
+      <div class="error-card">
+        <span class="ec-icon">🚗</span>
+        <div class="ec-title">동일 명의 여러 대 차량 중 일부만 접수</div>
+        <div class="ec-desc">같은 명의의 여러 대 차량 중 1대만 접수한 경우, 나머지 차량은 별도 접수가 필요해요.</div>
+        <div class="ec-example">추가 접수가 필요할 경우 고객센터에 별도 연락!</div>
+      </div>
+      <div class="error-card">
+        <span class="ec-icon">🔍</span>
+        <div class="ec-title">차대번호 vs 차량번호 불일치</div>
+        <div class="ec-desc">차대번호로 가입 요청했지만 보험사에서 차량번호로 조회되는 경우</div>
+        <div class="ec-example">차량번호 기준으로 재등록이 필요할 수 있어요.</div>
+      </div>
+      <div class="error-card">
+        <span class="ec-icon">🏢</span>
+        <div class="ec-title">법인 가입 시 연락처 미기재</div>
+        <div class="ec-desc">법인 명의로 접수하면서 고객 연락처를 기재하지 않은 경우</div>
+        <div class="ec-example">법인 가입은 반드시 전화 가입으로, 고객 연락처 필수!</div>
+      </div>
+      <div class="error-card">
+        <span class="ec-icon">🌐</span>
+        <div class="ec-title">직접 보험사 접속 후 가입</div>
+        <div class="ec-desc">고객이 아정당 링크를 거치지 않고 직접 보험사 홈페이지에서 가입한 경우</div>
+        <div class="ec-example">반드시 아정당 전용 링크로 접속 후 가입해야 해요!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 신청 전 체크리스트 -->
+<div class="section">
+  <div class="wrap">
+    <div class="sec-label blue">신청 전 체크리스트</div>
+    <h2 class="sec-title">광고비 100% 받기 위한<br>신청 전 확인 사항</h2>
+    <p class="sec-sub">이것만 지키면 미적립 걱정 없어요!</p>
+
+    <div class="ok-banner">
+      <div class="ok-icon">✅</div>
+      <div class="ok-text">
+        <h4>아래 항목을 모두 확인했다면 광고비 적립 OK!</h4>
+        <p>신청 전 딜러님이 직접 체크해주시면 누락 없이 광고비를 받으실 수 있어요.</p>
+      </div>
+    </div>
+
+    <div class="checklist-box">
+      <h3>📋 신청 전 필수 체크리스트</h3>
+      <div class="checklist">
+        <div class="cl-item"><div class="cl-check">✓</div>고객 성명이 정확한지 확인 (띄어쓰기 없이)</div>
+        <div class="cl-item"><div class="cl-check">✓</div>고객 연락처가 정확한지 확인</div>
+        <div class="cl-item"><div class="cl-check">✓</div>차량번호가 정확한지 확인 (띄어쓰기 없이)</div>
+        <div class="cl-item"><div class="cl-check">✓</div>고객이 다른 채널에서 견적을 보지 않았는지 확인</div>
+        <div class="cl-item"><div class="cl-check">✓</div>책임보험, 단기보험, 이륜차가 아닌지 확인</div>
+        <div class="cl-item"><div class="cl-check">✓</div>갱신 시 다른 보험사로 변경하는지 확인</div>
+        <div class="cl-item"><div class="cl-check">✓</div>법인 가입인 경우 고객 연락처 기재 여부 확인</div>
+        <div class="cl-item"><div class="cl-check">✓</div>고객이 아정당 전용 링크로만 접속하도록 안내</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="section gray">
+  <div class="wrap">
+    <div class="cta-box">
+      <h3>기준에 맞는데 미적립됐나요?</h3>
+      <p>전담 매니저 또는 고객센터로 바로 연락해 주시면 확인해드려요.<br>이름·연락처·고객 정보를 함께 알려주시면 더 빠르게 처리해드려요.</p>
+      <div class="cta-btns">
+        <a href="http://pf.kakao.com/_AEJSn/chat" target="_blank" class="btn-kakao">💬 카카오톡 문의</a>
+        <a href="tel:18996334" class="btn-phone">📞 1899-6334</a>
+      </div>
+      <div class="cta-note">앱 [☰] → 마이페이지 → 나의 담당자에서 전담 매니저 연락처 확인</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="foot-logo"><img src="https://ajdcar-landing.vercel.app/assets/logo.png" alt="아정당자동차"></div>
+  <div class="foot-info">(주)아정파이낸셜 · 621-86-19033 · 서울 영등포구 영중로 159</div>
+</footer>
+</body>
+</html>
