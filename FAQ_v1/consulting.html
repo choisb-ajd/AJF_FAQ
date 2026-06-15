@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>전담매니저 맞춤 상담 가입 방법 | 아정당자동차 FAQ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --blue: #145CE6;
+      --blue-dark: #0f48b8;
+      --blue-light: #E8F0FE;
+      --bg-white: #FFFFFF;
+      --bg-gray: #F5F7FC;
+      --text-primary: #111827;
+      --text-secondary: #4B5563;
+      --text-muted: #9CA3AF;
+      --kakao: #FAE300;
+      --kakao-text: #3A1D1D;
+      --border: #E5E7EB;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --shadow: 0 4px 20px rgba(20, 92, 230, 0.10);
+      --shadow-card: 0 2px 12px rgba(0,0,0,0.07);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--bg-white);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── NAV ─────────────────────────────────────────────── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg-white);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .nav-back {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      color: var(--blue);
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+    }
+
+    .nav-back:hover {
+      opacity: 0.75;
+    }
+
+    .nav-back svg {
+      flex-shrink: 0;
+    }
+
+    .nav-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-align: center;
+      flex: 1;
+    }
+
+    .nav-spacer {
+      width: 80px;
+    }
+
+    /* ─── HERO ────────────────────────────────────────────── */
+    .hero {
+      background: var(--blue);
+      padding: 56px 20px 60px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -80px;
+      left: -40px;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.35);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 5px 16px;
+      border-radius: 100px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: clamp(22px, 5vw, 32px);
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.3;
+      margin-bottom: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-sub {
+      font-size: clamp(14px, 3vw, 17px);
+      color: rgba(255,255,255,0.85);
+      font-weight: 400;
+      max-width: 480px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ─── SECTIONS ────────────────────────────────────────── */
+    .section {
+      padding: 60px 20px;
+    }
+
+    .section--gray {
+      background: var(--bg-gray);
+    }
+
+    .section-inner {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 10px;
+    }
+
+    .section-title {
+      font-size: clamp(20px, 4vw, 26px);
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 36px;
+      line-height: 1.3;
+    }
+
+    /* ─── STEPS TIMELINE ──────────────────────────────────── */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 0 20px;
+      position: relative;
+    }
+
+    .step-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .step-num {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(20,92,230,0.35);
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-line {
+      flex: 1;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--blue), var(--blue-light));
+      margin: 4px 0;
+      min-height: 32px;
+    }
+
+    .step:last-child .step-line {
+      display: none;
+    }
+
+    .step-body {
+      padding: 6px 0 36px;
+    }
+
+    .step:last-child .step-body {
+      padding-bottom: 0;
+    }
+
+    .step-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+
+    .step-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .step-tag {
+      display: inline-block;
+      background: var(--blue-light);
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 100px;
+      margin-top: 8px;
+    }
+
+    /* ─── PHONE FRAMES ────────────────────────────────────── */
+    .phones {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 40px;
+    }
+
+    .phone-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .phone-frame {
+      width: 100%;
+      max-width: 160px;
+      aspect-ratio: 9/17;
+      background: #fff;
+      border-radius: 24px;
+      border: 3px solid #D1D5DB;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12), inset 0 0 0 1px rgba(255,255,255,0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .phone-frame::before {
+      content: '';
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40%;
+      height: 6px;
+      background: #D1D5DB;
+      border-radius: 100px;
+    }
+
+    .phone-screen {
+      width: 100%;
+      flex: 1;
+      background: var(--blue-light);
+      border-radius: 12px;
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 8px;
+      gap: 6px;
+    }
+
+    .phone-screen-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--blue);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .phone-screen-icon svg {
+      color: #fff;
+    }
+
+    .phone-screen-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--blue);
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .phone-caption {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* ─── ADVANTAGE CARDS ─────────────────────────────────── */
+    .advantage-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .advantage-card {
+      background: var(--bg-white);
+      border-radius: var(--radius);
+      padding: 28px 22px;
+      box-shadow: var(--shadow-card);
+      border: 1px solid var(--border);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .advantage-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(20,92,230,0.13);
+    }
+
+    .advantage-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--blue-light);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .advantage-icon svg {
+      color: var(--blue);
+    }
+
+    .advantage-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .advantage-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    /* ─── FAQ SUB ─────────────────────────────────────────── */
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .faq-item {
+      background: var(--bg-white);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+
+    .faq-question {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 20px 22px;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+
+    .faq-question:hover {
+      background: var(--blue-light);
+    }
+
+    .faq-q-mark {
+      width: 28px;
+      height: 28px;
+      background: var(--blue);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 800;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .faq-q-text {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    .faq-toggle {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: transform 0.25s;
+    }
+
+    .faq-toggle svg {
+      color: var(--text-muted);
+    }
+
+    .faq-item.open .faq-toggle {
+      transform: rotate(180deg);
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+    }
+
+    .faq-item.open .faq-answer {
+      max-height: 300px;
+    }
+
+    .faq-answer-inner {
+      padding: 0 22px 20px 64px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+
+    /* ─── CTA ─────────────────────────────────────────────── */
+    .cta-section {
+      padding: 60px 20px;
+      background: var(--bg-white);
+      text-align: center;
+    }
+
+    .cta-inner {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .cta-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .cta-sub {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+    }
+
+    .btn-kakao {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--kakao);
+      color: var(--kakao-text);
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 16px 32px;
+      border-radius: 14px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      max-width: 340px;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(250,227,0,0.45);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .btn-kakao:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(250,227,0,0.55);
+    }
+
+    .btn-kakao:active {
+      transform: translateY(0);
+    }
+
+    .kakao-icon {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .link-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 20px;
+      text-decoration: none;
+      color: var(--blue);
+      font-size: 14px;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+
+    .link-back:hover {
+      opacity: 0.75;
+    }
+
+    /* ─── FOOTER ──────────────────────────────────────────── */
+    footer {
+      background: #1F2937;
+      color: rgba(255,255,255,0.6);
+      padding: 36px 20px 40px;
+      text-align: center;
+    }
+
+    .footer-logo {
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 10px;
+      letter-spacing: -0.01em;
+    }
+
+    .footer-logo span {
+      color: #5B8FF9;
+    }
+
+    .footer-info {
+      font-size: 12px;
+      line-height: 1.9;
+      margin-bottom: 14px;
+    }
+
+    .footer-copy {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+    }
+
+    /* ─── RESPONSIVE ──────────────────────────────────────── */
+    @media (max-width: 520px) {
+      .phones {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+
+      .phone-frame {
+        border-radius: 18px;
+        border-width: 2px;
+      }
+
+      .advantage-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-spacer {
+        width: 60px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .phone-caption {
+        font-size: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ─── NAV ───────────────────────────────────────────── -->
+  <nav class="nav">
+    <a href="./index.html" class="nav-back">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      FAQ 목록
+    </a>
+    <div class="nav-title">전담매니저 맞춤 상담</div>
+    <div class="nav-spacer"></div>
+  </nav>
+
+  <!-- ─── HERO ──────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="hero-badge">체결률 80%+</div>
+    <h1>전담매니저 맞춤 상담<br>가입 방법</h1>
+    <p class="hero-sub">고객 정보만 입력하면 보험사 출신 매니저가<br>체결까지 책임집니다</p>
+  </section>
+
+  <!-- ─── HOW IT WORKS ───────────────────────────────────── -->
+  <section class="section">
+    <div class="section-inner">
+      <p class="section-label">Step by Step</p>
+      <h2 class="section-title">이용 방법</h2>
+
+      <div class="steps">
+
+        <!-- Step 1 -->
+        <div class="step">
+          <div class="step-left">
+            <div class="step-num">1</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="step-body">
+            <div class="step-title">앱 실행 후 홈 화면 이동</div>
+            <div class="step-desc">아정당자동차 앱을 실행하고 메인 홈 화면으로 이동합니다.</div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step">
+          <div class="step-left">
+            <div class="step-num">2</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="step-body">
+            <div class="step-title">'전화 비교 신청' 버튼 클릭</div>
+            <div class="step-desc">홈 화면 하단의 <strong>'전화 비교 신청'</strong> 버튼을 탭합니다.</div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step">
+          <div class="step-left">
+            <div class="step-num">3</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="step-body">
+            <div class="step-title">고객 정보 입력</div>
+            <div class="step-desc">고객 이름, 연락처, 차량 정보를 입력합니다. 더 정확한 정보를 알수록 상담이 원활합니다.</div>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="step">
+          <div class="step-left">
+            <div class="step-num">4</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="step-body">
+            <div class="step-title">전담 매니저 배정 <span style="font-weight:400; color: var(--text-secondary);">(5분 이내)</span></div>
+            <div class="step-desc">입력된 정보를 바탕으로 보험사 출신 전담 매니저가 5분 이내에 고객에게 직접 연락합니다.</div>
+            <div class="step-tag">⚡ 평균 응답 5분 이내</div>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="step">
+          <div class="step-left">
+            <div class="step-num">5</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="step-body">
+            <div class="step-title">상담 · 체결 · 광고비 적립</div>
+            <div class="step-desc">매니저가 보험 비교부터 계약 체결까지 처리합니다. 체결 완료 시 원수보험료의 <strong>6% 광고비</strong>가 즉시 적립됩니다.</div>
+            <div class="step-tag">💰 원수보험료 6% 광고비</div>
+          </div>
+        </div>
+
+      </div><!-- /steps -->
+
+      <!-- ─── PHONE FRAMES ──────────────────────────────── -->
+      <div class="phones">
+
+        <div class="phone-wrap">
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <div class="phone-screen-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                  <path d="M3 9h18M9 21V9"/>
+                </svg>
+              </div>
+              <div class="phone-screen-label">전화 비교 신청 버튼 위치</div>
+            </div>
+          </div>
+          <div class="phone-caption">홈 화면<br>전화 비교 신청 버튼</div>
+        </div>
+
+        <div class="phone-wrap">
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <div class="phone-screen-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <div class="phone-screen-label">고객 정보 입력 화면</div>
+            </div>
+          </div>
+          <div class="phone-caption">고객 정보<br>입력 화면</div>
+        </div>
+
+        <div class="phone-wrap">
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <div class="phone-screen-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+              <div class="phone-screen-label">신청 완료 화면</div>
+            </div>
+          </div>
+          <div class="phone-caption">신청 완료<br>화면</div>
+        </div>
+
+      </div><!-- /phones -->
+
+    </div>
+  </section>
+
+  <!-- ─── KEY ADVANTAGES ────────────────────────────────── -->
+  <section class="section section--gray">
+    <div class="section-inner">
+      <p class="section-label">Why AJF</p>
+      <h2 class="section-title">전담매니저 서비스의 강점</h2>
+
+      <div class="advantage-grid">
+
+        <div class="advantage-card">
+          <div class="advantage-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="6"/>
+              <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
+            </svg>
+          </div>
+          <div class="advantage-title">보험사 출신 전문가</div>
+          <div class="advantage-desc">전담 매니저는 보험 전문가로 구성되어 있어 최적의 상품을 비교하고 가장 유리한 조건을 제안합니다.</div>
+        </div>
+
+        <div class="advantage-card">
+          <div class="advantage-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="advantage-title">5분 이내 연락</div>
+          <div class="advantage-desc">신청 즉시 매니저가 고객에게 연락하여 빠른 상담을 진행합니다. 고객 만족도와 체결률을 동시에 높입니다.</div>
+        </div>
+
+        <div class="advantage-card">
+          <div class="advantage-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+          <div class="advantage-title">체결률 80%+</div>
+          <div class="advantage-desc">전문 상담으로 높은 체결률을 달성합니다. 카매니저님의 수익을 극대화하는 가장 효율적인 방법입니다.</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FAQ SUB ────────────────────────────────────────── -->
+  <section class="section">
+    <div class="section-inner">
+      <p class="section-label">자주 묻는 질문</p>
+      <h2 class="section-title">궁금한 점이 있으신가요?</h2>
+
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <div class="faq-q-mark">Q</div>
+            <div class="faq-q-text">고객 정보를 얼마나 알아야 하나요?</div>
+            <div class="faq-toggle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </button>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              이름과 연락처만 있어도 신청 가능합니다. 차량 정보(차종, 연식 등)를 추가로 입력하시면 더 정확한 상담이 가능합니다.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <div class="faq-q-mark">Q</div>
+            <div class="faq-q-text">고객이 가입 거부 시에도 광고비가 적립되나요?</div>
+            <div class="faq-toggle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </button>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              아닙니다. 광고비는 보험 계약이 최종 체결된 경우에만 적립됩니다(CPS 기준).
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <div class="faq-q-mark">Q</div>
+            <div class="faq-q-text">신청 후 얼마나 기다려야 하나요?</div>
+            <div class="faq-toggle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </button>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              담당 매니저가 신청 후 5분 이내에 고객에게 연락드립니다. 고객 부재 시 재연락을 진행합니다.
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /faq-list -->
+    </div>
+  </section>
+
+  <!-- ─── CTA ───────────────────────────────────────────── -->
+  <section class="cta-section">
+    <div class="cta-inner">
+      <div class="cta-title">추가 문의가 있으신가요?</div>
+      <div class="cta-sub">카카오톡으로 빠르게 문의하세요. 담당자가 즉시 답변드립니다.</div>
+
+      <a href="https://pf.kakao.com/_AEJSn/chat" target="_blank" rel="noopener noreferrer" class="btn-kakao">
+        <svg class="kakao-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 3C6.477 3 2 6.591 2 11.044c0 2.89 1.862 5.42 4.682 6.894l-1.19 4.37a.3.3 0 0 0 .46.326l5.08-3.375A11.77 11.77 0 0 0 12 19.088c5.523 0 10-3.591 10-8.044C22 6.59 17.523 3 12 3z"/>
+        </svg>
+        카카오톡으로 문의하기
+      </a>
+
+      <div>
+        <a href="./index.html" class="link-back">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          FAQ 목록으로 돌아가기
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FOOTER ─────────────────────────────────────────── -->
+  <footer>
+    <div class="footer-logo">(주)아정파이낸셜 <span>AJF</span></div>
+    <div class="footer-info">
+      대표이사: 아정파이낸셜 대표<br>
+      사업자등록번호: 000-00-00000<br>
+      통신판매업신고: 제0000-서울-00000호<br>
+      고객센터: 카카오톡 채널 &lsquo;아정당자동차&rsquo;
+    </div>
+    <div class="footer-copy">&copy; 2024 (주)아정파이낸셜. All rights reserved.</div>
+  </footer>
+
+  <script>
+    function toggleFaq(btn) {
+      var item = btn.closest('.faq-item');
+      var isOpen = item.classList.contains('open');
+
+      // Close all
+      document.querySelectorAll('.faq-item').forEach(function(el) {
+        el.classList.remove('open');
+        el.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+      });
+
+      // Toggle clicked
+      if (!isOpen) {
+        item.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    }
+  </script>
+
+</body>
+</html>
