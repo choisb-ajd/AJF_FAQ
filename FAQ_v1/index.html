@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>아정당자동차 - 자주 묻는 질문 (FAQ)</title>
+  <meta name="description" content="아정당자동차 카매니저 FAQ. 광고비 6%, 전담매니저 상담, 출금 방법 등 자주 묻는 모든 질문을 확인하세요." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --blue: #145CE6;
+      --blue-dark: #0e44b8;
+      --blue-light: #E8F0FE;
+      --blue-mid: #d0e2ff;
+      --kakao: #FAE300;
+      --kakao-text: #1a1a1a;
+      --white: #FFFFFF;
+      --bg-gray: #F5F7FC;
+      --text-primary: #111827;
+      --text-secondary: #4B5563;
+      --text-muted: #9CA3AF;
+      --border: #E5E7EB;
+      --footer-bg: #1a1a2e;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 40px rgba(20,92,230,0.15), 0 4px 12px rgba(0,0,0,0.08);
+      --radius: 14px;
+      --radius-lg: 20px;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--white);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    img { max-width: 100%; display: block; }
+    a { text-decoration: none; color: inherit; }
+    button { cursor: pointer; border: none; background: none; font-family: inherit; }
+
+    /* ===== UTILITIES ===== */
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .section {
+      padding: 88px 0;
+    }
+
+    .section-title {
+      font-size: clamp(1.5rem, 3vw, 2.125rem);
+      font-weight: 800;
+      color: var(--text-primary);
+      text-align: center;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+
+    .section-subtitle {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .badge-accent {
+      display: inline-block;
+      background: var(--blue-light);
+      color: var(--blue);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 100px;
+      letter-spacing: 0.02em;
+    }
+
+    /* ===== NAVBAR ===== */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: var(--white);
+      box-shadow: 0 1px 0 var(--border), 0 2px 12px rgba(0,0,0,0.06);
+      transition: box-shadow 0.3s;
+    }
+
+    .navbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .navbar-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.125rem;
+      font-weight: 800;
+      color: var(--blue);
+      letter-spacing: -0.3px;
+    }
+
+    .navbar-logo svg {
+      flex-shrink: 0;
+    }
+
+    .navbar-cta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--kakao);
+      color: var(--kakao-text);
+      font-size: 0.875rem;
+      font-weight: 700;
+      padding: 10px 18px;
+      border-radius: 100px;
+      transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+
+    .navbar-cta:hover {
+      background: #f5d900;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(250,227,0,0.45);
+    }
+
+    .navbar-cta:active {
+      transform: translateY(0);
+    }
+
+    /* ===== HERO ===== */
+    .hero {
+      background: linear-gradient(135deg, #0e44b8 0%, var(--blue) 50%, #2a6ef5 100%);
+      padding: 128px 0 88px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 600px 400px at 20% 80%, rgba(255,255,255,0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 400px 300px at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.95);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 100px;
+      border: 1px solid rgba(255,255,255,0.2);
+      margin-bottom: 24px;
+      letter-spacing: 0.04em;
+    }
+
+    .hero-title {
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      font-weight: 900;
+      color: var(--white);
+      letter-spacing: -1px;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1rem, 2vw, 1.1875rem);
+      color: rgba(255,255,255,0.82);
+      font-weight: 400;
+      margin-bottom: 48px;
+      line-height: 1.7;
+    }
+
+    .hero-badges {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .hero-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.12);
+      border: 1.5px solid rgba(255,255,255,0.25);
+      border-radius: 100px;
+      padding: 10px 22px;
+      color: var(--white);
+      font-weight: 700;
+      font-size: 0.9375rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .hero-badge-icon {
+      width: 20px;
+      height: 20px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ===== APP GUIDE ===== */
+    .guide {
+      background: var(--white);
+      padding: 88px 0;
+    }
+
+    .steps-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      position: relative;
+      margin-bottom: 56px;
+    }
+
+    .steps-row::before {
+      content: '';
+      position: absolute;
+      top: 32px;
+      left: calc(12.5% + 32px);
+      right: calc(12.5% + 32px);
+      height: 2px;
+      background: linear-gradient(90deg, var(--blue-mid), var(--blue-light));
+      z-index: 0;
+    }
+
+    .step-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 0 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-badge {
+      width: 64px;
+      height: 64px;
+      background: var(--blue);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 16px rgba(20,92,230,0.35);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .step-num {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 22px;
+      height: 22px;
+      background: var(--white);
+      border: 2px solid var(--blue);
+      border-radius: 50%;
+      font-size: 0.6875rem;
+      font-weight: 800;
+      color: var(--blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .step-title {
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .step-desc {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* member callout */
+    .member-callout {
+      background: var(--blue-light);
+      border: 1.5px solid var(--blue-mid);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      margin-bottom: 56px;
+    }
+
+    .member-callout-title {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--blue);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .member-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .member-card {
+      background: var(--white);
+      border-radius: 10px;
+      padding: 18px 20px;
+      border: 1px solid var(--blue-mid);
+    }
+
+    .member-card-label {
+      display: inline-block;
+      background: var(--blue);
+      color: var(--white);
+      font-size: 0.6875rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 100px;
+      margin-bottom: 10px;
+    }
+
+    .member-card-label.secondary {
+      background: var(--text-secondary);
+    }
+
+    .member-card-title {
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .member-card-desc {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* phone mockups */
+    .phones-row {
+      display: flex;
+      justify-content: center;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+
+    .phone-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .phone-frame {
+      width: 168px;
+      background: var(--white);
+      border-radius: 28px;
+      border: 3px solid #CBD5E1;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
+      padding: 14px 10px;
+      position: relative;
+    }
+
+    .phone-frame::before {
+      content: '';
+      display: block;
+      width: 48px;
+      height: 6px;
+      background: #CBD5E1;
+      border-radius: 3px;
+      margin: 0 auto 12px;
+    }
+
+    .phone-screen {
+      background: var(--blue-light);
+      border-radius: 16px;
+      height: 230px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      gap: 8px;
+    }
+
+    .phone-screen-text {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--blue);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .phone-screen-placeholder {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      text-align: center;
+      border: 1.5px dashed var(--blue-mid);
+      border-radius: 8px;
+      padding: 8px 12px;
+      width: 100%;
+    }
+
+    .phone-caption {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-align: center;
+    }
+
+    /* ===== FEATURES ===== */
+    .features {
+      background: var(--bg-gray);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 36px 30px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .feature-icon-wrap {
+      width: 60px;
+      height: 60px;
+      background: var(--blue-light);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 22px;
+      flex-shrink: 0;
+    }
+
+    .feature-title {
+      font-size: 1.0625rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      letter-spacing: -0.2px;
+    }
+
+    .feature-desc {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.75;
+      margin-bottom: 20px;
+      flex: 1;
+    }
+
+    .feature-highlight {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--blue-light);
+      color: var(--blue);
+      font-size: 0.8125rem;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .feature-highlight::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--blue);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .feature-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--blue);
+      font-size: 0.875rem;
+      font-weight: 700;
+      padding: 10px 18px;
+      border: 2px solid var(--blue);
+      border-radius: 8px;
+      transition: background 0.2s, color 0.2s;
+      align-self: flex-start;
+      margin-top: auto;
+    }
+
+    .feature-cta:hover {
+      background: var(--blue);
+      color: var(--white);
+    }
+
+    /* ===== STATS BANNER ===== */
+    .stats-banner {
+      background: linear-gradient(135deg, #0e44b8 0%, var(--blue) 60%, #2a6ef5 100%);
+      padding: 64px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stats-banner::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 800px 300px at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 16px 24px;
+      position: relative;
+    }
+
+    .stat-item:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 20%;
+      bottom: 20%;
+      width: 1px;
+      background: rgba(255,255,255,0.2);
+    }
+
+    .stat-number {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 900;
+      color: var(--white);
+      letter-spacing: -1px;
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: rgba(255,255,255,0.75);
+      font-weight: 500;
+    }
+
+    /* ===== FAQ ACCORDION ===== */
+    .faq {
+      background: var(--white);
+    }
+
+    .faq-list {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .faq-item {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .faq-item.open {
+      border-color: var(--blue);
+      box-shadow: 0 4px 16px rgba(20,92,230,0.1);
+    }
+
+    .faq-question {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 20px 24px;
+      text-align: left;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      background: var(--white);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      font-family: inherit;
+    }
+
+    .faq-item.open .faq-question {
+      color: var(--blue);
+      background: var(--blue-light);
+    }
+
+    .faq-question-text {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .faq-q-mark {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--blue);
+      color: var(--white);
+      border-radius: 50%;
+      font-size: 0.8125rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .faq-item.open .faq-q-mark {
+      background: var(--blue-dark);
+    }
+
+    .faq-chevron {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      color: var(--text-muted);
+    }
+
+    .faq-item.open .faq-chevron {
+      transform: rotate(180deg);
+      color: var(--blue);
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .faq-answer-inner {
+      padding: 0 24px 24px;
+      padding-left: calc(24px + 26px + 12px);
+    }
+
+    .faq-a-text {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    .faq-inner-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      color: var(--blue);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 8px 14px;
+      border: 1.5px solid var(--blue);
+      border-radius: 8px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .faq-inner-link:hover {
+      background: var(--blue);
+      color: var(--white);
+    }
+
+    /* ===== CTA SECTION ===== */
+    .cta-section {
+      background: var(--bg-gray);
+      padding: 88px 0;
+      text-align: center;
+    }
+
+    .cta-title {
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      letter-spacing: -0.5px;
+    }
+
+    .cta-subtitle {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      margin-bottom: 36px;
+    }
+
+    .cta-kakao-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--kakao);
+      color: var(--kakao-text);
+      font-size: 1.0625rem;
+      font-weight: 800;
+      padding: 16px 40px;
+      border-radius: 100px;
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+      box-shadow: 0 4px 20px rgba(250,227,0,0.4);
+    }
+
+    .cta-kakao-btn:hover {
+      background: #f5d900;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(250,227,0,0.5);
+    }
+
+    .cta-kakao-btn:active {
+      transform: translateY(0);
+    }
+
+    .cta-phone {
+      margin-top: 20px;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .cta-phone strong {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      background: var(--footer-bg);
+      padding: 52px 0 40px;
+    }
+
+    .footer-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.0625rem;
+      font-weight: 800;
+      color: rgba(255,255,255,0.95);
+    }
+
+    .footer-info {
+      font-size: 0.8125rem;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.9;
+    }
+
+    .footer-info a {
+      color: rgba(255,255,255,0.6);
+      transition: color 0.15s;
+    }
+
+    .footer-info a:hover {
+      color: rgba(255,255,255,0.9);
+    }
+
+    .footer-divider {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .footer-note {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.35);
+    }
+
+    /* ===== SCROLL-REVEAL ANIMATION ===== */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) {
+      .features-grid {
+        grid-template-columns: 1fr;
+        max-width: 480px;
+        margin: 0 auto;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stat-item:nth-child(2)::after {
+        display: none;
+      }
+
+      .stat-item:nth-child(2n)::after {
+        display: none;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .section {
+        padding: 64px 0;
+      }
+
+      .hero {
+        padding: 108px 0 64px;
+      }
+
+      .steps-row {
+        flex-direction: column;
+        gap: 24px;
+        align-items: stretch;
+      }
+
+      .steps-row::before {
+        display: none;
+      }
+
+      .step-item {
+        flex-direction: row;
+        text-align: left;
+        gap: 16px;
+        padding: 0;
+      }
+
+      .step-badge {
+        margin-bottom: 0;
+        flex-shrink: 0;
+      }
+
+      .step-text {
+        padding-top: 4px;
+      }
+
+      .member-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .phones-row {
+        gap: 20px;
+      }
+
+      .phone-frame {
+        width: 140px;
+      }
+
+      .phone-screen {
+        height: 190px;
+      }
+
+      .faq-question {
+        padding: 16px 18px;
+        font-size: 0.875rem;
+      }
+
+      .faq-answer-inner {
+        padding: 0 18px 18px;
+        padding-left: calc(18px + 26px + 12px);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .navbar-logo span.logo-text { display: none; }
+      .navbar-logo span.logo-text-short { display: block; }
+
+      .hero-badges {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .phones-row {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .phone-frame {
+        width: 180px;
+      }
+
+      .phone-screen {
+        height: 250px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .stat-item::after {
+        display: none !important;
+      }
+    }
+
+    .logo-text-short { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- ===== NAVBAR ===== -->
+  <nav class="navbar" role="navigation" aria-label="주 메뉴">
+    <div class="container navbar-inner">
+      <a href="/" class="navbar-logo" aria-label="아정당자동차 홈">
+        <!-- Car icon SVG -->
+        <svg width="28" height="22" viewBox="0 0 28 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M5.5 8.5L7.5 3.5C8.1 2 9.5 1 11 1H17C18.5 1 19.9 2 20.5 3.5L22.5 8.5" stroke="#145CE6" stroke-width="1.8" stroke-linecap="round"/>
+          <rect x="1" y="8.5" width="26" height="10" rx="2.5" fill="#145CE6" fill-opacity="0.12" stroke="#145CE6" stroke-width="1.8"/>
+          <path d="M1 15.5H27" stroke="#145CE6" stroke-width="1.4" stroke-linecap="round"/>
+          <circle cx="7" cy="18.5" r="2.5" fill="white" stroke="#145CE6" stroke-width="1.8"/>
+          <circle cx="21" cy="18.5" r="2.5" fill="white" stroke="#145CE6" stroke-width="1.8"/>
+          <path d="M7 8.5H21" stroke="#145CE6" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <span class="logo-text">아정당자동차</span>
+        <span class="logo-text-short">아정당</span>
+      </a>
+      <a href="https://pf.kakao.com/_AEJSn/chat" class="navbar-cta" target="_blank" rel="noopener noreferrer" aria-label="카카오톡 상담하기">
+        <!-- KakaoTalk bubble icon -->
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <ellipse cx="9" cy="8" rx="8" ry="6.5" fill="#3B1E08" fill-opacity="0.85"/>
+          <path d="M5 11L4 14.5L8.5 11.5" fill="#3B1E08" fill-opacity="0.85"/>
+          <circle cx="6.5" cy="8" r="1" fill="white"/>
+          <circle cx="9" cy="8" r="1" fill="white"/>
+          <circle cx="11.5" cy="8" r="1" fill="white"/>
+        </svg>
+        카카오 상담하기
+      </a>
+    </div>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="container">
+      <div class="hero-eyebrow">카매니저 전용 플랫폼 · FAQ</div>
+      <h1 class="hero-title" id="hero-title">아정당자동차<br />자주 묻는 질문</h1>
+      <p class="hero-subtitle">카매니저님이 궁금해하시는 모든 것을 정리했습니다<br/>빠르고 명확하게 안내해드립니다</p>
+      <div class="hero-badges" role="list">
+        <div class="hero-badge" role="listitem">
+          <div class="hero-badge-icon" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="white" stroke-width="1.5"/><path d="M6 3.5V6.5L7.5 8" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          광고비 6%
+        </div>
+        <div class="hero-badge" role="listitem">
+          <div class="hero-badge-icon" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L4.5 8.5L10 3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          당일 출금
+        </div>
+        <div class="hero-badge" role="listitem">
+          <div class="hero-badge-icon" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1L7.5 4.5L11 5L8.5 7.5L9 11L6 9.5L3 11L3.5 7.5L1 5L4.5 4.5L6 1Z" stroke="white" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          </div>
+          체결률 80%+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== APP GUIDE SECTION ===== -->
+  <section class="guide section" id="guide" aria-labelledby="guide-title">
+    <div class="container">
+      <p class="badge-accent" style="display:block; text-align:center; margin-bottom:12px;">시작하기</p>
+      <h2 class="section-title" id="guide-title">📱 앱 시작 가이드</h2>
+      <p class="section-subtitle">4단계로 간단하게 시작할 수 있습니다</p>
+
+      <!-- 4-step flow -->
+      <div class="steps-row reveal">
+        <div class="step-item">
+          <div class="step-badge">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+              <rect x="7" y="2" width="14" height="24" rx="3" fill="white" fill-opacity="0.2" stroke="white" stroke-width="1.8"/>
+              <path d="M11 18H17" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="14" cy="22" r="1.2" fill="white"/>
+            </svg>
+            <div class="step-num">1</div>
+          </div>
+          <div class="step-text">
+            <div class="step-title">앱 설치</div>
+            <div class="step-desc">아정당자동차 앱 다운로드<br/>(iOS / Android)</div>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-badge">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+              <circle cx="14" cy="10" r="5" stroke="white" stroke-width="1.8"/>
+              <path d="M5 24C5 20.134 9.02944 17 14 17C18.9706 17 23 20.134 23 24" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M18 6L20 8L24 4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="step-num">2</div>
+          </div>
+          <div class="step-text">
+            <div class="step-title">회원가입</div>
+            <div class="step-desc">명함 인증 → 정회원<br/>명함 없이 → 준회원</div>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-badge">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+              <path d="M6 14L11 19L22 8" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="step-num">3</div>
+          </div>
+          <div class="step-text">
+            <div class="step-title">승인 완료</div>
+            <div class="step-desc">명함 확인 후 승인<br/>(준회원은 즉시 이용)</div>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-badge">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+              <rect x="5" y="8" width="18" height="14" rx="2.5" stroke="white" stroke-width="1.8"/>
+              <path d="M5 12H23" stroke="white" stroke-width="1.8"/>
+              <path d="M14 17V19M14 19H11M14 19H17" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M10 4C10 4 11 6 14 6C17 6 18 4 18 4" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <div class="step-num">4</div>
+          </div>
+          <div class="step-text">
+            <div class="step-title">광고비 적립 시작</div>
+            <div class="step-desc">고객 보험 가입 유도 후<br/>자동 적립</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Member callout -->
+      <div class="member-callout reveal">
+        <div class="member-callout-title">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="7" stroke="#145CE6" stroke-width="1.5"/><path d="M8 5V8.5" stroke="#145CE6" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11" r="0.75" fill="#145CE6"/></svg>
+          정회원 vs 준회원 차이 안내
+        </div>
+        <div class="member-grid">
+          <div class="member-card">
+            <div class="member-card-label">정회원</div>
+            <div class="member-card-title">명함 인증 완료 회원</div>
+            <div class="member-card-desc">모든 기능 이용 가능 + 앱 내 출금 신청 가능. 담당 매니저가 명함 확인 후 승인 처리합니다.</div>
+          </div>
+          <div class="member-card">
+            <div class="member-card-label secondary">준회원</div>
+            <div class="member-card-title">명함 없이 가입한 회원</div>
+            <div class="member-card-desc">기능 제한 없이 모두 이용 가능. 단, 광고비 출금 시 앱 내 신청 대신 전담 매니저에게 직접 연락이 필요합니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phone mockups -->
+      <div class="phones-row reveal">
+        <div class="phone-wrap">
+          <div class="phone-frame" role="img" aria-label="앱 메인 홈 화면 스크린샷 예시">
+            <div class="phone-screen">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="3" y="3" width="26" height="26" rx="4" fill="#145CE6" fill-opacity="0.15" stroke="#145CE6" stroke-width="1.5"/><path d="M3 12H29" stroke="#145CE6" stroke-width="1.5"/><path d="M3 20H29" stroke="#145CE6" stroke-width="1.5"/><path d="M11 3V29" stroke="#145CE6" stroke-width="1.5"/></svg>
+              <div class="phone-screen-text">앱 메인 홈 화면</div>
+              <div class="phone-screen-placeholder">[스크린샷 삽입]</div>
+            </div>
+          </div>
+          <div class="phone-caption">홈 화면</div>
+        </div>
+
+        <div class="phone-wrap">
+          <div class="phone-frame" role="img" aria-label="가입링크 전송 화면 스크린샷 예시">
+            <div class="phone-screen">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><circle cx="24" cy="8" r="4" stroke="#145CE6" stroke-width="1.5"/><circle cx="8" cy="16" r="4" stroke="#145CE6" stroke-width="1.5"/><circle cx="24" cy="24" r="4" stroke="#145CE6" stroke-width="1.5"/><path d="M12 14L20 10M12 18L20 22" stroke="#145CE6" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <div class="phone-screen-text">가입링크 전송 화면</div>
+              <div class="phone-screen-placeholder">[스크린샷 삽입]</div>
+            </div>
+          </div>
+          <div class="phone-caption">링크 전송</div>
+        </div>
+
+        <div class="phone-wrap">
+          <div class="phone-frame" role="img" aria-label="전화 비교 신청 화면 스크린샷 예시">
+            <div class="phone-screen">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M7 5C7 5 5 8 5 13C5 22 13 27 13 27L16.5 23.5C16.5 23.5 14.5 21.5 14.5 19.5C14.5 19.5 17 19 19 17C21 15 21.5 12.5 21.5 12.5C19.5 12.5 18 10.5 18 10.5L21 7C21 7 17.5 3 13.5 3C10.5 3 7 5 7 5Z" stroke="#145CE6" stroke-width="1.5" stroke-linejoin="round"/></svg>
+              <div class="phone-screen-text">전화 비교 신청 화면</div>
+              <div class="phone-screen-placeholder">[스크린샷 삽입]</div>
+            </div>
+          </div>
+          <div class="phone-caption">전화 비교 신청</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FEATURES SECTION ===== -->
+  <section class="features section" id="features" aria-labelledby="features-title">
+    <div class="container">
+      <p class="badge-accent" style="display:block; text-align:center; margin-bottom:12px;">기능 안내</p>
+      <h2 class="section-title" id="features-title">주요 기능 안내</h2>
+      <p class="section-subtitle">카매니저님을 위한 3가지 핵심 서비스</p>
+
+      <div class="features-grid">
+        <!-- Card 1 -->
+        <article class="feature-card reveal" aria-labelledby="feat1-title">
+          <div class="feature-icon-wrap" aria-hidden="true">
+            <!-- Headset SVG -->
+            <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 17V13C6 8.02944 10.0294 4 15 4C19.9706 4 24 8.02944 24 13V17" stroke="#145CE6" stroke-width="2" stroke-linecap="round"/>
+              <rect x="3" y="15" width="5" height="8" rx="2.5" fill="#145CE6" fill-opacity="0.15" stroke="#145CE6" stroke-width="1.8"/>
+              <rect x="22" y="15" width="5" height="8" rx="2.5" fill="#145CE6" fill-opacity="0.15" stroke="#145CE6" stroke-width="1.8"/>
+              <path d="M24 23C24 25.2091 21.3137 27 18 27H15" stroke="#145CE6" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3 class="feature-title" id="feat1-title">전담매니저 맞춤 상담</h3>
+          <p class="feature-desc">고객 정보만 입력하면 보험사 출신 전담 매니저가 5분 내 연락해 상담부터 체결까지 처리해드립니다. 카매니저님은 신청서만 접수하시면 됩니다.</p>
+          <div class="feature-highlight">체결률 80%+</div>
+          <a href="./consulting.html" class="feature-cta" aria-label="전담매니저 맞춤 상담 상세 방법 보기">상세 방법 보기 →</a>
+        </article>
+
+        <!-- Card 2 -->
+        <article class="feature-card reveal reveal-delay-1" aria-labelledby="feat2-title">
+          <div class="feature-icon-wrap" aria-hidden="true">
+            <!-- Link/Share SVG -->
+            <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13 17L8.5 21.5C7.11929 22.8807 7.11929 25.1193 8.5 26.5C9.88071 27.8807 12.1193 27.8807 13.5 26.5L21.5 18.5C22.8807 17.1193 22.8807 14.8807 21.5 13.5" stroke="#145CE6" stroke-width="2" stroke-linecap="round"/>
+              <path d="M17 13L21.5 8.5C22.8807 7.11929 22.8807 4.88071 21.5 3.5C20.1193 2.11929 17.8807 2.11929 16.5 3.5L8.5 11.5C7.11929 12.8807 7.11929 15.1193 8.5 16.5" stroke="#145CE6" stroke-width="2" stroke-linecap="round"/>
+              <path d="M11.5 15L14.5 18" stroke="#145CE6" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3 class="feature-title" id="feat2-title">고객 직접 견적상담</h3>
+          <p class="feature-desc">가입 링크를 고객에게 전송하면 고객이 직접 온라인으로 보험 가입합니다. 카매니저님은 링크만 전달하시면 광고비가 자동으로 적립됩니다.</p>
+          <div class="feature-highlight">광고비 6% 자동 적립</div>
+          <a href="./online-estimate.html" class="feature-cta" aria-label="고객 직접 견적 상세 방법 보기">상세 방법 보기 →</a>
+        </article>
+
+        <!-- Card 3 -->
+        <article class="feature-card reveal reveal-delay-2" aria-labelledby="feat3-title">
+          <div class="feature-icon-wrap" aria-hidden="true">
+            <!-- Wallet/Money SVG -->
+            <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3" y="9" width="24" height="17" rx="3" fill="#145CE6" fill-opacity="0.12" stroke="#145CE6" stroke-width="1.8"/>
+              <path d="M3 14H27" stroke="#145CE6" stroke-width="1.8"/>
+              <path d="M6 5L24 5C25.1046 5 26 5.89543 26 7V9H4V7C4 5.89543 4.89543 5 6 5Z" fill="#145CE6" fill-opacity="0.2" stroke="#145CE6" stroke-width="1.8"/>
+              <rect x="18" y="17" width="7" height="5" rx="2" fill="#145CE6"/>
+              <circle cx="21.5" cy="19.5" r="1" fill="white"/>
+            </svg>
+          </div>
+          <h3 class="feature-title" id="feat3-title">광고비 적립 · 조회 · 출금</h3>
+          <p class="feature-desc">보험 체결 즉시 앱에 자동 적립됩니다. 오후 3시 이전 출금 신청 시 당일 지급되며, 적립 내역은 앱에서 언제든지 조회 가능합니다.</p>
+          <div class="feature-highlight">오후 3시 이전 → 당일 지급</div>
+          <a href="./fee.html" class="feature-cta" aria-label="광고비 출금 상세 방법 보기">상세 방법 보기 →</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== STATS BANNER ===== -->
+  <section class="stats-banner" aria-label="주요 수치">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-item reveal">
+          <div class="stat-number">6%</div>
+          <div class="stat-label">업계 최고 광고비율</div>
+        </div>
+        <div class="stat-item reveal reveal-delay-1">
+          <div class="stat-number">80%+</div>
+          <div class="stat-label">고객 보험 체결률</div>
+        </div>
+        <div class="stat-item reveal reveal-delay-2">
+          <div class="stat-number">5분</div>
+          <div class="stat-label">전담매니저 연락 시간</div>
+        </div>
+        <div class="stat-item reveal reveal-delay-3">
+          <div class="stat-number">당일</div>
+          <div class="stat-label">오후 3시 이전 출금</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FAQ ACCORDION ===== -->
+  <section class="faq section" id="faq" aria-labelledby="faq-title">
+    <div class="container">
+      <p class="badge-accent" style="display:block; text-align:center; margin-bottom:12px;">FAQ</p>
+      <h2 class="section-title" id="faq-title">자주 묻는 질문</h2>
+      <p class="section-subtitle">카매니저님들이 가장 많이 물어보시는 질문들입니다</p>
+
+      <div class="faq-list" role="list">
+
+        <!-- Q1 -->
+        <div class="faq-item reveal" role="listitem">
+          <button class="faq-question" aria-expanded="false" aria-controls="faq-ans-1">
+            <span class="faq-question-text">
+              <span class="faq-q-mark" aria-hidden="true">Q</span>
+              광고비는 얼마나 받을 수 있나요?
+            </span>
+            <svg class="faq-chevron" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+          <div class="faq-answer" id="faq-ans-1" role="region">
+            <div class="faq-answer-inner">
+              <p class="faq-a-text">보험 체결 건당 원수보험료의 <strong>6%</strong>가 지급됩니다. 본인 및 가족 계약 시 <strong>6% 즉시 적립 + 익월말 추가 4% = 총 10% 혜택</strong>을 받으실 수 있습니다.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q2 -->
+        <div class="faq-item reveal" role="listitem">
+          <button class="faq-question" aria-expanded="false" aria-controls="faq-ans-2">
+            <span class="faq-question-text">
+              <span class="faq-q-mark" aria-hidden="true">Q</span>
+              준회원으로 가입하면 어떤 제한이 있나요?
+            </span>
+            <svg class="faq-chevron" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+          <div class="faq-answer" id="faq-ans-2" role="region">
+            <div class="faq-answer-inner">
+              <p class="faq-a-text">준회원은 앱의 <strong>모든 기능을 이용</strong>하실 수 있습니다. 단, 광고비 출금 시 앱 내 출금 신청 대신 <strong>전담 매니저에게 직접 연락</strong>하셔야 합니다. 명함 인증 완료 후 정회원으로 전환 가능합니다.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q3 -->
+        <div class="faq-item reveal" role="listitem">
+          <button class="faq-question" aria-expanded="false" aria-controls="faq-ans-3">
+            <span class="faq-question-text">
+              <span class="faq-q-mark" aria-hidden="true">Q</span>
+              광고비 출금은 어떻게 하나요?
+            </span>
+            <svg class="faq-chevron" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+          <div class="faq-answer" id="faq-ans-3" role="region">
+            <div class="faq-answer-inner">
+              <p class="faq-a-text">앱 내 <strong>출금 신청 메뉴</strong>에서 신청하시면 됩니다. <strong>오후 3시 이전 신청 시 당일 지급</strong>되며, 3시 이후 신청 건은 익일 처리됩니다. 준회원의 경우 전담 매니저에게 직접 연락해 주세요.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q4 -->
+        <div class="faq-item reveal" role="listitem">
+          <button class="faq-question" aria-expanded="false" aria-controls="faq-ans-4">
+            <span class="faq-question-text">
+              <span class="faq-q-mark" aria-hidden="true">Q</span>
+              고객에게 어떻게 보험을 안내하면 되나요?
+            </span>
+            <svg class="faq-chevron" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+          <div class="faq-answer" id="faq-ans-4" role="region">
+            <div class="faq-answer-inner">
+              <p class="faq-a-text">두 가지 방법이 있습니다.<br/><br/>
+              <strong>① 전담매니저 맞춤 상담</strong>: 고객 정보를 앱에 입력하면 매니저가 <strong>5분 내</strong> 고객에게 직접 연락합니다.<br/><br/>
+              <strong>② 온라인 링크 전송</strong>: 가입 링크를 카카오톡 등으로 전송하면 고객이 직접 가입합니다.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q5 -->
+        <div class="faq-item reveal" role="listitem">
+          <button class="faq-question" aria-expanded="false" aria-controls="faq-ans-5">
+            <span class="faq-question-text">
+              <span class="faq-q-mark" aria-hidden="true">Q</span>
+              광고비가 적립되지 않는 경우가 있나요?
+            </span>
+            <svg class="faq-chevron" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+          <div class="faq-answer" id="faq-ans-5" role="region">
+            <div class="faq-answer-inner">
+              <p class="faq-a-text"><strong>책임보험, 단기보험, 이륜자동차 보험</strong>은 광고비 지원 대상에서 제외됩니다. 계약 취소 건은 적립 취소 처리됩니다. 자세한 내용은 광고비 적립 예외 기준을 참고해 주세요.</p>
+              <a href="./fee-exception.html" class="faq-inner-link">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 7H12M8 3L12 7L8 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                광고비 적립 예외 기준 보기
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q6 -->
+        <div class="faq-item reveal" role="listitem">
+          <button class="faq-question" aria-expanded="false" aria-controls="faq-ans-6">
+            <span class="faq-question-text">
+              <span class="faq-q-mark" aria-hidden="true">Q</span>
+              자동차보험 계약 기간은 얼마인가요?
+            </span>
+            <svg class="faq-chevron" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+          <div class="faq-answer" id="faq-ans-6" role="region">
+            <div class="faq-answer-inner">
+              <p class="faq-a-text">자동차보험 계약 기간은 <strong>1년</strong>입니다. 갱신은 보험 만료 전 <strong>45일</strong>부터 가능합니다.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q7 -->
+        <div class="faq-item reveal" role="listitem">
+          <button class="faq-question" aria-expanded="false" aria-controls="faq-ans-7">
+            <span class="faq-question-text">
+              <span class="faq-q-mark" aria-hidden="true">Q</span>
+              체결률 80%는 어떤 의미인가요?
+            </span>
+            <svg class="faq-chevron" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+          <div class="faq-answer" id="faq-ans-7" role="region">
+            <div class="faq-answer-inner">
+              <p class="faq-a-text">아정당자동차 전담 매니저는 <strong>보험사 출신 전문가</strong>로 구성되어 있어, 고객 상담 후 보험 체결로 이어지는 비율이 <strong>80% 이상</strong>입니다. 카매니저님은 신청서만 접수하시면 나머지는 전담 매니저가 처리합니다.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q8 -->
+        <div class="faq-item reveal" role="listitem">
+          <button class="faq-question" aria-expanded="false" aria-controls="faq-ans-8">
+            <span class="faq-question-text">
+              <span class="faq-q-mark" aria-hidden="true">Q</span>
+              고객이 직접 가입 시 추가 혜택이 있나요?
+            </span>
+            <svg class="faq-chevron" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+          <div class="faq-answer" id="faq-ans-8" role="region">
+            <div class="faq-answer-inner">
+              <p class="faq-a-text">고객이 아정당 링크로 직접 보험 계약을 완료하면 <strong>3만원 주유 쿠폰</strong>이 증정됩니다 (금소법 상한선 기준).</p>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /faq-list -->
+    </div>
+  </section>
+
+  <!-- ===== CTA SECTION ===== -->
+  <section class="cta-section" aria-labelledby="cta-title">
+    <div class="container">
+      <h2 class="cta-title reveal" id="cta-title">더 궁금한 점이 있으신가요?</h2>
+      <p class="cta-subtitle reveal">전담 매니저가 직접 상담해드립니다</p>
+      <a href="https://pf.kakao.com/_AEJSn/chat" class="cta-kakao-btn reveal" target="_blank" rel="noopener noreferrer" aria-label="카카오톡으로 상담하기">
+        <!-- KakaoTalk icon -->
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <ellipse cx="11" cy="10" rx="10" ry="8.5" fill="#3B1E08"/>
+          <path d="M6.5 13.5L5 18L10.5 14.5" fill="#3B1E08"/>
+          <circle cx="8" cy="10" r="1.3" fill="#FAE300"/>
+          <circle cx="11" cy="10" r="1.3" fill="#FAE300"/>
+          <circle cx="14" cy="10" r="1.3" fill="#FAE300"/>
+        </svg>
+        카카오톡 상담하기
+      </a>
+      <p class="cta-phone reveal">대표번호 <strong>1899-6334</strong> (딜러 앱 전담)</p>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer" role="contentinfo">
+    <div class="container footer-inner">
+      <div class="footer-logo" aria-label="아정당자동차">
+        <svg width="24" height="20" viewBox="0 0 28 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M5.5 8.5L7.5 3.5C8.1 2 9.5 1 11 1H17C18.5 1 19.9 2 20.5 3.5L22.5 8.5" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"/>
+          <rect x="1" y="8.5" width="26" height="10" rx="2.5" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.7)" stroke-width="1.8"/>
+          <path d="M1 15.5H27" stroke="rgba(255,255,255,0.5)" stroke-width="1.4" stroke-linecap="round"/>
+          <circle cx="7" cy="18.5" r="2.5" fill="#1a1a2e" stroke="rgba(255,255,255,0.7)" stroke-width="1.8"/>
+          <circle cx="21" cy="18.5" r="2.5" fill="#1a1a2e" stroke="rgba(255,255,255,0.7)" stroke-width="1.8"/>
+        </svg>
+        아정당자동차
+      </div>
+      <hr class="footer-divider" />
+      <div class="footer-info">
+        <p>(주)아정파이낸셜 &nbsp;|&nbsp; 사업자등록번호 621-86-19033 &nbsp;|&nbsp; 대표전화 <a href="tel:0220692504">02-2069-2504</a></p>
+        <p>서울특별시 영등포구 영중로 159, 1동 501호</p>
+        <p>딜러 전담 문의: <a href="tel:18996334">1899-6334</a> &nbsp;|&nbsp; 카카오 채널: <a href="https://pf.kakao.com/_AEJSn/chat" target="_blank" rel="noopener noreferrer">@아정당자동차</a></p>
+      </div>
+      <hr class="footer-divider" />
+      <p class="footer-note">아정당자동차는 보험업이 아닌 광고대행업으로 운영됩니다. © 2024 (주)아정파이낸셜. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- ===== JAVASCRIPT ===== -->
+  <script>
+    (function () {
+      'use strict';
+
+      /* ---- Accordion ---- */
+      const faqItems = document.querySelectorAll('.faq-item');
+
+      faqItems.forEach(function (item) {
+        const btn = item.querySelector('.faq-question');
+        const answer = item.querySelector('.faq-answer');
+
+        btn.addEventListener('click', function () {
+          const isOpen = item.classList.contains('open');
+
+          // Close all
+          faqItems.forEach(function (el) {
+            el.classList.remove('open');
+            el.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+            el.querySelector('.faq-answer').style.maxHeight = null;
+          });
+
+          // Toggle clicked
+          if (!isOpen) {
+            item.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+            answer.style.maxHeight = answer.scrollHeight + 'px';
+          }
+        });
+      });
+
+      /* ---- Scroll-reveal ---- */
+      var revealEls = document.querySelectorAll('.reveal');
+
+      if ('IntersectionObserver' in window) {
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.12, rootMargin: '0px 0px -48px 0px' });
+
+        revealEls.forEach(function (el) {
+          observer.observe(el);
+        });
+      } else {
+        // Fallback: show all
+        revealEls.forEach(function (el) {
+          el.classList.add('visible');
+        });
+      }
+
+      /* ---- Navbar shadow on scroll ---- */
+      var navbar = document.querySelector('.navbar');
+      window.addEventListener('scroll', function () {
+        if (window.scrollY > 10) {
+          navbar.style.boxShadow = '0 2px 20px rgba(0,0,0,0.10)';
+        } else {
+          navbar.style.boxShadow = '0 1px 0 #E5E7EB, 0 2px 12px rgba(0,0,0,0.06)';
+        }
+      }, { passive: true });
+    })();
+  </script>
+
+</body>
+</html>

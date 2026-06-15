@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>고객 직접 견적상담 (온라인 링크 전송) — 아정당자동차 FAQ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --blue: #145CE6;
+      --blue-dark: #0e45b5;
+      --blue-light: #E8F0FE;
+      --bg-gray: #F5F7FC;
+      --white: #FFFFFF;
+      --kakao: #FAE300;
+      --text-primary: #1A1A2E;
+      --text-secondary: #4A5568;
+      --text-muted: #718096;
+      --border: #E2E8F0;
+      --warn-bg: #FFF8E1;
+      --warn-border: #F6C000;
+      --warn-text: #7B5E00;
+      --radius: 12px;
+      --radius-lg: 20px;
+      --shadow-sm: 0 1px 4px rgba(20,92,230,0.07);
+      --shadow-md: 0 4px 16px rgba(20,92,230,0.12);
+      --shadow-lg: 0 8px 32px rgba(20,92,230,0.15);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--text-primary);
+      background: var(--white);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── NAV ─── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--blue);
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: background 0.18s, color 0.18s;
+    }
+
+    .nav-back:hover {
+      background: var(--blue-light);
+    }
+
+    .nav-back svg {
+      flex-shrink: 0;
+    }
+
+    .nav-divider {
+      width: 1px;
+      height: 18px;
+      background: var(--border);
+    }
+
+    .nav-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      background: var(--blue);
+      padding: 64px 24px 72px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 110%, rgba(255,255,255,0.08) 0%, transparent 70%),
+        radial-gradient(circle at 10% 20%, rgba(255,255,255,0.06) 0%, transparent 50%),
+        radial-gradient(circle at 90% 80%, rgba(255,255,255,0.05) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.35);
+      color: #FFFFFF;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 16px;
+      border-radius: 100px;
+      margin-bottom: 20px;
+      letter-spacing: 0.02em;
+      backdrop-filter: blur(8px);
+    }
+
+    .hero-badge::before {
+      content: '✦';
+      font-size: 10px;
+      opacity: 0.9;
+    }
+
+    .hero h1 {
+      font-size: clamp(22px, 5vw, 34px);
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+      margin-bottom: 16px;
+    }
+
+    .hero p {
+      font-size: clamp(14px, 2.5vw, 17px);
+      color: rgba(255,255,255,0.82);
+      font-weight: 400;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    /* ─── SECTIONS ─── */
+    .section {
+      padding: 64px 24px;
+    }
+
+    .section-gray {
+      background: var(--bg-gray);
+    }
+
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      margin-bottom: 40px;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--blue);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .section-title {
+      font-size: clamp(20px, 4vw, 28px);
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+    }
+
+    .section-subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+
+    /* ─── TIMELINE ─── */
+    .timeline {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 27px;
+      top: 28px;
+      bottom: 28px;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--blue) 0%, rgba(20,92,230,0.15) 100%);
+    }
+
+    .step {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      padding: 12px 0;
+      position: relative;
+    }
+
+    .step-num {
+      flex-shrink: 0;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 4px 16px rgba(20,92,230,0.35);
+      transition: transform 0.2s;
+    }
+
+    .step:hover .step-num {
+      transform: scale(1.08);
+    }
+
+    .step-body {
+      padding: 14px 0 14px;
+      flex: 1;
+    }
+
+    .step-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .step-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .step-highlight {
+      display: inline-block;
+      background: var(--blue-light);
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 100px;
+      margin-top: 8px;
+    }
+
+    /* Step connector line spacer */
+    .step + .step {
+      margin-top: 0;
+    }
+
+    /* ─── PHONE FRAMES ─── */
+    .phones-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 40px;
+    }
+
+    .phone-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .phone-frame {
+      width: 100%;
+      max-width: 180px;
+      aspect-ratio: 9/18;
+      background: var(--blue-light);
+      border-radius: 24px;
+      border: 3px solid var(--blue);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-md);
+    }
+
+    .phone-frame::before {
+      content: '';
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 5px;
+      background: rgba(20,92,230,0.25);
+      border-radius: 3px;
+    }
+
+    .phone-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 24px 12px 16px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .phone-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--blue);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .phone-icon svg {
+      width: 24px;
+      height: 24px;
+      fill: none;
+      stroke: #fff;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .phone-mock-bar {
+      width: 80%;
+      height: 7px;
+      background: rgba(20,92,230,0.18);
+      border-radius: 4px;
+    }
+
+    .phone-mock-bar.short {
+      width: 55%;
+    }
+
+    .phone-mock-btn {
+      width: 70%;
+      height: 22px;
+      background: var(--blue);
+      border-radius: 8px;
+      margin-top: 4px;
+      opacity: 0.85;
+    }
+
+    .phone-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-align: center;
+      line-height: 1.45;
+    }
+
+    /* ─── ADVANTAGE CARDS ─── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--blue-light);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .card-icon svg {
+      width: 26px;
+      height: 26px;
+      fill: none;
+      stroke: var(--blue);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    /* ─── NOTICE / WARNING ─── */
+    .notice-box {
+      background: var(--warn-bg);
+      border: 1.5px solid var(--warn-border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+    }
+
+    .notice-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .notice-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--warn-border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .notice-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: #7B5E00;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .notice-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--warn-text);
+    }
+
+    .notice-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .notice-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--warn-text);
+      line-height: 1.6;
+    }
+
+    .notice-list li::before {
+      content: '·';
+      font-size: 20px;
+      line-height: 1.1;
+      flex-shrink: 0;
+      color: var(--warn-border);
+      font-weight: 900;
+    }
+
+    .notice-link {
+      color: var(--blue);
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .notice-link:hover {
+      text-decoration: underline;
+    }
+
+    /* ─── FAQ SUB ─── */
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .faq-item {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: box-shadow 0.2s;
+    }
+
+    .faq-item:hover {
+      box-shadow: var(--shadow-sm);
+    }
+
+    .faq-q {
+      width: 100%;
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 20px 24px;
+      text-align: left;
+    }
+
+    .faq-q-badge {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    .faq-q-text {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    .faq-chevron {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      color: var(--text-muted);
+      transition: transform 0.25s;
+      margin-top: 2px;
+    }
+
+    .faq-item.open .faq-chevron {
+      transform: rotate(180deg);
+      color: var(--blue);
+    }
+
+    .faq-a {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+    }
+
+    .faq-item.open .faq-a {
+      max-height: 300px;
+    }
+
+    .faq-a-inner {
+      padding: 0 24px 20px 62px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    /* ─── CTA ─── */
+    .cta-section {
+      background: var(--blue);
+      padding: 56px 24px;
+      text-align: center;
+    }
+
+    .cta-title {
+      font-size: clamp(18px, 3.5vw, 24px);
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 10px;
+      letter-spacing: -0.01em;
+    }
+
+    .cta-sub {
+      font-size: 14px;
+      color: rgba(255,255,255,0.75);
+      margin-bottom: 32px;
+    }
+
+    .cta-btn-kakao {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--kakao);
+      color: #3A1D00;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 16px 36px;
+      border-radius: 100px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(250,227,0,0.4);
+      transition: transform 0.18s, box-shadow 0.18s;
+    }
+
+    .cta-btn-kakao:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(250,227,0,0.55);
+    }
+
+    .cta-btn-kakao svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .cta-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: rgba(255,255,255,0.7);
+      font-size: 14px;
+      text-decoration: none;
+      margin-top: 20px;
+      transition: color 0.18s;
+    }
+
+    .cta-back:hover {
+      color: #fff;
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      background: #0D1B3E;
+      color: rgba(255,255,255,0.55);
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    .footer-logo {
+      font-size: 17px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.01em;
+      margin-bottom: 12px;
+    }
+
+    .footer-info {
+      font-size: 12px;
+      line-height: 1.9;
+    }
+
+    .footer-info a {
+      color: rgba(255,255,255,0.45);
+      text-decoration: none;
+    }
+
+    .footer-info a:hover {
+      color: rgba(255,255,255,0.75);
+    }
+
+    .footer-divider {
+      width: 40px;
+      height: 2px;
+      background: rgba(255,255,255,0.12);
+      margin: 16px auto;
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 680px) {
+      .section {
+        padding: 48px 20px;
+      }
+
+      .phones-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .phone-frame {
+        border-radius: 18px;
+      }
+
+      .cards-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .card {
+        padding: 22px 20px;
+      }
+
+      .timeline::before {
+        left: 23px;
+      }
+
+      .step-num {
+        width: 48px;
+        height: 48px;
+        font-size: 16px;
+      }
+
+      .faq-a-inner {
+        padding-left: 50px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .phones-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .phone-label {
+        font-size: 10px;
+      }
+
+      .hero h1 {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <a href="./index.html" class="nav-back">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      FAQ 목록
+    </a>
+    <div class="nav-divider"></div>
+    <span class="nav-title">고객 직접 견적상담</span>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">광고비 6% 자동 적립</div>
+    <h1>고객 직접 견적상담<br />(온라인 링크 전송)</h1>
+    <p>링크 하나로 고객이 직접 가입 — 카매니저님은 링크만 전달하세요</p>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Step by Step</div>
+        <h2 class="section-title">이용 방법</h2>
+        <p class="section-subtitle">총 5단계, 링크 전송 후 나머지는 고객이 직접 진행합니다</p>
+      </div>
+
+      <div class="timeline">
+        <!-- Step 1 -->
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">앱 실행 후 홈 화면 이동</div>
+            <div class="step-desc">아정당자동차 앱을 실행하고 메인 홈 화면으로 이동합니다.</div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">'가입링크 전송' 버튼 클릭</div>
+            <div class="step-desc">홈 화면의 <strong>'가입링크 전송'</strong> 버튼을 탭합니다.</div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">링크 복사 또는 카카오톡 전송</div>
+            <div class="step-desc">카매니저 고유 링크를 복사하거나 카카오톡으로 고객에게 바로 전송합니다.</div>
+            <span class="step-highlight">카카오톡 · 문자 · 링크 복사 모두 가능</span>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">고객 직접 가입</div>
+            <div class="step-desc">고객이 링크에서 직접 보험사를 비교하고 온라인으로 가입합니다. 3만원 주유 쿠폰도 자동 증정됩니다.</div>
+            <span class="step-highlight">3만원 주유 쿠폰 자동 증정</span>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <div class="step-title">광고비 6% 자동 적립</div>
+            <div class="step-desc">고객의 보험 가입이 완료되면 원수보험료의 <strong>6% 광고비</strong>가 카매니저님 앱에 즉시 적립됩니다.</div>
+            <span class="step-highlight">원수보험료 6% 즉시 적립</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREENSHOT GUIDE -->
+  <section class="section section-gray">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">App Guide</div>
+        <h2 class="section-title">화면 가이드</h2>
+        <p class="section-subtitle">앱 주요 화면의 위치와 흐름을 확인하세요</p>
+      </div>
+
+      <div class="phones-grid">
+        <!-- Phone 1 -->
+        <div class="phone-wrap">
+          <div class="phone-frame">
+            <div class="phone-inner">
+              <div class="phone-icon">
+                <!-- Home icon -->
+                <svg viewBox="0 0 24 24">
+                  <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
+                  <path d="M9 21V12h6v9"/>
+                </svg>
+              </div>
+              <div class="phone-mock-bar"></div>
+              <div class="phone-mock-bar short"></div>
+              <div class="phone-mock-btn"></div>
+              <div class="phone-mock-bar short"></div>
+            </div>
+          </div>
+          <div class="phone-label">홈 화면<br />가입링크 전송 버튼 위치</div>
+        </div>
+
+        <!-- Phone 2 -->
+        <div class="phone-wrap">
+          <div class="phone-frame">
+            <div class="phone-inner">
+              <div class="phone-icon">
+                <!-- Share icon -->
+                <svg viewBox="0 0 24 24">
+                  <circle cx="18" cy="5" r="3"/>
+                  <circle cx="6" cy="12" r="3"/>
+                  <circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+              </div>
+              <div class="phone-mock-bar"></div>
+              <div class="phone-mock-bar"></div>
+              <div class="phone-mock-btn"></div>
+            </div>
+          </div>
+          <div class="phone-label">링크 전송 / 공유 화면</div>
+        </div>
+
+        <!-- Phone 3 -->
+        <div class="phone-wrap">
+          <div class="phone-frame">
+            <div class="phone-inner">
+              <div class="phone-icon">
+                <!-- Check / bell icon -->
+                <svg viewBox="0 0 24 24">
+                  <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 01-3.46 0"/>
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+              <div class="phone-mock-bar short"></div>
+              <div class="phone-mock-bar"></div>
+              <div class="phone-mock-bar short"></div>
+            </div>
+          </div>
+          <div class="phone-label">고객 가입 완료<br />알림 화면</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- KEY ADVANTAGES -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Why It Works</div>
+        <h2 class="section-title">주요 장점</h2>
+        <p class="section-subtitle">카매니저님과 고객 모두에게 이로운 구조입니다</p>
+      </div>
+
+      <div class="cards-grid">
+        <!-- Card 1 -->
+        <div class="card">
+          <div class="card-icon">
+            <!-- Link icon -->
+            <svg viewBox="0 0 24 24">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+            </svg>
+          </div>
+          <div class="card-title">간편한 링크 전송</div>
+          <div class="card-desc">카카오톡, 문자 등으로 링크만 전달하면 끝. 별도 서류 작성이나 대면 방문이 불필요합니다.</div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="card">
+          <div class="card-icon">
+            <!-- Gift icon -->
+            <svg viewBox="0 0 24 24">
+              <polyline points="20 12 20 22 4 22 4 12"/>
+              <rect x="2" y="7" width="20" height="5"/>
+              <line x1="12" y1="22" x2="12" y2="7"/>
+              <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/>
+              <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/>
+            </svg>
+          </div>
+          <div class="card-title">고객 혜택 자동 지급</div>
+          <div class="card-desc">링크로 가입한 고객에게 <strong>3만원 주유 쿠폰이 자동 지급</strong>됩니다. (금소법 상한선 기준)</div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="card">
+          <div class="card-icon">
+            <!-- Percent / coin icon -->
+            <svg viewBox="0 0 24 24">
+              <line x1="19" y1="5" x2="5" y2="19"/>
+              <circle cx="6.5" cy="6.5" r="2.5"/>
+              <circle cx="17.5" cy="17.5" r="2.5"/>
+            </svg>
+          </div>
+          <div class="card-title">6% 광고비 즉시 적립</div>
+          <div class="card-desc">고객 가입 완료 즉시 원수보험료의 <strong>6% 광고비가 자동 적립</strong>되어 별도 청구 없이 정산됩니다.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- IMPORTANT NOTES -->
+  <section class="section section-gray">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">주의 사항</div>
+        <h2 class="section-title">광고비 지급 조건</h2>
+      </div>
+
+      <div class="notice-box">
+        <div class="notice-header">
+          <div class="notice-icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div class="notice-title">광고비 지급 전 반드시 확인해 주세요</div>
+        </div>
+        <ul class="notice-list">
+          <li>다이렉트(CM, 사이버마케팅) 채널 가입 건에 한해 광고비가 지급됩니다. TM·대면 채널은 대상에서 제외됩니다.</li>
+          <li>책임보험, 단기보험, 이륜자동차 보험은 광고비 지원 대상에서 제외됩니다.</li>
+          <li>
+            광고비 예외 기준 전체 안내 →
+            <a href="./fee-exception.html" class="notice-link">자세히 보기 →</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ SUB-SECTION -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">자주 묻는 질문</div>
+        <h2 class="section-title">온라인 링크 전송 FAQ</h2>
+      </div>
+
+      <div class="faq-list">
+        <!-- FAQ 1 -->
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <div class="faq-q-badge">Q</div>
+            <span class="faq-q-text">링크는 카매니저마다 다른가요?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="faq-a">
+            <div class="faq-a-inner">
+              네, 카매니저님만의 고유 링크가 발급됩니다. 해당 링크를 통해 가입한 고객의 계약 건이 카매니저님에게 연결되어 광고비가 적립됩니다.
+            </div>
+          </div>
+        </div>
+
+        <!-- FAQ 2 -->
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <div class="faq-q-badge">Q</div>
+            <span class="faq-q-text">고객이 링크를 클릭만 하고 가입하지 않으면 광고비가 적립되나요?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="faq-a">
+            <div class="faq-a-inner">
+              아닙니다. 광고비는 고객이 실제 보험 계약을 체결(CPS)한 경우에만 적립됩니다. 단순 링크 클릭이나 견적 조회만으로는 적립되지 않습니다.
+            </div>
+          </div>
+        </div>
+
+        <!-- FAQ 3 -->
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <div class="faq-q-badge">Q</div>
+            <span class="faq-q-text">온라인 가입 시 고객에게 추가 비용이 발생하나요?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="faq-a">
+            <div class="faq-a-inner">
+              아닙니다. 다이렉트(CM) 채널 특성상 고객이 직접 가입 시 중간 수수료가 없어, 보험설계사나 TM 채널 대비 보험료가 더 저렴합니다. 고객 입장에서도 유리한 구조입니다.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="cta-title">더 궁금한 점이 있으신가요?</div>
+    <div class="cta-sub">카카오톡으로 바로 문의하시면 빠르게 안내해 드립니다</div>
+    <a href="https://pf.kakao.com/_ajf" class="cta-btn-kakao" target="_blank" rel="noopener noreferrer">
+      <!-- KakaoTalk speech bubble icon -->
+      <svg viewBox="0 0 24 24" fill="#3A1D00">
+        <path d="M12 3C6.477 3 2 6.8 2 11.5c0 2.97 1.74 5.6 4.37 7.23-.15.56-.97 3.6-.99 3.72 0 0-.01.08.04.11.05.03.11.01.15-.01.2-.06 3.6-2.38 4.08-2.68.77.1 1.56.16 2.35.16 5.524 0 10-3.8 10-8.53S17.524 3 12 3z"/>
+      </svg>
+      카카오톡으로 문의하기
+    </a>
+    <br />
+    <a href="./index.html" class="cta-back">
+      ← FAQ 목록으로 돌아가기
+    </a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">(주)아정파이낸셜</div>
+    <div class="footer-divider"></div>
+    <div class="footer-info">
+      대표이사: 홍길동 &nbsp;|&nbsp; 사업자등록번호: 000-00-00000<br />
+      주소: 서울특별시 강남구 테헤란로 000, 00층<br />
+      고객센터: <a href="tel:1588-0000">1588-0000</a> &nbsp;|&nbsp; 이메일: <a href="mailto:support@ajf.co.kr">support@ajf.co.kr</a><br />
+      <br />
+      보험대리점 등록번호: 제 2024-000호 &nbsp;|&nbsp; 통신판매업 신고: 제 2024-서울강남-0000호<br />
+      &copy; 2024 (주)아정파이낸셜. All rights reserved.
+    </div>
+  </footer>
+
+  <script>
+    function toggleFaq(btn) {
+      const item = btn.closest('.faq-item');
+      const isOpen = item.classList.contains('open');
+
+      // Close all
+      document.querySelectorAll('.faq-item.open').forEach(function(el) {
+        el.classList.remove('open');
+      });
+
+      // Open clicked if it was closed
+      if (!isOpen) {
+        item.classList.add('open');
+      }
+    }
+  </script>
+
+</body>
+</html>
