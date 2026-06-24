@@ -1,0 +1,418 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/router';
+import cookie from 'cookie';
+import { verifySession, COOKIE_NAME } from '../lib/auth';
+import { DISPLAY_COLUMNS, MANAGER_EDITABLE, ADMIN_ONLY_EDITABLE } from '../lib/sheetSchema';
+
+export async function getServerSideProps({ req }) {
+  const cookies = cookie.parse(req.headers.cookie || '');
+  const session = cookies[COOKIE_NAME] ? verifySession(cookies[COOKIE_NAME]) : null;
+  if (!session) {
+    return { redirect: { destination: '/login', permanent: false } };
+  }
+  return {
+    props: {
+      role: session.role,
+      name: session.name,
+      adminSheetUrl:
+        session.role === '관리자' && process.env.ADMIN_SPREADSHEET_ID
+          ? `https://docs.google.com/spreadsheets/d/${process.env.ADMIN_SPREADSHEET_ID}/edit`
+          : null,
+    },
+  };
+}
+
+const FIELD_META = {
+  contacted: { label: '컨택여부', type: 'select', options: ['', 'Y', 'N'] },
+  firstContactDate: { label: '최초컨택일자', type: 'text', placeholder: '예: 2025-08-28' },
+  reContactDate: { label: '재컨택일자', type: 'text', placeholder: '예: 2025-09-01' },
+  smsSent: { label: '문자여부', type: 'select', options: ['', 'Y', 'N'] },
+  contactSentiment: { label: '컨택 호의도', type: 'select', options: ['', 'A', 'B', 'C'] },
+  contactHistory: { label: '컨택 히스토리', type: 'textarea' },
+  preRegistered: { label: '사전예약여부', type: 'select', options: ['', 'Y', 'N'] },
+  group: { label: '그룹', type: 'text' },
+  brand: { label: '브랜드', type: 'text' },
+  wideInsta: { label: '광역/인스타', type: 'text' },
+  region: { label: '권역', type: 'text' },
+  branch: { label: '지점/대리점 명', type: 'text' },
+  manager: { label: '담당매니저', type: 'text' },
+  assignedDate: { label: '배분일자', type: 'text' },
+  priorityDealer: { label: '우선컨택 딜러여부', type: 'select', options: ['', 'Y', 'N'] },
+  highEfficiency: { label: '고효율딜러여부', type: 'select', options: ['', 'Y', 'N'] },
+  highEfficiencyScore: { label: '고효율딜러수치', type: 'text' },
+  appJoinDate: { label: 'App가입일자', type: 'text' },
+  totalContracts: { label: '누적 계약체결건수', type: 'text' },
+  last60dContracts: { label: '직전 60일 계약체결건수', type: 'text' },
+  last1yTop10: { label: '직전 1년 본인 10% 횟수', type: 'text' },
+  adminNote: { label: '관리자 특이사항', type: 'textarea' },
+};
+
+const PAGE_SIZE = 50;
+
+function Badge({ value }) {
+  if (!value) return <span style={{ color: '#C2C7CC' }}>-</span>;
+  const v = value.trim().toUpperCase();
+  if (v === 'Y') return <span className="badge badge-y">Y</span>;
+  if (v === 'N') return <span className="badge badge-n">N</span>;
+  if (v === 'A') return <span className="badge badge-a">A</span>;
+  if (v === 'B') return <span className="badge badge-b">B</span>;
+  if (v === 'C') return <span className="badge badge-c">C</span>;
+  return <span>{value}</span>;
+}
+
+function csvEscape(v) {
+  const s = v === undefined || v === null ? '' : String(v);
+  if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+export default function DashboardPage({ role, name, adminSheetUrl }) {
+  const router = useRouter();
+  const isAdmin = role === '관리자';
+
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const [search, setSearch] = useState('');
+  const [managerFilter, setManagerFilter] = useState('');
+  const [contactedFilter, setContactedFilter] = useState('');
+  const [preRegFilter, setPreRegFilter] = useState('');
+  const [page, setPage] = useState(1);
+
+  const [editing, setEditing] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState(null);
+
+  async function fetchRows() {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/members');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '데이터를 불러오지 못했습니다.');
+      setRows(data.rows);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchRows();
+  }, []);
+
+  const managers = useMemo(() => {
+    const set = new Set(rows.map((r) => r.manager).filter(Boolean));
+    return Array.from(set).sort();
+  }, [rows]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (q) {
+        const hay = `${r.name || ''} ${r.phone || ''} ${r.branch || ''} ${r.manager || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (isAdmin && managerFilter && r.manager !== managerFilter) return false;
+      if (contactedFilter && (r.contacted || '').toUpperCase() !== contactedFilter) return false;
+      if (preRegFilter && (r.preRegistered || '').toUpperCase() !== preRegFilter) return false;
+      return true;
+    });
+  }, [rows, search, managerFilter, contactedFilter, preRegFilter, isAdmin]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, managerFilter, contactedFilter, preRegFilter]);
+
+  function resetFilters() {
+    setSearch('');
+    setManagerFilter('');
+    setContactedFilter('');
+    setPreRegFilter('');
+  }
+
+  function exportCsv() {
+    const cols = DISPLAY_COLUMNS.filter((c) => isAdmin || !c.adminOnly);
+    const header = cols.map((c) => csvEscape(c.label)).join(',');
+    const body = filtered
+      .map((r) => cols.map((c) => csvEscape(r[c.key])).join(','))
+      .join('\n');
+    const csv = '﻿' + header + '\n' + body;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    a.href = url;
+    a.download = `회원목록_${today}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/login');
+  }
+
+  function openEdit(row) {
+    setEditing(row);
+    setSaveMsg(null);
+  }
+
+  async function handleSave(formValues) {
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      const res = await fetch('/api/members/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: editing.phone, updates: formValues }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSaveMsg({ type: 'err', text: data.error || '저장에 실패했습니다.' });
+        setSaving(false);
+        return;
+      }
+      setRows((prev) =>
+        prev.map((r) => (r.phone === editing.phone ? { ...r, ...formValues } : r))
+      );
+      setEditing((prev) => (prev ? { ...prev, ...formValues } : prev));
+      setSaveMsg(
+        data.syncedToManagerSheet
+          ? { type: 'ok', text: '저장되었습니다. (담당매니저 개별 시트에도 반영됨)' }
+          : { type: 'warn', text: data.warning || '저장되었습니다.' }
+      );
+    } catch (e) {
+      setSaveMsg({ type: 'err', text: '네트워크 오류가 발생했습니다.' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const visibleColumns = DISPLAY_COLUMNS.filter((c) => isAdmin || !c.adminOnly);
+
+  return (
+    <div className="app-shell">
+      <div className="topbar">
+        <div className="topbar-left">
+          <span className="topbar-title">AJF 회원 관리 대시보드</span>
+          <span className="topbar-badge">{role}</span>
+        </div>
+        <div className="topbar-right">
+          {adminSheetUrl && (
+            <a className="logout-btn" href={adminSheetUrl} target="_blank" rel="noreferrer">
+              구글 시트 원본 열기
+            </a>
+          )}
+          <span className="topbar-user">{name}님</span>
+          <button className="logout-btn" onClick={handleLogout}>로그아웃</button>
+        </div>
+      </div>
+
+      <div className="page-body">
+        <div className="page-heading">
+          <div>
+            <h1>회원 관리</h1>
+            <div className="count">검색된 회원 수: {filtered.length.toLocaleString()}명</div>
+          </div>
+        </div>
+
+        <div className="filters-card">
+          <div className="filter-field" style={{ minWidth: 240 }}>
+            <label>통합검색 (이름/연락처/지점/매니저)</label>
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="검색어 입력" />
+          </div>
+          {isAdmin && (
+            <div className="filter-field">
+              <label>담당매니저</label>
+              <select value={managerFilter} onChange={(e) => setManagerFilter(e.target.value)}>
+                <option value="">전체</option>
+                {managers.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="filter-field">
+            <label>컨택여부</label>
+            <select value={contactedFilter} onChange={(e) => setContactedFilter(e.target.value)}>
+              <option value="">전체</option>
+              <option value="Y">Y</option>
+              <option value="N">N</option>
+            </select>
+          </div>
+          <div className="filter-field">
+            <label>사전예약여부</label>
+            <select value={preRegFilter} onChange={(e) => setPreRegFilter(e.target.value)}>
+              <option value="">전체</option>
+              <option value="Y">Y</option>
+              <option value="N">N</option>
+            </select>
+          </div>
+          <div className="filter-actions">
+            <button className="btn" onClick={resetFilters}>초기화</button>
+            <button className="btn" onClick={fetchRows}>새로고침</button>
+            <button className="btn btn-primary" onClick={exportCsv}>엑셀(CSV) 다운로드</button>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="loading-state">불러오는 중...</div>
+        ) : error ? (
+          <div className="error-state">{error}</div>
+        ) : (
+          <>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    {visibleColumns.map((c) => (
+                      <th key={c.key}>{c.label}</th>
+                    ))}
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paged.length === 0 ? (
+                    <tr className="empty-row">
+                      <td colSpan={visibleColumns.length + 1}>검색 결과가 없습니다.</td>
+                    </tr>
+                  ) : (
+                    paged.map((row) => (
+                      <tr key={row.phone + row.rowNumber} onClick={() => openEdit(row)}>
+                        {visibleColumns.map((c) => {
+                          const val = row[c.key];
+                          const isBadgeField = ['contacted', 'smsSent', 'preRegistered', 'priorityDealer', 'highEfficiency', 'contactSentiment'].includes(c.key);
+                          return (
+                            <td key={c.key} title={val}>
+                              {isBadgeField ? <Badge value={val} /> : (val || '-')}
+                            </td>
+                          );
+                        })}
+                        <td>
+                          <button
+                            className="btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEdit(row);
+                            }}
+                          >
+                            수정
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="pagination">
+              <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>이전</button>
+              <span>{page} / {totalPages}</span>
+              <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>다음</button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {editing && (
+        <EditModal
+          row={editing}
+          isAdmin={isAdmin}
+          saving={saving}
+          message={saveMsg}
+          onClose={() => setEditing(null)}
+          onSave={handleSave}
+        />
+      )}
+    </div>
+  );
+}
+
+function EditModal({ row, isAdmin, saving, message, onClose, onSave }) {
+  const editableKeys = isAdmin ? [...MANAGER_EDITABLE, ...ADMIN_ONLY_EDITABLE] : MANAGER_EDITABLE;
+  const [form, setForm] = useState(() => {
+    const init = {};
+    for (const key of editableKeys) init[key] = row[key] || '';
+    return init;
+  });
+
+  function update(key, value) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h2>{row.name}</h2>
+            <div className="sub">{row.phone} · {row.branch || '-'} · 담당매니저 {row.manager || '-'}</div>
+          </div>
+          <button className="modal-close" onClick={onClose}>&times;</button>
+        </div>
+
+        <div className="modal-readonly-grid">
+          <div><span className="k">그룹</span> {row.group || '-'}</div>
+          <div><span className="k">브랜드</span> {row.brand || '-'}</div>
+          <div><span className="k">권역</span> {row.region || '-'}</div>
+          <div><span className="k">배분일자</span> {row.assignedDate || '-'}</div>
+        </div>
+
+        {message && <div className={`modal-message ${message.type}`}>{message.text}</div>}
+
+        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>컨택 정보</div>
+        {MANAGER_EDITABLE.map((key) => (
+          <FieldInput key={key} fieldKey={key} value={form[key]} onChange={update} />
+        ))}
+
+        {isAdmin && (
+          <>
+            <div style={{ fontWeight: 700, fontSize: 13, margin: '18px 0 10px' }}>관리자 전용 항목</div>
+            {ADMIN_ONLY_EDITABLE.map((key) => (
+              <FieldInput key={key} fieldKey={key} value={form[key]} onChange={update} />
+            ))}
+          </>
+        )}
+
+        <div className="modal-actions">
+          <button className="btn" onClick={onClose}>취소</button>
+          <button className="btn btn-primary" disabled={saving} onClick={() => onSave(form)}>
+            {saving ? '저장 중...' : '저장'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FieldInput({ fieldKey, value, onChange }) {
+  const meta = FIELD_META[fieldKey] || { label: fieldKey, type: 'text' };
+  return (
+    <div className="modal-field">
+      <label>{meta.label}</label>
+      {meta.type === 'select' ? (
+        <select value={value} onChange={(e) => onChange(fieldKey, e.target.value)}>
+          {meta.options.map((opt) => (
+            <option key={opt} value={opt}>{opt === '' ? '(미입력)' : opt}</option>
+          ))}
+        </select>
+      ) : meta.type === 'textarea' ? (
+        <textarea value={value} onChange={(e) => onChange(fieldKey, e.target.value)} />
+      ) : (
+        <input
+          type="text"
+          value={value}
+          placeholder={meta.placeholder}
+          onChange={(e) => onChange(fieldKey, e.target.value)}
+        />
+      )}
+    </div>
+  );
+}
