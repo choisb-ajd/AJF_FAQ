@@ -241,11 +241,11 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
   top: 0;
   bottom: 0;
   right: 2px;
-  width: 2px;
-  background: var(--gray-lt);
+  width: 1px;
+  background: rgba(162, 169, 176, 0.45);
 }
 .col-resize-handle:hover, .col-resize-handle:active { background: var(--blue-lt); }
-.col-resize-handle:hover::after, .col-resize-handle:active::after { background: var(--blue); }
+.col-resize-handle:hover::after, .col-resize-handle:active::after { width: 2px; background: var(--blue); }
 
 .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
 .badge-y { background: #E6F6ED; color: var(--green); }
@@ -256,15 +256,37 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
 .badge-lock { background: #FDECEC; color: var(--red); }
 .badge-unlock { background: #E6F6ED; color: var(--green); }
 
-.pagination { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 16px 0; font-size: 13px; color: var(--gray); }
+.pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding: 16px 0; font-size: 13px; color: var(--gray); }
+.pagination-summary { margin-right: 8px; }
 .pagination button {
   border: 1px solid var(--border);
   background: var(--white);
   border-radius: 8px;
   padding: 6px 12px;
   font-weight: 700;
+  color: var(--navy);
 }
 .pagination button:disabled { opacity: .4; cursor: not-allowed; }
+.pagination button.page-num { min-width: 32px; padding: 6px 10px; }
+.pagination button.page-num.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+.pagination .page-ellipsis { padding: 0 4px; color: var(--gray-lt); }
+.pagination select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  background: var(--white);
+  margin-left: 6px;
+}
+.pagination .page-goto { display: flex; align-items: center; gap: 6px; margin-left: 6px; }
+.pagination .page-goto input {
+  width: 56px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+  text-align: center;
+}
 
 /* ── MODAL ── */
 .modal-overlay {

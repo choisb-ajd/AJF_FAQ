@@ -52,7 +52,16 @@ const FIELD_META = {
   adminNote: { label: '관리자 특이사항', type: 'textarea' },
 };
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
+
+// 현재 페이지를 기준으로 "1 2 3 4 5 ... 85" 같은 페이지 번호 목록을 만듭니다.
+// 페이지 수가 적으면 전부 보여주고, 많으면 앞/뒤 또는 현재 위치 주변만 보여주고 가운데는 '...'로 줄입니다.
+function buildPageList(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (current <= 4) return [1, 2, 3, 4, 5, '...', total];
+  if (current >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+  return [1, '...', current - 1, current, current + 1, '...', total];
+}
 
 function Badge({ value }) {
   if (!value) return <span style={{ color: '#C2C7CC' }}>-</span>;
@@ -129,6 +138,8 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [appJoinFrom, setAppJoinFrom] = useState('');
   const [appJoinTo, setAppJoinTo] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [gotoInput, setGotoInput] = useState('');
 
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -226,12 +237,22 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     return list;
   }, [filtered, sortKey, sortDir]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
-  const paged = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const paged = sorted.slice((page - 1) * pageSize, page * pageSize);
+  const rangeStart = sorted.length === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = Math.min(page * pageSize, sorted.length);
+  const pageNumbers = buildPageList(page, totalPages);
+
+  function gotoPage() {
+    const n = parseInt(gotoInput, 10);
+    if (!n || n < 1 || n > totalPages) return;
+    setPage(n);
+    setGotoInput('');
+  }
 
   useEffect(() => {
     setPage(1);
-  }, [search, managerFilter, contactedFilter, preRegFilter, appJoinFrom, appJoinTo]);
+  }, [search, managerFilter, contactedFilter, preRegFilter, appJoinFrom, appJoinTo, pageSize]);
 
   function resetFilters() {
     setSearch('');
@@ -525,9 +546,41 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
             </div>
 
             <div className="pagination">
-              <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>이전</button>
-              <span>{page} / {totalPages}</span>
-              <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>다음</button>
+              <span className="pagination-summary">
+                전체 {sorted.length.toLocaleString()}명 중 {rangeStart}-{rangeEnd}
+              </span>
+              <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>‹</button>
+              {pageNumbers.map((n, idx) =>
+                n === '...' ? (
+                  <span key={`ellipsis-${idx}`} className="page-ellipsis">…</span>
+                ) : (
+                  <button
+                    key={n}
+                    className={`page-num ${n === page ? 'active' : ''}`}
+                    onClick={() => setPage(n)}
+                  >
+                    {n}
+                  </button>
+                )
+              )}
+              <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>›</button>
+              <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
+                {PAGE_SIZE_OPTIONS.map((n) => (
+                  <option key={n} value={n}>{n}개씩</option>
+                ))}
+              </select>
+              <span className="page-goto">
+                <input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={gotoInput}
+                  onChange={(e) => setGotoInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && gotoPage()}
+                  placeholder="페이지"
+                />
+                <button onClick={gotoPage}>이동</button>
+              </span>
             </div>
           </>
         )}
