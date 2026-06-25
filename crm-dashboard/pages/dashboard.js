@@ -103,7 +103,7 @@ const DEFAULT_COL_WIDTHS = {
   smsSent: 90,
   contactSentiment: 90,
   contactHistory: 220,
-  preRegistered: 90,
+  appJoinDate: 120,
   totalContracts: 90,
   last60dContracts: 90,
   registeredAt: 150,
@@ -126,6 +126,8 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [managerFilter, setManagerFilter] = useState('');
   const [contactedFilter, setContactedFilter] = useState('');
   const [preRegFilter, setPreRegFilter] = useState('');
+  const [appJoinFrom, setAppJoinFrom] = useState('');
+  const [appJoinTo, setAppJoinTo] = useState('');
   const [page, setPage] = useState(1);
 
   const [editing, setEditing] = useState(null);
@@ -205,9 +207,15 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
       if (isAdmin && managerFilter && r.manager !== managerFilter) return false;
       if (contactedFilter && (r.contacted || '').toUpperCase() !== contactedFilter) return false;
       if (preRegFilter && (r.preRegistered || '').toUpperCase() !== preRegFilter) return false;
+      if (appJoinFrom || appJoinTo) {
+        const rowTs = Date.parse(r.appJoinDate);
+        if (!rowTs) return false;
+        if (appJoinFrom && rowTs < Date.parse(appJoinFrom)) return false;
+        if (appJoinTo && rowTs > Date.parse(appJoinTo) + 86399999) return false;
+      }
       return true;
     });
-  }, [rows, search, managerFilter, contactedFilter, preRegFilter, isAdmin]);
+  }, [rows, search, managerFilter, contactedFilter, preRegFilter, appJoinFrom, appJoinTo, isAdmin]);
 
   const sorted = useMemo(() => {
     const list = [...filtered];
@@ -223,13 +231,15 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
 
   useEffect(() => {
     setPage(1);
-  }, [search, managerFilter, contactedFilter, preRegFilter]);
+  }, [search, managerFilter, contactedFilter, preRegFilter, appJoinFrom, appJoinTo]);
 
   function resetFilters() {
     setSearch('');
     setManagerFilter('');
     setContactedFilter('');
     setPreRegFilter('');
+    setAppJoinFrom('');
+    setAppJoinTo('');
   }
 
   // 칼럼 제목을 클릭하면 그 칼럼으로 정렬하고, 같은 칼럼을 다시 클릭하면 방향을 반대로 바꿉니다.
@@ -418,6 +428,14 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
             </select>
           </div>
           <div className="filter-field">
+            <label>App가입일자</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input type="date" value={appJoinFrom} onChange={(e) => setAppJoinFrom(e.target.value)} />
+              <span style={{ color: 'var(--gray)' }}>~</span>
+              <input type="date" value={appJoinTo} onChange={(e) => setAppJoinTo(e.target.value)} />
+            </div>
+          </div>
+          <div className="filter-field">
             <label>정렬기준</label>
             <select
               value={`${sortKey}:${sortDir}`}
@@ -481,7 +499,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                       <tr key={row.phone + row.rowNumber} onClick={() => openEdit(row)}>
                         {visibleColumns.map((c) => {
                           const val = row[c.key];
-                          const isBadgeField = ['contacted', 'smsSent', 'preRegistered', 'priorityDealer', 'highEfficiency', 'contactSentiment'].includes(c.key);
+                          const isBadgeField = ['contacted', 'smsSent', 'priorityDealer', 'highEfficiency', 'contactSentiment'].includes(c.key);
                           return (
                             <td key={c.key} title={val}>
                               {isBadgeField ? <Badge value={val} /> : (val || '-')}

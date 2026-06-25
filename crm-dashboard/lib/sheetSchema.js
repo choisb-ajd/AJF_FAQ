@@ -47,7 +47,7 @@ const DISPLAY_COLUMNS = [
   { key: 'smsSent', label: '문자여부' },
   { key: 'contactSentiment', label: '호의도' },
   { key: 'contactHistory', label: '컨택 히스토리' },
-  { key: 'preRegistered', label: '사전예약' },
+  { key: 'appJoinDate', label: 'App가입일자' },
   { key: 'totalContracts', label: '누적계약' },
   { key: 'last60dContracts', label: '직전60일' },
   { key: 'registeredAt', label: '등록일자' },

@@ -235,7 +235,17 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
   height: 100%;
   cursor: col-resize;
 }
+.col-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 2px;
+  width: 2px;
+  background: var(--gray-lt);
+}
 .col-resize-handle:hover, .col-resize-handle:active { background: var(--blue-lt); }
+.col-resize-handle:hover::after, .col-resize-handle:active::after { background: var(--blue); }
 
 .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
 .badge-y { background: #E6F6ED; color: var(--green); }
