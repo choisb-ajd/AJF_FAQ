@@ -109,6 +109,17 @@ input, select, textarea { font-family: inherit; font-size: 14px; }
   background: var(--blue-lt);
   color: var(--blue-dk);
 }
+.topbar-nav { display: flex; gap: 4px; margin-left: 16px; }
+.topbar-nav-link {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gray);
+  padding: 8px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+}
+.topbar-nav-link:hover { background: var(--bg); }
+.topbar-nav-link.active { background: var(--blue-lt); color: var(--blue-dk); }
 .topbar-right { display: flex; align-items: center; gap: 14px; }
 .topbar-user { font-size: 13px; color: var(--gray); }
 .logout-btn {
@@ -201,6 +212,8 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
 .badge-a { background: #E6F6ED; color: var(--green); }
 .badge-b { background: #FFF6E0; color: #C58C00; }
 .badge-c { background: #FDECEC; color: var(--red); }
+.badge-lock { background: #FDECEC; color: var(--red); }
+.badge-unlock { background: #E6F6ED; color: var(--green); }
 
 .pagination { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 16px 0; font-size: 13px; color: var(--gray); }
 .pagination button {

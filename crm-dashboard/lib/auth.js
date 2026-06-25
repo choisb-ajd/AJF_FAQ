@@ -4,8 +4,10 @@ const cookie = require('cookie');
 const COOKIE_NAME = 'ajf_session';
 const SECRET = process.env.JWT_SECRET;
 
+const SESSION_MAX_AGE_SEC = 60 * 60 * 24; // 로그인 시점으로부터 24시간
+
 function signSession(payload) {
-  return jwt.sign(payload, SECRET, { expiresIn: '12h' });
+  return jwt.sign(payload, SECRET, { expiresIn: SESSION_MAX_AGE_SEC });
 }
 
 function verifySession(token) {
@@ -24,7 +26,7 @@ function setSessionCookie(res, token) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 12,
+      maxAge: SESSION_MAX_AGE_SEC,
     })
   );
 }

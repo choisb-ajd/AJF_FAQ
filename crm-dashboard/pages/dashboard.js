@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import cookie from 'cookie';
 import { verifySession, COOKIE_NAME } from '../lib/auth';
 import { DISPLAY_COLUMNS, MANAGER_EDITABLE, ADMIN_ONLY_EDITABLE } from '../lib/sheetSchema';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 
 export async function getServerSideProps({ req }) {
   const cookies = cookie.parse(req.headers.cookie || '');
@@ -83,6 +85,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState(null);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   async function fetchRows() {
     setLoading(true);
@@ -202,6 +205,10 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
         <div className="topbar-left">
           <span className="topbar-title">AJF 회원 관리 대시보드</span>
           <span className="topbar-badge">{role}</span>
+          <nav className="topbar-nav">
+            <Link className="topbar-nav-link active" href="/dashboard">회원관리</Link>
+            {isAdmin && <Link className="topbar-nav-link" href="/accounts">계정관리</Link>}
+          </nav>
         </div>
         <div className="topbar-right">
           {adminSheetUrl && (
@@ -210,6 +217,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
             </a>
           )}
           <span className="topbar-user">{name}님</span>
+          <button className="logout-btn" onClick={() => setChangingPassword(true)}>비밀번호 변경</button>
           <button className="logout-btn" onClick={handleLogout}>로그아웃</button>
         </div>
       </div>
@@ -330,6 +338,10 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
           onClose={() => setEditing(null)}
           onSave={handleSave}
         />
+      )}
+
+      {changingPassword && (
+        <ChangePasswordModal onClose={() => setChangingPassword(false)} />
       )}
     </div>
   );

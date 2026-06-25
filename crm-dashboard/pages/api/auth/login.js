@@ -1,4 +1,9 @@
-const { findAccountByLoginId } = require('../../../lib/sheetsRepo');
+const {
+  findAccountByLoginId,
+  recordFailedLogin,
+  recordSuccessfulLogin,
+  MAX_FAILED_ATTEMPTS,
+} = require('../../../lib/sheetsRepo');
 const { signSession, setSessionCookie } = require('../../../lib/auth');
 
 export default async function handler(req, res) {
@@ -13,13 +18,32 @@ export default async function handler(req, res) {
   }
 
   try {
-    const account = await findAccountByLoginId(loginId.trim());
-    if (!account || account.password !== password) {
+    const account = await findAccountByLoginId(loginId.trim(), { useCache: false });
+    if (!account) {
       return res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' });
+    }
+    if (account.locked) {
+      return res.status(423).json({
+        error: '비밀번호를 5회 이상 잘못 입력하여 계정이 잠겼습니다. 관리자에게 비밀번호 초기화를 요청해주세요.',
+      });
+    }
+    if (account.password !== password) {
+      const { failedAttempts, locked } = await recordFailedLogin(account);
+      if (locked) {
+        return res.status(423).json({
+          error: '비밀번호를 5회 이상 잘못 입력하여 계정이 잠겼습니다. 관리자에게 비밀번호 초기화를 요청해주세요.',
+        });
+      }
+      const remaining = MAX_FAILED_ATTEMPTS - failedAttempts;
+      return res.status(401).json({
+        error: `아이디 또는 비밀번호가 올바르지 않습니다. (${remaining}회 더 틀리면 계정이 잠깁니다)`,
+      });
     }
     if (account.role !== '관리자' && account.role !== '매니저') {
       return res.status(403).json({ error: '계정의 권한 설정이 올바르지 않습니다. 관리자에게 문의해주세요.' });
     }
+
+    await recordSuccessfulLogin(account);
 
     const token = signSession({
       loginId: account.loginId,

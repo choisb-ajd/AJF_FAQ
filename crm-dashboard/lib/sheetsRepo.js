@@ -8,6 +8,19 @@ const {
 
 const ADMIN_SPREADSHEET_ID = process.env.ADMIN_SPREADSHEET_ID;
 const ACCOUNTS_SHEET_TITLE = '계정관리';
+const MAX_FAILED_ATTEMPTS = 5;
+
+// "계정관리" 탭의 컬럼 순서: 아이디 | 비밀번호 | 이름 | 권한 | 개인시트URL | 비고 | 실패횟수 | 잠김여부
+const ACCOUNT_COLUMNS = {
+  loginId: 'A',
+  password: 'B',
+  name: 'C',
+  role: 'D',
+  sheetUrl: 'E',
+  note: 'F',
+  failedAttempts: 'G',
+  locked: 'H',
+};
 
 // 같은 서버 인스턴스에서 너무 자주 구글 API를 호출하지 않도록 짧게 캐시합니다.
 const CACHE_TTL_MS = 20 * 1000;
@@ -77,34 +90,101 @@ async function getAdminRows({ useCache = true } = {}) {
   return readSheetRows(ADMIN_SPREADSHEET_ID, { useCache });
 }
 
-// "계정관리" 탭: 아이디 | 비밀번호 | 이름 | 권한 | 개인시트URL | 비고
-async function getAccountsConfig() {
-  if (accountsCache && accountsCache.expires > Date.now()) {
+// "계정관리" 탭: 아이디 | 비밀번호 | 이름 | 권한 | 개인시트URL | 비고 | 실패횟수 | 잠김여부
+async function getAccountsConfig({ useCache = true } = {}) {
+  if (useCache && accountsCache && accountsCache.expires > Date.now()) {
     return accountsCache.accounts;
   }
   const sheets = getSheetsClient();
-  const range = `${quoteSheetTitle(ACCOUNTS_SHEET_TITLE)}!A2:F`;
+  const range = `${quoteSheetTitle(ACCOUNTS_SHEET_TITLE)}!A2:H`;
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: ADMIN_SPREADSHEET_ID,
     range,
   });
   const accounts = (res.data.values || [])
-    .filter((r) => r[0])
-    .map((r) => ({
+    .map((r, i) => ({
+      rowNumber: i + 2, // 시트 상의 실제 행 번호 (1행은 헤더)
       loginId: (r[0] || '').trim(),
       password: (r[1] || '').trim(),
       name: (r[2] || '').trim(),
       role: (r[3] || '').trim(), // '관리자' | '매니저'
       sheetUrl: (r[4] || '').trim(),
       note: (r[5] || '').trim(),
-    }));
+      failedAttempts: parseInt(r[6], 10) || 0,
+      locked: (r[7] || '').trim().toUpperCase() === 'Y',
+    }))
+    .filter((a) => a.loginId);
   accountsCache = { expires: Date.now() + CACHE_TTL_MS, accounts };
   return accounts;
 }
 
-async function findAccountByLoginId(loginId) {
-  const accounts = await getAccountsConfig();
+function invalidateAccountsCache() {
+  accountsCache = null;
+}
+
+async function findAccountByLoginId(loginId, opts) {
+  const accounts = await getAccountsConfig(opts);
   return accounts.find((a) => a.loginId === loginId) || null;
+}
+
+async function updateAccountFields(rowNumber, fieldsToUpdate) {
+  const sheets = getSheetsClient();
+  const data = [];
+  for (const [key, value] of Object.entries(fieldsToUpdate)) {
+    const col = ACCOUNT_COLUMNS[key];
+    if (!col) continue;
+    data.push({
+      range: `${quoteSheetTitle(ACCOUNTS_SHEET_TITLE)}!${col}${rowNumber}`,
+      values: [[value]],
+    });
+  }
+  if (data.length === 0) return;
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    requestBody: { valueInputOption: 'RAW', data },
+  });
+  invalidateAccountsCache();
+}
+
+// 로그인 비밀번호가 틀렸을 때 호출: 실패횟수를 올리고, 5회 이상이면 계정을 잠급니다.
+async function recordFailedLogin(account) {
+  const failedAttempts = account.failedAttempts + 1;
+  const locked = failedAttempts >= MAX_FAILED_ATTEMPTS;
+  await updateAccountFields(account.rowNumber, {
+    failedAttempts,
+    locked: locked ? 'Y' : '',
+  });
+  return { failedAttempts, locked };
+}
+
+// 로그인에 성공했을 때 호출: 실패횟수를 0으로 되돌립니다.
+async function recordSuccessfulLogin(account) {
+  if (account.failedAttempts === 0) return;
+  await updateAccountFields(account.rowNumber, { failedAttempts: 0 });
+}
+
+// 본인이 비밀번호를 변경할 때 사용합니다.
+async function changeOwnPassword(loginId, newPassword) {
+  const account = await findAccountByLoginId(loginId, { useCache: false });
+  if (!account) throw new Error('계정을 찾을 수 없습니다.');
+  await updateAccountFields(account.rowNumber, { password: newPassword });
+}
+
+// 관리자가 매니저 계정의 비밀번호를 초기화할 때 사용합니다. 잠금/실패횟수도 함께 풀어줍니다.
+async function adminResetPassword(loginId, newPassword) {
+  const account = await findAccountByLoginId(loginId, { useCache: false });
+  if (!account) throw new Error('계정을 찾을 수 없습니다.');
+  await updateAccountFields(account.rowNumber, {
+    password: newPassword,
+    failedAttempts: 0,
+    locked: '',
+  });
+}
+
+// 관리자용 계정관리 화면에 보여줄 목록 (비밀번호 값은 제외)
+async function listAccountsForAdmin() {
+  const accounts = await getAccountsConfig({ useCache: false });
+  return accounts.map(({ password, ...rest }) => rest);
 }
 
 function extractSpreadsheetId(url) {
@@ -210,9 +290,15 @@ async function updateMemberRecord({ phone, updates }) {
 
 module.exports = {
   ADMIN_SPREADSHEET_ID,
+  MAX_FAILED_ATTEMPTS,
   getAdminRows,
   getAccountsConfig,
   findAccountByLoginId,
   getManagerSpreadsheetId,
   updateMemberRecord,
+  recordFailedLogin,
+  recordSuccessfulLogin,
+  changeOwnPassword,
+  adminResetPassword,
+  listAccountsForAdmin,
 };
