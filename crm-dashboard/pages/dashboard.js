@@ -25,6 +25,8 @@ export async function getServerSideProps({ req }) {
 }
 
 const FIELD_META = {
+  name: { label: '이름', type: 'text' },
+  phone: { label: '연락처', type: 'text', placeholder: '예: 010-1234-5678' },
   contacted: { label: '컨택여부', type: 'select', options: ['', 'Y', 'N'] },
   firstContactDate: { label: '최초컨택일자', type: 'text', placeholder: '예: 2025-08-28' },
   reContactDate: { label: '재컨택일자', type: 'text', placeholder: '예: 2025-09-01' },
@@ -86,25 +88,42 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState(null);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [addingDealer, setAddingDealer] = useState(false);
+  const [addSaving, setAddSaving] = useState(false);
+  const [addMsg, setAddMsg] = useState(null);
+  const [lastSynced, setLastSynced] = useState(null);
 
-  async function fetchRows() {
-    setLoading(true);
+  // silent=true면 화면에 "불러오는 중..." 스피너를 띄우지 않고 조용히 최신 데이터로 교체합니다.
+  // 구글 시트에서 직접 수정한 내용도 이 폴링을 통해 자동으로 화면에 반영됩니다.
+  async function fetchRows({ silent = false } = {}) {
+    if (!silent) setLoading(true);
     setError('');
     try {
       const res = await fetch('/api/members');
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '데이터를 불러오지 못했습니다.');
       setRows(data.rows);
+      setLastSynced(new Date());
     } catch (e) {
-      setError(e.message);
+      if (!silent) setError(e.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
   useEffect(() => {
     fetchRows();
   }, []);
+
+  // 편집창이 열려있지 않을 때만 일정 주기로 조용히 새 데이터를 가져옵니다.
+  // (편집 중에 화면이 바뀌면 입력 중인 내용을 잃어버릴 수 있어 그 동안은 잠시 멈춥니다)
+  useEffect(() => {
+    if (editing || addingDealer) return;
+    const interval = setInterval(() => {
+      fetchRows({ silent: true });
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [editing, addingDealer]);
 
   const managers = useMemo(() => {
     const set = new Set(rows.map((r) => r.manager).filter(Boolean));
@@ -197,6 +216,34 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     }
   }
 
+  async function handleAddDealer(formValues) {
+    setAddSaving(true);
+    setAddMsg(null);
+    try {
+      const res = await fetch('/api/members/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formValues),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAddMsg({ type: 'err', text: data.error || '딜러 추가에 실패했습니다.' });
+        setAddSaving(false);
+        return;
+      }
+      setAddMsg(
+        data.syncedToManagerSheet
+          ? { type: 'ok', text: '딜러가 추가되었습니다. (담당매니저 개별 시트에도 반영됨)' }
+          : { type: 'warn', text: data.warning || '딜러가 추가되었습니다.' }
+      );
+      fetchRows({ silent: true });
+    } catch (e) {
+      setAddMsg({ type: 'err', text: '네트워크 오류가 발생했습니다.' });
+    } finally {
+      setAddSaving(false);
+    }
+  }
+
   const visibleColumns = DISPLAY_COLUMNS.filter((c) => isAdmin || !c.adminOnly);
 
   return (
@@ -226,7 +273,10 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
         <div className="page-heading">
           <div>
             <h1>회원 관리</h1>
-            <div className="count">검색된 회원 수: {filtered.length.toLocaleString()}명</div>
+            <div className="count">
+              검색된 회원 수: {filtered.length.toLocaleString()}명
+              {lastSynced && ` · 마지막 동기화: ${lastSynced.toLocaleTimeString('ko-KR')}`}
+            </div>
           </div>
         </div>
 
@@ -264,8 +314,13 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
           </div>
           <div className="filter-actions">
             <button className="btn" onClick={resetFilters}>초기화</button>
-            <button className="btn" onClick={fetchRows}>새로고침</button>
+            <button className="btn" onClick={() => fetchRows()}>새로고침</button>
             <button className="btn btn-primary" onClick={exportCsv}>엑셀(CSV) 다운로드</button>
+            {isAdmin && (
+              <button className="btn btn-primary" onClick={() => { setAddMsg(null); setAddingDealer(true); }}>
+                딜러 추가
+              </button>
+            )}
           </div>
         </div>
 
@@ -343,6 +398,15 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
       {changingPassword && (
         <ChangePasswordModal onClose={() => setChangingPassword(false)} />
       )}
+
+      {addingDealer && (
+        <AddDealerModal
+          saving={addSaving}
+          message={addMsg}
+          onClose={() => setAddingDealer(false)}
+          onSave={handleAddDealer}
+        />
+      )}
     </div>
   );
 }
@@ -397,6 +461,57 @@ function EditModal({ row, isAdmin, saving, message, onClose, onSave }) {
           <button className="btn" onClick={onClose}>취소</button>
           <button className="btn btn-primary" disabled={saving} onClick={() => onSave(form)}>
             {saving ? '저장 중...' : '저장'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddDealerModal({ saving, message, onClose, onSave }) {
+  const fieldKeys = ['name', 'phone', ...ADMIN_ONLY_EDITABLE];
+  const [form, setForm] = useState(() => {
+    const init = {};
+    for (const key of fieldKeys) init[key] = '';
+    return init;
+  });
+
+  function update(key, value) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function submit() {
+    if (!form.name.trim() || !form.phone.trim()) {
+      return;
+    }
+    onSave(form);
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h2>딜러 추가</h2>
+            <div className="sub">새로운 딜러 정보를 입력해주세요. (이름·연락처는 필수)</div>
+          </div>
+          <button className="modal-close" onClick={onClose}>&times;</button>
+        </div>
+
+        {message && <div className={`modal-message ${message.type}`}>{message.text}</div>}
+
+        <FieldInput fieldKey="name" value={form.name} onChange={update} />
+        <FieldInput fieldKey="phone" value={form.phone} onChange={update} />
+
+        <div style={{ fontWeight: 700, fontSize: 13, margin: '18px 0 10px' }}>관리자 전용 항목</div>
+        {ADMIN_ONLY_EDITABLE.map((key) => (
+          <FieldInput key={key} fieldKey={key} value={form[key]} onChange={update} />
+        ))}
+
+        <div className="modal-actions">
+          <button className="btn" onClick={onClose}>닫기</button>
+          <button className="btn btn-primary" disabled={saving} onClick={submit}>
+            {saving ? '추가 중...' : '추가'}
           </button>
         </div>
       </div>

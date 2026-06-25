@@ -24,19 +24,19 @@ export default async function handler(req, res) {
     }
     if (account.locked) {
       return res.status(423).json({
-        error: '비밀번호를 5회 이상 잘못 입력하여 계정이 잠겼습니다. 관리자에게 비밀번호 초기화를 요청해주세요.',
+        error: '비밀번호를 5회 이상 잘못 입력하여 계정이 잠겼습니다.\n관리자에게 비밀번호 초기화를 요청해주세요.',
       });
     }
     if (account.password !== password) {
       const { failedAttempts, locked } = await recordFailedLogin(account);
       if (locked) {
         return res.status(423).json({
-          error: '비밀번호를 5회 이상 잘못 입력하여 계정이 잠겼습니다. 관리자에게 비밀번호 초기화를 요청해주세요.',
+          error: '비밀번호를 5회 이상 잘못 입력하여 계정이 잠겼습니다.\n관리자에게 비밀번호 초기화를 요청해주세요.',
         });
       }
       const remaining = MAX_FAILED_ATTEMPTS - failedAttempts;
       return res.status(401).json({
-        error: `아이디 또는 비밀번호가 올바르지 않습니다. (${remaining}회 더 틀리면 계정이 잠깁니다)`,
+        error: `아이디 또는 비밀번호가 올바르지 않습니다.\n(${remaining}회 더 틀리면 계정이 잠깁니다)`,
       });
     }
     if (account.role !== '관리자' && account.role !== '매니저') {

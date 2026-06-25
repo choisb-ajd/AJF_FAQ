@@ -237,6 +237,38 @@ async function appendRowToSheet(spreadsheetId, sheetTitle, columnMap, fieldsObje
   invalidateCache(spreadsheetId);
 }
 
+// 신규 딜러 추가: 관리자(종합) 시트에 새 행을 추가하고, 담당매니저가 지정되어 있으면
+// 그 매니저의 개별 시트에도 같은 내용을 추가합니다.
+async function createMemberRecord(fields) {
+  const admin = await getAdminRows({ useCache: false });
+  const targetPhone = normalizePhone(fields.phone);
+  const dup = admin.rows.find((r) => normalizePhone(r.values.phone) === targetPhone);
+  if (dup) {
+    throw new Error('이미 등록된 연락처입니다.');
+  }
+
+  await appendRowToSheet(ADMIN_SPREADSHEET_ID, admin.sheetTitle, admin.columnMap, fields);
+
+  const managerName = fields.manager;
+  if (!managerName) {
+    return { ok: true, syncedToManagerSheet: false, warning: '담당매니저가 지정되어 있지 않아 개별 시트에는 반영하지 못했습니다.' };
+  }
+
+  const managerSpreadsheetId = await getManagerSpreadsheetId(managerName);
+  if (!managerSpreadsheetId) {
+    return {
+      ok: true,
+      syncedToManagerSheet: false,
+      warning: `'${managerName}' 매니저의 개별 시트 주소가 계정관리 탭에 등록되어 있지 않아 개별 시트에는 반영하지 못했습니다.`,
+    };
+  }
+
+  const mgr = await readSheetRows(managerSpreadsheetId, { useCache: false });
+  await appendRowToSheet(managerSpreadsheetId, mgr.sheetTitle, mgr.columnMap, fields);
+
+  return { ok: true, syncedToManagerSheet: true };
+}
+
 // 핵심 동기화 로직: 관리자(종합) 시트를 업데이트하고, 같은 연락처를 가진 행을
 // 해당 담당매니저의 개별 시트에서도 찾아 업데이트(없으면 새로 추가)합니다.
 async function updateMemberRecord({ phone, updates }) {
@@ -296,6 +328,7 @@ module.exports = {
   findAccountByLoginId,
   getManagerSpreadsheetId,
   updateMemberRecord,
+  createMemberRecord,
   recordFailedLogin,
   recordSuccessfulLogin,
   changeOwnPassword,

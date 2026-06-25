@@ -83,6 +83,8 @@ input, select, textarea { font-family: inherit; font-size: 14px; }
   background: #FDECEC;
   border-radius: 8px;
   padding: 8px 12px;
+  white-space: pre-line;
+  line-height: 1.5;
 }
 
 /* ── APP SHELL ── */
