@@ -30,6 +30,7 @@ const FIELDS = [
   { key: 'last1yTop10', headers: ['직전 1년 본인 10% 횟수'] },
   { key: 'adminNote', headers: ['관리자 특이사항'] },
   { key: 'lastModifiedBy', headers: ['수정자'] },
+  { key: 'registeredAt', headers: ['등록일자'] },
 ];
 
 // 화면에 보여줄 컬럼 순서/라벨 (테이블 렌더링용)
@@ -40,7 +41,6 @@ const DISPLAY_COLUMNS = [
   { key: 'group', label: '그룹' },
   { key: 'brand', label: '브랜드' },
   { key: 'branch', label: '지점/대리점' },
-  { key: 'region', label: '권역' },
   { key: 'contacted', label: '컨택여부' },
   { key: 'firstContactDate', label: '최초컨택일자' },
   { key: 'reContactDate', label: '재컨택일자' },
@@ -50,6 +50,7 @@ const DISPLAY_COLUMNS = [
   { key: 'preRegistered', label: '사전예약' },
   { key: 'totalContracts', label: '누적계약' },
   { key: 'last60dContracts', label: '직전60일' },
+  { key: 'registeredAt', label: '등록일자' },
   { key: 'adminNote', label: '관리자 특이사항', adminOnly: true },
   { key: 'lastModifiedBy', label: '수정자', adminOnly: true },
 ];
@@ -110,6 +111,24 @@ function normalizePhone(value) {
   return (value || '').toString().replace(/\D/g, '');
 }
 
+// 딜러가 등록된 시각을 "YYYY-MM-DD HH:mm:ss" (한국시간) 형태로 만듭니다.
+// 문자열로 그대로 정렬해도 시간 순서가 맞도록 고정폭으로 만든 형식입니다.
+function formatRegisteredAt(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const map = {};
+  for (const p of parts) map[p.type] = p.value;
+  return `${map.year}-${map.month}-${map.day} ${map.hour}:${map.minute}:${map.second}`;
+}
+
 function columnIndexToLetter(index) {
   let i = index + 1;
   let s = '';
@@ -131,4 +150,5 @@ module.exports = {
   rowArrayToValues,
   normalizePhone,
   columnIndexToLetter,
+  formatRegisteredAt,
 };

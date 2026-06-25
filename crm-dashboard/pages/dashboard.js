@@ -26,8 +26,8 @@ export async function getServerSideProps({ req }) {
 }
 
 const FIELD_META = {
-  name: { label: '이름', type: 'text' },
-  phone: { label: '연락처', type: 'text', placeholder: '예: 010-1234-5678' },
+  name: { label: '이름', type: 'text', required: true },
+  phone: { label: '연락처', type: 'text', placeholder: '예: 010-1234-5678', required: true },
   contacted: { label: '컨택여부', type: 'select', options: ['', 'Y', 'N'] },
   firstContactDate: { label: '최초컨택일자', type: 'text', placeholder: '예: 2025-08-28' },
   reContactDate: { label: '재컨택일자', type: 'text', placeholder: '예: 2025-09-01' },
@@ -71,6 +71,23 @@ function csvEscape(v) {
   return s;
 }
 
+const NUMERIC_SORT_KEYS = ['totalContracts', 'last60dContracts', 'last1yTop10', 'highEfficiencyScore'];
+const DATE_SORT_KEYS = ['registeredAt', 'firstContactDate', 'reContactDate', 'assignedDate', 'appJoinDate'];
+
+// 칼럼 종류에 따라 숫자/날짜/문자열 중 알맞은 방식으로 두 값을 비교합니다.
+// 값이 없는 경우(특히 날짜)는 가장 오래된/작은 값으로 취급해 정렬 시 뒤로 밀립니다.
+function compareRows(a, b, key) {
+  const av = a[key] || '';
+  const bv = b[key] || '';
+  if (NUMERIC_SORT_KEYS.includes(key)) {
+    return (Number(av) || 0) - (Number(bv) || 0);
+  }
+  if (DATE_SORT_KEYS.includes(key)) {
+    return (Date.parse(av) || 0) - (Date.parse(bv) || 0);
+  }
+  return av.toString().localeCompare(bv.toString(), 'ko');
+}
+
 export default function DashboardPage({ role, name, adminSheetUrl }) {
   const router = useRouter();
   const isAdmin = role === '관리자';
@@ -94,6 +111,8 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [addMsg, setAddMsg] = useState(null);
   const [lastSynced, setLastSynced] = useState(null);
   const [managerOptions, setManagerOptions] = useState(null);
+  const [sortKey, setSortKey] = useState('registeredAt');
+  const [sortDir, setSortDir] = useState('desc');
 
   // silent=true면 화면에 "불러오는 중..." 스피너를 띄우지 않고 조용히 최신 데이터로 교체합니다.
   // 구글 시트에서 직접 수정한 내용도 이 폴링을 통해 자동으로 화면에 반영됩니다.
@@ -163,8 +182,17 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     });
   }, [rows, search, managerFilter, contactedFilter, preRegFilter, isAdmin]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const sorted = useMemo(() => {
+    const list = [...filtered];
+    list.sort((a, b) => {
+      const cmp = compareRows(a, b, sortKey);
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return list;
+  }, [filtered, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const paged = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => {
     setPage(1);
@@ -177,10 +205,20 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     setPreRegFilter('');
   }
 
+  // 칼럼 제목을 클릭하면 그 칼럼으로 정렬하고, 같은 칼럼을 다시 클릭하면 방향을 반대로 바꿉니다.
+  function toggleSort(key) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  }
+
   function exportCsv() {
     const cols = DISPLAY_COLUMNS.filter((c) => isAdmin || !c.adminOnly);
     const header = cols.map((c) => csvEscape(c.label)).join(',');
-    const body = filtered
+    const body = sorted
       .map((r) => cols.map((c) => csvEscape(r[c.key])).join(','))
       .join('\n');
     const csv = '﻿' + header + '\n' + body;
@@ -331,6 +369,20 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
               <option value="N">N</option>
             </select>
           </div>
+          <div className="filter-field">
+            <label>정렬기준</label>
+            <select
+              value={`${sortKey}:${sortDir}`}
+              onChange={(e) => {
+                const [k, d] = e.target.value.split(':');
+                setSortKey(k);
+                setSortDir(d);
+              }}
+            >
+              <option value="registeredAt:desc">최신 등록순</option>
+              <option value="name:asc">이름순 (가나다)</option>
+            </select>
+          </div>
           <div className="filter-actions">
             <button className="btn" onClick={resetFilters}>초기화</button>
             <button className="btn" onClick={() => fetchRows()}>새로고침</button>
@@ -352,7 +404,10 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                 <thead>
                   <tr>
                     {visibleColumns.map((c) => (
-                      <th key={c.key}>{c.label}</th>
+                      <th key={c.key} onClick={() => toggleSort(c.key)} style={{ cursor: 'pointer' }}>
+                        {c.label}
+                        {sortKey === c.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+                      </th>
                     ))}
                     <th></th>
                   </tr>
@@ -511,6 +566,7 @@ function AddDealerModal({ isAdmin, name, saving, message, managerOptions, onClos
     for (const key of fieldKeys) init[key] = '';
     return init;
   });
+  const [validationError, setValidationError] = useState('');
   useEscapeKey(onClose);
 
   function update(key, value) {
@@ -519,8 +575,10 @@ function AddDealerModal({ isAdmin, name, saving, message, managerOptions, onClos
 
   function submit() {
     if (!form.name.trim() || !form.phone.trim()) {
+      setValidationError('이름과 연락처는 필수 입력 항목입니다.');
       return;
     }
+    setValidationError('');
     onSave(form);
   }
 
@@ -539,6 +597,7 @@ function AddDealerModal({ isAdmin, name, saving, message, managerOptions, onClos
         </div>
 
         {message && <div className={`modal-message ${message.type}`}>{message.text}</div>}
+        {validationError && <div className="modal-message err">{validationError}</div>}
 
         <FieldInput fieldKey="name" value={form.name} onChange={update} />
         <FieldInput fieldKey="phone" value={form.phone} onChange={update} />
@@ -574,7 +633,7 @@ function FieldInput({ fieldKey, value, onChange, managerOptions }) {
     const options = value && !managerOptions.includes(value) ? [value, ...managerOptions] : managerOptions;
     return (
       <div className="modal-field">
-        <label>{meta.label}</label>
+        <label>{meta.label}{meta.required && <span className="required-mark"> *</span>}</label>
         <select value={value} onChange={(e) => onChange(fieldKey, e.target.value)}>
           <option value="">(미선택)</option>
           {options.map((opt) => (
@@ -586,7 +645,7 @@ function FieldInput({ fieldKey, value, onChange, managerOptions }) {
   }
   return (
     <div className="modal-field">
-      <label>{meta.label}</label>
+      <label>{meta.label}{meta.required && <span className="required-mark"> *</span>}</label>
       {meta.type === 'select' ? (
         <select value={value} onChange={(e) => onChange(fieldKey, e.target.value)}>
           {meta.options.map((opt) => (

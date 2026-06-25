@@ -62,6 +62,16 @@ input, select, textarea { font-family: inherit; font-size: 14px; }
   transition: border-color .15s;
 }
 .login-field input:focus { border-color: var(--blue); }
+.login-remember { margin-bottom: 14px; }
+.login-remember label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--gray);
+  cursor: pointer;
+}
+.login-remember input { cursor: pointer; }
 .login-submit {
   width: 100%;
   margin-top: 8px;
@@ -243,6 +253,7 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
 .modal-close { border: none; background: none; font-size: 20px; color: var(--gray-lt); line-height: 1; }
 .modal-field { margin-bottom: 14px; }
 .modal-field label { display: block; font-size: 12px; font-weight: 700; color: var(--gray); margin-bottom: 6px; }
+.required-mark { color: var(--red); }
 .modal-field input, .modal-field select, .modal-field textarea {
   width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; outline: none;
 }

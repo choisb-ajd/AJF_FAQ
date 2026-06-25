@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import cookie from 'cookie';
 import { verifySession, COOKIE_NAME } from '../lib/auth';
+
+const REMEMBER_ID_KEY = 'ajf_remember_login_id';
 
 export async function getServerSideProps({ req }) {
   const cookies = cookie.parse(req.headers.cookie || '');
@@ -16,8 +18,18 @@ export default function LoginPage() {
   const router = useRouter();
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberId, setRememberId] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // 이 기기에 저장된 아이디가 있으면 입력칸에 미리 채워줍니다 (비밀번호는 절대 저장하지 않습니다).
+  useEffect(() => {
+    const saved = window.localStorage.getItem(REMEMBER_ID_KEY);
+    if (saved) {
+      setLoginId(saved);
+      setRememberId(true);
+    }
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -34,6 +46,11 @@ export default function LoginPage() {
         setError(data.error || '로그인에 실패했습니다.');
         setLoading(false);
         return;
+      }
+      if (rememberId) {
+        window.localStorage.setItem(REMEMBER_ID_KEY, loginId);
+      } else {
+        window.localStorage.removeItem(REMEMBER_ID_KEY);
       }
       router.push('/dashboard');
     } catch (e) {
@@ -67,6 +84,17 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="비밀번호를 입력하세요"
             />
+          </div>
+          <div className="login-remember">
+            <label htmlFor="rememberId">
+              <input
+                id="rememberId"
+                type="checkbox"
+                checked={rememberId}
+                onChange={(e) => setRememberId(e.target.checked)}
+              />
+              아이디 저장
+            </label>
           </div>
           <button className="login-submit" type="submit" disabled={loading}>
             {loading ? '로그인 중...' : '로그인'}

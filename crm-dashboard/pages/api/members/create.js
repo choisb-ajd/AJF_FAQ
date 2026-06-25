@@ -1,6 +1,6 @@
 const { getSessionFromReq } = require('../../../lib/auth');
 const { createMemberRecord } = require('../../../lib/sheetsRepo');
-const { MANAGER_EDITABLE, ADMIN_ONLY_EDITABLE, normalizePhone } = require('../../../lib/sheetSchema');
+const { MANAGER_EDITABLE, ADMIN_ONLY_EDITABLE, normalizePhone, formatRegisteredAt } = require('../../../lib/sheetSchema');
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -33,6 +33,7 @@ export default async function handler(req, res) {
   // 매니저가 추가한 딜러는 본인 담당으로 자동 배정됩니다.
   fields.manager = isAdmin ? fields.manager : session.name;
   fields.lastModifiedBy = isAdmin ? '관리자' : session.name;
+  fields.registeredAt = formatRegisteredAt();
 
   try {
     const result = await createMemberRecord(fields);
