@@ -12,20 +12,27 @@ export default async function handler(req, res) {
   if (!session) {
     return res.status(401).json({ error: '로그인이 필요합니다.' });
   }
-  if (session.role !== '관리자') {
-    return res.status(403).json({ error: '관리자만 딜러를 추가할 수 있습니다.' });
-  }
+  const isAdmin = session.role === '관리자';
 
   const { name, phone, ...rest } = req.body || {};
   if (!name || !phone || !normalizePhone(phone)) {
     return res.status(400).json({ error: '이름과 연락처는 필수입니다.' });
   }
 
-  const allowedKeys = new Set([...MANAGER_EDITABLE, ...ADMIN_ONLY_EDITABLE]);
+  // 매니저는 관리자 전용 항목 중에서도 다른 매니저에게 배분하거나(manager),
+  // 본인은 볼 수 없는 관리자 특이사항(adminNote)은 입력할 수 없습니다.
+  const allowedKeys = new Set(
+    isAdmin
+      ? [...MANAGER_EDITABLE, ...ADMIN_ONLY_EDITABLE]
+      : [...MANAGER_EDITABLE, ...ADMIN_ONLY_EDITABLE].filter((k) => k !== 'manager' && k !== 'adminNote')
+  );
   const fields = { name: name.trim(), phone: phone.trim() };
   for (const [key, value] of Object.entries(rest)) {
     if (allowedKeys.has(key) && value !== undefined) fields[key] = value;
   }
+  // 매니저가 추가한 딜러는 본인 담당으로 자동 배정됩니다.
+  fields.manager = isAdmin ? fields.manager : session.name;
+  fields.lastModifiedBy = isAdmin ? '관리자' : session.name;
 
   try {
     const result = await createMemberRecord(fields);

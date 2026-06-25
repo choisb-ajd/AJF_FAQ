@@ -316,11 +316,9 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
             <button className="btn" onClick={resetFilters}>초기화</button>
             <button className="btn" onClick={() => fetchRows()}>새로고침</button>
             <button className="btn btn-primary" onClick={exportCsv}>엑셀(CSV) 다운로드</button>
-            {isAdmin && (
-              <button className="btn btn-primary" onClick={() => { setAddMsg(null); setAddingDealer(true); }}>
-                딜러 추가
-              </button>
-            )}
+            <button className="btn btn-primary" onClick={() => { setAddMsg(null); setAddingDealer(true); }}>
+              딜러 추가
+            </button>
           </div>
         </div>
 
@@ -401,6 +399,8 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
 
       {addingDealer && (
         <AddDealerModal
+          isAdmin={isAdmin}
+          name={name}
           saving={addSaving}
           message={addMsg}
           onClose={() => setAddingDealer(false)}
@@ -439,6 +439,7 @@ function EditModal({ row, isAdmin, saving, message, onClose, onSave }) {
           <div><span className="k">브랜드</span> {row.brand || '-'}</div>
           <div><span className="k">권역</span> {row.region || '-'}</div>
           <div><span className="k">배분일자</span> {row.assignedDate || '-'}</div>
+          {isAdmin && <div><span className="k">수정자</span> {row.lastModifiedBy || '-'}</div>}
         </div>
 
         {message && <div className={`modal-message ${message.type}`}>{message.text}</div>}
@@ -468,8 +469,12 @@ function EditModal({ row, isAdmin, saving, message, onClose, onSave }) {
   );
 }
 
-function AddDealerModal({ saving, message, onClose, onSave }) {
-  const fieldKeys = ['name', 'phone', ...ADMIN_ONLY_EDITABLE];
+function AddDealerModal({ isAdmin, name, saving, message, onClose, onSave }) {
+  // 매니저는 다른 매니저에게 배분(manager)하거나 본인이 볼 수 없는 관리자 특이사항(adminNote)은 입력할 수 없습니다.
+  const detailKeys = isAdmin
+    ? ADMIN_ONLY_EDITABLE
+    : ADMIN_ONLY_EDITABLE.filter((k) => k !== 'manager' && k !== 'adminNote');
+  const fieldKeys = ['name', 'phone', ...detailKeys];
   const [form, setForm] = useState(() => {
     const init = {};
     for (const key of fieldKeys) init[key] = '';
@@ -493,7 +498,10 @@ function AddDealerModal({ saving, message, onClose, onSave }) {
         <div className="modal-header">
           <div>
             <h2>딜러 추가</h2>
-            <div className="sub">새로운 딜러 정보를 입력해주세요. (이름·연락처는 필수)</div>
+            <div className="sub">
+              새로운 딜러 정보를 입력해주세요. (이름·연락처는 필수)
+              {!isAdmin && ` 담당매니저는 본인(${name})으로 자동 등록됩니다.`}
+            </div>
           </div>
           <button className="modal-close" onClick={onClose}>&times;</button>
         </div>
@@ -503,8 +511,10 @@ function AddDealerModal({ saving, message, onClose, onSave }) {
         <FieldInput fieldKey="name" value={form.name} onChange={update} />
         <FieldInput fieldKey="phone" value={form.phone} onChange={update} />
 
-        <div style={{ fontWeight: 700, fontSize: 13, margin: '18px 0 10px' }}>관리자 전용 항목</div>
-        {ADMIN_ONLY_EDITABLE.map((key) => (
+        <div style={{ fontWeight: 700, fontSize: 13, margin: '18px 0 10px' }}>
+          {isAdmin ? '관리자 전용 항목' : '상세 정보'}
+        </div>
+        {detailKeys.map((key) => (
           <FieldInput key={key} fieldKey={key} value={form[key]} onChange={update} />
         ))}
 

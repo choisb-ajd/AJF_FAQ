@@ -37,6 +37,7 @@ export default async function handler(req, res) {
   if (Object.keys(cleaned).length === 0) {
     return res.status(403).json({ error: '수정 권한이 없는 항목입니다.' });
   }
+  cleaned.lastModifiedBy = isAdmin ? '관리자' : session.name;
 
   try {
     const result = await updateMemberRecord({ phone, updates: cleaned });

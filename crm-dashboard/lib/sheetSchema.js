@@ -29,6 +29,7 @@ const FIELDS = [
   { key: 'last60dContracts', headers: ['직전 60일 계약체결건수'] },
   { key: 'last1yTop10', headers: ['직전 1년 본인 10% 횟수'] },
   { key: 'adminNote', headers: ['관리자 특이사항'] },
+  { key: 'lastModifiedBy', headers: ['수정자'] },
 ];
 
 // 화면에 보여줄 컬럼 순서/라벨 (테이블 렌더링용)
@@ -50,6 +51,7 @@ const DISPLAY_COLUMNS = [
   { key: 'totalContracts', label: '누적계약' },
   { key: 'last60dContracts', label: '직전60일' },
   { key: 'adminNote', label: '관리자 특이사항', adminOnly: true },
+  { key: 'lastModifiedBy', label: '수정자', adminOnly: true },
 ];
 
 // 매니저 권한으로 수정할 수 있는 필드
@@ -83,7 +85,7 @@ const ADMIN_ONLY_EDITABLE = [
 ];
 
 // 매니저 화면에서 완전히 숨길 필드 (관리자만 보임)
-const ADMIN_ONLY_VISIBLE = ['adminNote', 'managerSheetLink'];
+const ADMIN_ONLY_VISIBLE = ['adminNote', 'managerSheetLink', 'lastModifiedBy'];
 
 function buildColumnMap(headerRow) {
   const map = {};
