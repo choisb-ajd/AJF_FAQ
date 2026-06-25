@@ -22,21 +22,31 @@ export default async function handler(req, res) {
     if (!account) {
       return res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' });
     }
-    if (account.locked) {
+    const isAdminAccount = account.role === '관리자';
+    // 관리자 계정은 잠기지 않습니다(잠기면 아무도 풀어줄 수 없기 때문). 매니저 계정만 잠금을 적용합니다.
+    if (account.locked && !isAdminAccount) {
       return res.status(423).json({
         error: '비밀번호를 5회 이상 잘못 입력하여 계정이 잠겼습니다.\n관리자에게 비밀번호 초기화를 요청해주세요.',
       });
     }
     if (account.password !== password) {
-      const { failedAttempts, locked } = await recordFailedLogin(account);
+      const { failedAttempts, locked, passwordReset } = await recordFailedLogin(account);
+      if (passwordReset) {
+        return res.status(401).json({
+          error: '비밀번호를 5회 이상 잘못 입력하여 @dkwjd12 로 비밀번호가 초기화 되었습니다.\n새 비밀번호로 다시 로그인해주세요.',
+        });
+      }
       if (locked) {
         return res.status(423).json({
           error: '비밀번호를 5회 이상 잘못 입력하여 계정이 잠겼습니다.\n관리자에게 비밀번호 초기화를 요청해주세요.',
         });
       }
       const remaining = MAX_FAILED_ATTEMPTS - failedAttempts;
+      const warning = isAdminAccount
+        ? `(${remaining}회 더 틀리면 비밀번호가 자동으로 초기화됩니다)`
+        : `(${remaining}회 더 틀리면 계정이 잠깁니다)`;
       return res.status(401).json({
-        error: `아이디 또는 비밀번호가 올바르지 않습니다.\n(${remaining}회 더 틀리면 계정이 잠깁니다)`,
+        error: `아이디 또는 비밀번호가 올바르지 않습니다.\n${warning}`,
       });
     }
     if (account.role !== '관리자' && account.role !== '매니저') {

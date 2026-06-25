@@ -88,6 +88,32 @@ function compareRows(a, b, key) {
   return av.toString().localeCompare(bv.toString(), 'ko');
 }
 
+// 칼럼별 기본 너비(px). 글자수를 고려해 라벨/내용이 잘리지 않을 정도로 잡아둔 값이며,
+// 칼럼 머리글의 손잡이를 드래그하면 사용자가 직접 더 늘리거나 줄일 수 있습니다.
+const DEFAULT_COL_WIDTHS = {
+  name: 100,
+  phone: 130,
+  manager: 110,
+  group: 90,
+  brand: 90,
+  branch: 150,
+  contacted: 90,
+  firstContactDate: 120,
+  reContactDate: 120,
+  smsSent: 90,
+  contactSentiment: 90,
+  contactHistory: 220,
+  preRegistered: 90,
+  totalContracts: 90,
+  last60dContracts: 90,
+  registeredAt: 150,
+  adminNote: 200,
+  lastModifiedBy: 90,
+};
+const DEFAULT_COL_WIDTH = 110;
+const MIN_COL_WIDTH = 50;
+const ACTION_COL_WIDTH = 70;
+
 export default function DashboardPage({ role, name, adminSheetUrl }) {
   const router = useRouter();
   const isAdmin = role === '관리자';
@@ -113,6 +139,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [managerOptions, setManagerOptions] = useState(null);
   const [sortKey, setSortKey] = useState('registeredAt');
   const [sortDir, setSortDir] = useState('desc');
+  const [colWidths, setColWidths] = useState(DEFAULT_COL_WIDTHS);
 
   // silent=true면 화면에 "불러오는 중..." 스피너를 띄우지 않고 조용히 최신 데이터로 교체합니다.
   // 구글 시트에서 직접 수정한 내용도 이 폴링을 통해 자동으로 화면에 반영됩니다.
@@ -213,6 +240,27 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
       setSortKey(key);
       setSortDir('asc');
     }
+  }
+
+  // 칼럼 머리글의 우측 손잡이를 마우스로 드래그하면 그 칼럼의 너비를 직접 조절합니다.
+  function startColumnResize(e, key) {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startWidth = colWidths[key] || DEFAULT_COL_WIDTH;
+    const prevUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = 'none';
+    function onMouseMove(ev) {
+      const nextWidth = Math.max(MIN_COL_WIDTH, startWidth + (ev.clientX - startX));
+      setColWidths((prev) => ({ ...prev, [key]: nextWidth }));
+    }
+    function onMouseUp() {
+      document.body.style.userSelect = prevUserSelect;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    }
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
   }
 
   function exportCsv() {
@@ -400,13 +448,24 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
         ) : (
           <>
             <div className="table-wrap">
-              <table>
+              <table className="resizable-table">
+                <colgroup>
+                  {visibleColumns.map((c) => (
+                    <col key={c.key} style={{ width: colWidths[c.key] || DEFAULT_COL_WIDTH }} />
+                  ))}
+                  <col style={{ width: ACTION_COL_WIDTH }} />
+                </colgroup>
                 <thead>
                   <tr>
                     {visibleColumns.map((c) => (
                       <th key={c.key} onClick={() => toggleSort(c.key)} style={{ cursor: 'pointer' }}>
                         {c.label}
                         {sortKey === c.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+                        <span
+                          className="col-resize-handle"
+                          onMouseDown={(e) => startColumnResize(e, c.key)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
                       </th>
                     ))}
                     <th></th>

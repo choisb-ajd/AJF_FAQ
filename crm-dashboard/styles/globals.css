@@ -218,6 +218,25 @@ tbody td {
 tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
 .empty-row td { text-align: center; color: var(--gray); padding: 40px; }
 
+/* 회원 목록 표: 칼럼 너비를 고정값으로 유지하고(table-layout: fixed),
+   머리글의 col-resize-handle을 드래그해 사용자가 직접 너비를 조절할 수 있게 합니다. */
+.resizable-table { table-layout: fixed; }
+.resizable-table th, .resizable-table td {
+  max-width: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.col-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+}
+.col-resize-handle:hover, .col-resize-handle:active { background: var(--blue-lt); }
+
 .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
 .badge-y { background: #E6F6ED; color: var(--green); }
 .badge-n { background: #F1F2F4; color: var(--gray); }

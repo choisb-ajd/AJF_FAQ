@@ -9,6 +9,9 @@ const {
 const ADMIN_SPREADSHEET_ID = process.env.ADMIN_SPREADSHEET_ID;
 const ACCOUNTS_SHEET_TITLE = '계정관리';
 const MAX_FAILED_ATTEMPTS = 5;
+// 관리자 계정은 잠기면 아무도 풀어줄 수 없으므로(잠금 해제는 관리자만 가능),
+// 잠그는 대신 이 비밀번호로 자동 초기화합니다.
+const ADMIN_AUTO_RESET_PASSWORD = '@dkwjd12';
 
 // "계정관리" 탭의 컬럼 순서: 아이디 | 비밀번호 | 이름 | 권한 | 개인시트URL | 비고 | 실패횟수 | 잠김여부
 const ACCOUNT_COLUMNS = {
@@ -147,20 +150,37 @@ async function updateAccountFields(rowNumber, fieldsToUpdate) {
 }
 
 // 로그인 비밀번호가 틀렸을 때 호출: 실패횟수를 올리고, 5회 이상이면 계정을 잠급니다.
+// 단, 관리자 계정은 잠그지 않고 비밀번호를 자동으로 초기화합니다(관리자가 잠기면
+// 아무도 풀어줄 수 없기 때문).
 async function recordFailedLogin(account) {
   const failedAttempts = account.failedAttempts + 1;
+
+  if (account.role === '관리자') {
+    if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+      await updateAccountFields(account.rowNumber, {
+        password: ADMIN_AUTO_RESET_PASSWORD,
+        failedAttempts: 0,
+        locked: '',
+      });
+      return { failedAttempts, locked: false, passwordReset: true };
+    }
+    await updateAccountFields(account.rowNumber, { failedAttempts });
+    return { failedAttempts, locked: false, passwordReset: false };
+  }
+
   const locked = failedAttempts >= MAX_FAILED_ATTEMPTS;
   await updateAccountFields(account.rowNumber, {
     failedAttempts,
     locked: locked ? 'Y' : '',
   });
-  return { failedAttempts, locked };
+  return { failedAttempts, locked, passwordReset: false };
 }
 
 // 로그인에 성공했을 때 호출: 실패횟수를 0으로 되돌립니다.
+// (예전에 잠겼던 관리자 계정이 남아있을 수 있어 잠김 표시도 함께 정리합니다.)
 async function recordSuccessfulLogin(account) {
-  if (account.failedAttempts === 0) return;
-  await updateAccountFields(account.rowNumber, { failedAttempts: 0 });
+  if (account.failedAttempts === 0 && !account.locked) return;
+  await updateAccountFields(account.rowNumber, { failedAttempts: 0, locked: '' });
 }
 
 // 본인이 비밀번호를 변경할 때 사용합니다.
