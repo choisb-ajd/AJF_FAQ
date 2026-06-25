@@ -5,6 +5,7 @@ import cookie from 'cookie';
 import { verifySession, COOKIE_NAME } from '../lib/auth';
 import { DISPLAY_COLUMNS, MANAGER_EDITABLE, ADMIN_ONLY_EDITABLE } from '../lib/sheetSchema';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import useEscapeKey from '../lib/useEscapeKey';
 
 export async function getServerSideProps({ req }) {
   const cookies = cookie.parse(req.headers.cookie || '');
@@ -92,6 +93,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [addSaving, setAddSaving] = useState(false);
   const [addMsg, setAddMsg] = useState(null);
   const [lastSynced, setLastSynced] = useState(null);
+  const [managerOptions, setManagerOptions] = useState(null);
 
   // silent=true면 화면에 "불러오는 중..." 스피너를 띄우지 않고 조용히 최신 데이터로 교체합니다.
   // 구글 시트에서 직접 수정한 내용도 이 폴링을 통해 자동으로 화면에 반영됩니다.
@@ -114,6 +116,23 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   useEffect(() => {
     fetchRows();
   }, []);
+
+  // 담당매니저 드롭박스에 쓸 매니저 이름 목록을 계정관리 탭 데이터에서 가져옵니다. (관리자만)
+  useEffect(() => {
+    if (!isAdmin) return;
+    fetch('/api/accounts')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!Array.isArray(data.accounts)) return;
+        const names = data.accounts
+          .filter((a) => a.role === '매니저')
+          .map((a) => a.name)
+          .filter(Boolean)
+          .sort();
+        setManagerOptions(names);
+      })
+      .catch(() => {});
+  }, [isAdmin]);
 
   // 편집창이 열려있지 않을 때만 일정 주기로 조용히 새 데이터를 가져옵니다.
   // (편집 중에 화면이 바뀌면 입력 중인 내용을 잃어버릴 수 있어 그 동안은 잠시 멈춥니다)
@@ -388,6 +407,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
           isAdmin={isAdmin}
           saving={saving}
           message={saveMsg}
+          managerOptions={managerOptions}
           onClose={() => setEditing(null)}
           onSave={handleSave}
         />
@@ -403,6 +423,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
           name={name}
           saving={addSaving}
           message={addMsg}
+          managerOptions={managerOptions}
           onClose={() => setAddingDealer(false)}
           onSave={handleAddDealer}
         />
@@ -411,17 +432,21 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   );
 }
 
-function EditModal({ row, isAdmin, saving, message, onClose, onSave }) {
+function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onSave }) {
   const editableKeys = isAdmin ? [...MANAGER_EDITABLE, ...ADMIN_ONLY_EDITABLE] : MANAGER_EDITABLE;
   const [form, setForm] = useState(() => {
     const init = {};
     for (const key of editableKeys) init[key] = row[key] || '';
     return init;
   });
+  useEscapeKey(onClose);
 
   function update(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
+
+  // 화면에 보여주는 순서만 관리자 특이사항을 맨 위로 올립니다. (데이터/권한 배열인 ADMIN_ONLY_EDITABLE 자체는 그대로 둡니다)
+  const adminDetailOrder = ['adminNote', ...ADMIN_ONLY_EDITABLE.filter((k) => k !== 'adminNote')];
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -452,8 +477,14 @@ function EditModal({ row, isAdmin, saving, message, onClose, onSave }) {
         {isAdmin && (
           <>
             <div style={{ fontWeight: 700, fontSize: 13, margin: '18px 0 10px' }}>관리자 전용 항목</div>
-            {ADMIN_ONLY_EDITABLE.map((key) => (
-              <FieldInput key={key} fieldKey={key} value={form[key]} onChange={update} />
+            {adminDetailOrder.map((key) => (
+              <FieldInput
+                key={key}
+                fieldKey={key}
+                value={form[key]}
+                onChange={update}
+                managerOptions={managerOptions}
+              />
             ))}
           </>
         )}
@@ -469,7 +500,7 @@ function EditModal({ row, isAdmin, saving, message, onClose, onSave }) {
   );
 }
 
-function AddDealerModal({ isAdmin, name, saving, message, onClose, onSave }) {
+function AddDealerModal({ isAdmin, name, saving, message, managerOptions, onClose, onSave }) {
   // 매니저는 다른 매니저에게 배분(manager)하거나 본인이 볼 수 없는 관리자 특이사항(adminNote)은 입력할 수 없습니다.
   const detailKeys = isAdmin
     ? ADMIN_ONLY_EDITABLE
@@ -480,6 +511,7 @@ function AddDealerModal({ isAdmin, name, saving, message, onClose, onSave }) {
     for (const key of fieldKeys) init[key] = '';
     return init;
   });
+  useEscapeKey(onClose);
 
   function update(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -515,7 +547,13 @@ function AddDealerModal({ isAdmin, name, saving, message, onClose, onSave }) {
           {isAdmin ? '관리자 전용 항목' : '상세 정보'}
         </div>
         {detailKeys.map((key) => (
-          <FieldInput key={key} fieldKey={key} value={form[key]} onChange={update} />
+          <FieldInput
+            key={key}
+            fieldKey={key}
+            value={form[key]}
+            onChange={update}
+            managerOptions={managerOptions}
+          />
         ))}
 
         <div className="modal-actions">
@@ -529,8 +567,23 @@ function AddDealerModal({ isAdmin, name, saving, message, onClose, onSave }) {
   );
 }
 
-function FieldInput({ fieldKey, value, onChange }) {
+function FieldInput({ fieldKey, value, onChange, managerOptions }) {
   const meta = FIELD_META[fieldKey] || { label: fieldKey, type: 'text' };
+  // 담당매니저는 계정관리에 등록된 매니저 이름만 드롭박스로 선택하게 합니다. (오타·미등록 이름 방지)
+  if (fieldKey === 'manager' && Array.isArray(managerOptions)) {
+    const options = value && !managerOptions.includes(value) ? [value, ...managerOptions] : managerOptions;
+    return (
+      <div className="modal-field">
+        <label>{meta.label}</label>
+        <select value={value} onChange={(e) => onChange(fieldKey, e.target.value)}>
+          <option value="">(미선택)</option>
+          {options.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      </div>
+    );
+  }
   return (
     <div className="modal-field">
       <label>{meta.label}</label>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import useEscapeKey from '../lib/useEscapeKey';
 
 export default function ChangePasswordModal({ onClose }) {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -6,6 +7,7 @@ export default function ChangePasswordModal({ onClose }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
+  useEscapeKey(onClose);
 
   async function handleSubmit(e) {
     e.preventDefault();

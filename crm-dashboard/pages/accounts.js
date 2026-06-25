@@ -4,6 +4,7 @@ import Link from 'next/link';
 import cookie from 'cookie';
 import { verifySession, COOKIE_NAME } from '../lib/auth';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import useEscapeKey from '../lib/useEscapeKey';
 
 export async function getServerSideProps({ req }) {
   const cookies = cookie.parse(req.headers.cookie || '');
@@ -151,6 +152,7 @@ function ResetPasswordModal({ account, onClose, onDone }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
+  useEscapeKey(onClose);
 
   async function handleSubmit(e) {
     e.preventDefault();
