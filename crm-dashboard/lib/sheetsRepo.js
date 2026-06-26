@@ -8,6 +8,7 @@ const {
   MANAGER_EDITABLE,
   REF_SHEETS,
 } = require('./sheetSchema');
+const { sanitizeNotepadHtml, escapeHtml } = require('./sanitizeHtml');
 
 const ADMIN_SPREADSHEET_ID = process.env.ADMIN_SPREADSHEET_ID;
 const ACCOUNTS_SHEET_TITLE = '계정관리';
@@ -33,6 +34,7 @@ const CACHE_TTL_MS = 20 * 1000;
 const sheetDataCache = new Map(); // spreadsheetId -> { expires, data }
 const dataSheetTitleCache = new Map(); // spreadsheetId -> title
 const refSheetCache = new Map(); // refSheet key -> { expires, data }
+const notepadCache = new Map(); // refSheet key -> { expires, data }
 let accountsCache = null; // { expires, accounts }
 
 function quoteSheetTitle(title) {
@@ -152,6 +154,59 @@ async function updateRefSheetCell(key, rowIndex, colIndex, value) {
     requestBody: { values: [[value]] },
   });
   invalidateRefSheetCache(key);
+}
+
+// 메모장 형태(REF_SHEETS의 notepad:true)의 시트는 한 개의 셀(noteCell)에 리치텍스트(HTML)를
+// 통째로 저장합니다. 그 셀이 비어있으면(아직 한 번도 저장 전이라면) 예전에 시트에 그리드 형태로
+// 입력돼있던 내용을 1회성으로 읽어와 보여줍니다(저장 전까지는 실제로 옮겨쓰지 않습니다).
+async function readNotepadSheet(key, { useCache = true } = {}) {
+  const config = getRefSheetConfig(key);
+  if (!config.notepad) throw new Error(`메모장 형태가 아닌 시트입니다: ${key}`);
+
+  const cached = notepadCache.get(key);
+  if (useCache && cached && cached.expires > Date.now()) {
+    return cached.data;
+  }
+
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range: `${quoteSheetTitle(config.title)}!${config.noteCell}`,
+  });
+  const cellValue = ((res.data.values && res.data.values[0] && res.data.values[0][0]) || '').toString();
+
+  let html = cellValue;
+  let migrated = false;
+  if (!html.trim()) {
+    const grid = await readRefSheetGrid(key, { useCache });
+    const lines = grid.rows
+      .map((row) => row.map((cell) => (cell || '').toString().trim()).filter(Boolean).join('  '))
+      .filter(Boolean);
+    if (lines.length) {
+      html = lines.map((line) => `<div>${escapeHtml(line)}</div>`).join('');
+      migrated = true;
+    }
+  }
+
+  const data = { key, html, migrated };
+  notepadCache.set(key, { expires: Date.now() + CACHE_TTL_MS, data });
+  return data;
+}
+
+async function saveNotepadSheet(key, html) {
+  const config = getRefSheetConfig(key);
+  if (!config.notepad) throw new Error(`메모장 형태가 아닌 시트입니다: ${key}`);
+
+  const safeHtml = sanitizeNotepadHtml(html);
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range: `${quoteSheetTitle(config.title)}!${config.noteCell}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [[safeHtml]] },
+  });
+  notepadCache.delete(key);
+  return { html: safeHtml };
 }
 
 // 매니저 개별 시트 ↔ 관리자(종합) 시트 역방향 동기화를 너무 자주 돌리지 않도록
@@ -542,4 +597,6 @@ module.exports = {
   listAccountsForAdmin,
   readRefSheetGrid,
   updateRefSheetCell,
+  readNotepadSheet,
+  saveNotepadSheet,
 };

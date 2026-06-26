@@ -210,7 +210,7 @@ function letterToColumnIndex(letters) {
 // colStart/colEnd를 지정하면 그 범위(예: 갱신배정 탭의 B~P열)만 읽고/씁니다. 지정하지 않으면 탭 전체를 사용합니다.
 const REF_SHEETS = [
   { key: 'renewal', title: '갱신배정', label: '갱신배정', colStart: 'B', colEnd: 'P', gid: '1205371231' },
-  { key: 'dealer-faq', title: '딜러앱 FAQ', label: '딜러앱 FAQ', gid: '470466582' },
+  { key: 'dealer-faq', title: '딜러앱 FAQ', label: '딜러앱 FAQ', gid: '470466582', notepad: true, noteCell: 'A1' },
   { key: 'lms-template', title: 'LMS템플릿', label: 'LMS템플릿', gid: '1466234732' },
   { key: 'lease-pledge', title: '리스(질권사)', label: '리스(질권사)', gid: '1656883024' },
   { key: 'cm-tm', title: '원수사별 CM/TM', label: '원수사별 CM/TM', gid: '107612819' },

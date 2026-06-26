@@ -5,6 +5,7 @@ import cookie from 'cookie';
 import { verifySession, COOKIE_NAME } from '../../lib/auth';
 import { REF_SHEETS } from '../../lib/sheetSchema';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
+import FaqNotepad from '../../components/FaqNotepad';
 
 export async function getServerSideProps({ req, params }) {
   const cookies = cookie.parse(req.headers.cookie || '');
@@ -16,8 +17,9 @@ export async function getServerSideProps({ req, params }) {
   if (!config) {
     return { notFound: true };
   }
+  const isNotepad = !!config.notepad;
   const sheetUrl =
-    session.role === '관리자' && process.env.ADMIN_SPREADSHEET_ID
+    !isNotepad && session.role === '관리자' && process.env.ADMIN_SPREADSHEET_ID
       ? `https://docs.google.com/spreadsheets/d/${process.env.ADMIN_SPREADSHEET_ID}/edit#gid=${config.gid}`
       : null;
   return {
@@ -27,11 +29,12 @@ export async function getServerSideProps({ req, params }) {
       sheetKey: config.key,
       sheetLabel: config.label,
       sheetUrl,
+      isNotepad,
     },
   };
 }
 
-export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUrl }) {
+export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUrl, isNotepad }) {
   const router = useRouter();
   const isAdmin = role === '관리자';
   const [grid, setGrid] = useState(null);
@@ -59,10 +62,14 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
   }
 
   useEffect(() => {
+    if (isNotepad) {
+      setLoading(false);
+      return;
+    }
     fetchGrid();
     setEditingCell(null);
     setCellError('');
-  }, [sheetKey]);
+  }, [sheetKey, isNotepad]);
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -156,14 +163,22 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
           <div>
             <h1>{sheetLabel}</h1>
             <div className="count">
-              {isAdmin
+              {isNotepad
+                ? isAdmin
+                  ? '자유롭게 글자 크기·색상 등 서식을 적용해 작성하는 메모장입니다. 엑셀 등에서 붙여넣으면 서식 없이 글자만 들어갑니다.'
+                  : '보기 전용 화면입니다. 수정은 관리자만 할 수 있습니다.'
+                : isAdmin
                 ? '셀을 클릭하면 바로 수정할 수 있고, 저장하면 구글 시트에 즉시 반영됩니다.'
                 : '보기 전용 화면입니다. 수정은 관리자만 할 수 있습니다.'}
             </div>
           </div>
-          <button className="btn" onClick={fetchGrid}>새로고침</button>
+          {!isNotepad && <button className="btn" onClick={fetchGrid}>새로고침</button>}
         </div>
 
+        {isNotepad ? (
+          <FaqNotepad isAdmin={isAdmin} />
+        ) : (
+          <>
         {cellError && <div className="error-state ref-grid-error">{cellError}</div>}
 
         {loading ? (
@@ -219,6 +234,8 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
               </tbody>
             </table>
           </div>
+        )}
+          </>
         )}
       </div>
 

@@ -286,6 +286,86 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
 }
 .ref-grid-error { margin-bottom: 12px; padding: 10px 12px; text-align: left; }
 
+/* 딜러앱 FAQ: 시트 한 칸에 리치텍스트(HTML)를 저장하는 메모장 화면 */
+.notepad-wrap { max-width: 920px; }
+.notepad-banner {
+  background: #FFF6E0;
+  color: #8a6400;
+  border: 1px solid #F4DFA0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.notepad-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: #FAFBFD;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: var(--r) var(--r) 0 0;
+  padding: 8px 10px;
+}
+.notepad-toolbar button {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 6px;
+  min-width: 32px;
+  height: 32px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.notepad-toolbar button:hover { background: var(--bg); }
+.notepad-toolbar select {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  height: 32px;
+  padding: 0 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.notepad-color-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--gray);
+}
+.notepad-color-field input[type="color"] {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px;
+  cursor: pointer;
+}
+.notepad-save { margin-left: auto; }
+.notepad-save-msg { font-size: 12px; color: var(--green); font-weight: 600; }
+.notepad-editor {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 0 0 var(--r) var(--r);
+  min-height: 60vh;
+  padding: 24px 28px;
+  font-size: 15px;
+  line-height: 1.7;
+  outline: none;
+}
+.notepad-editor:focus { border-color: var(--blue); }
+.notepad-view {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  min-height: 60vh;
+  padding: 24px 28px;
+  font-size: 15px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+.notepad-empty { color: var(--gray-lt); }
+
 .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
 .badge-y { background: #E6F6ED; color: var(--green); }
 .badge-n { background: #F1F2F4; color: var(--gray); }
