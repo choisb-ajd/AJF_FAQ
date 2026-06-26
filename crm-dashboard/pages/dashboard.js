@@ -56,7 +56,7 @@ const FIELD_META = {
       { value: 'G5', label: 'G5(에이전시)' },
     ],
   },
-  brand: { label: '딜러상세유형', type: 'select', options: ['', '수입차', '국산차'] },
+  brand: { label: '브랜드', type: 'text' },
   wideInsta: { label: '광역/인스타', type: 'text' },
   region: { label: '권역', type: 'text' },
   branch: { label: '지점/대리점 명', type: 'text' },
