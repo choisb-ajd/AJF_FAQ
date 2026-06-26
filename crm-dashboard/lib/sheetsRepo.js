@@ -4,6 +4,7 @@ const {
   rowArrayToValues,
   normalizePhone,
   columnIndexToLetter,
+  MANAGER_EDITABLE,
 } = require('./sheetSchema');
 
 const ADMIN_SPREADSHEET_ID = process.env.ADMIN_SPREADSHEET_ID;
@@ -89,7 +90,27 @@ function invalidateCache(spreadsheetId) {
   sheetDataCache.delete(spreadsheetId);
 }
 
+// 매니저 개별 시트 ↔ 관리자(종합) 시트 역방향 동기화를 너무 자주 돌리지 않도록
+// (여러 사용자가 동시에 화면을 보고 있어도) 20초에 한 번만 실행되게 막습니다.
+const MANAGER_SYNC_INTERVAL_MS = CACHE_TTL_MS;
+let lastManagerSyncAt = 0;
+let managerSyncInFlight = null;
+
+function ensureManagerSync() {
+  if (managerSyncInFlight) return managerSyncInFlight;
+  if (Date.now() - lastManagerSyncAt < MANAGER_SYNC_INTERVAL_MS) return Promise.resolve();
+
+  managerSyncInFlight = syncManagerSheetsIntoAdmin()
+    .catch((e) => console.error('매니저 시트 → 관리자 시트 역방향 동기화 실패:', e))
+    .finally(() => {
+      lastManagerSyncAt = Date.now();
+      managerSyncInFlight = null;
+    });
+  return managerSyncInFlight;
+}
+
 async function getAdminRows({ useCache = true } = {}) {
+  await ensureManagerSync();
   return readSheetRows(ADMIN_SPREADSHEET_ID, { useCache });
 }
 
@@ -221,8 +242,9 @@ async function getManagerSpreadsheetId(managerName) {
   return extractSpreadsheetId(account.sheetUrl);
 }
 
-async function updateRowFields(spreadsheetId, sheetTitle, rowNumber, columnMap, fieldsToUpdate) {
-  const sheets = getSheetsClient();
+// API를 호출하지 않고 batchUpdate용 data 배열만 만듭니다.
+// (여러 행의 변경을 한 번에 모아서 batchUpdate 한 번으로 보내기 위해 분리해두었습니다.)
+function buildRowUpdateData(sheetTitle, rowNumber, columnMap, fieldsToUpdate) {
   const data = [];
   for (const [key, value] of Object.entries(fieldsToUpdate)) {
     if (columnMap[key] === undefined) continue; // 그 시트에 없는 컬럼이면 건너뜀
@@ -232,7 +254,13 @@ async function updateRowFields(spreadsheetId, sheetTitle, rowNumber, columnMap, 
       values: [[value]],
     });
   }
+  return data;
+}
+
+async function updateRowFields(spreadsheetId, sheetTitle, rowNumber, columnMap, fieldsToUpdate) {
+  const data = buildRowUpdateData(sheetTitle, rowNumber, columnMap, fieldsToUpdate);
   if (data.length === 0) return;
+  const sheets = getSheetsClient();
   await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId,
     requestBody: { valueInputOption: 'RAW', data },
@@ -255,6 +283,100 @@ async function appendRowToSheet(spreadsheetId, sheetTitle, columnMap, fieldsObje
     requestBody: { values: [rowArray] },
   });
   invalidateCache(spreadsheetId);
+}
+
+// 매니저 개별 시트 → 관리자(종합) 시트 역방향 동기화.
+// 매니저가 앱을 거치지 않고 자신의 구글 시트에 직접 입력한 내용(컨택여부, 컨택 히스토리 등
+// 매니저가 수정할 수 있는 필드)을 관리자 시트로 가져옵니다. 같은 연락처 행이 두 시트에서
+// 값이 다르면 매니저의 개별 시트 값을 우선합니다(매니저가 본인 시트에 직접 적은 내용이므로).
+// 관리자 시트에 없는 연락처(매니저가 자기 시트에 직접 추가한 신규 딜러)는 관리자 시트에도 추가합니다.
+async function syncManagerSheetsIntoAdmin() {
+  const admin = await readSheetRows(ADMIN_SPREADSHEET_ID, { useCache: false });
+  const accounts = await getAccountsConfig({ useCache: false });
+  const managers = accounts.filter((a) => a.role === '매니저' && a.sheetUrl);
+
+  const adminByPhone = new Map();
+  for (const row of admin.rows) {
+    const phone = normalizePhone(row.values.phone);
+    if (phone) adminByPhone.set(phone, row);
+  }
+  const seenPhones = new Set(adminByPhone.keys());
+
+  const updateData = [];
+  const newRows = [];
+
+  for (const manager of managers) {
+    const spreadsheetId = extractSpreadsheetId(manager.sheetUrl);
+    if (!spreadsheetId) continue;
+
+    let mgrSheet;
+    try {
+      mgrSheet = await readSheetRows(spreadsheetId, { useCache: false });
+    } catch (e) {
+      console.error(`매니저 '${manager.name}' 개별 시트를 읽지 못했습니다:`, e.message);
+      continue;
+    }
+
+    for (const mgrRow of mgrSheet.rows) {
+      const phone = normalizePhone(mgrRow.values.phone);
+      if (!phone) continue;
+
+      const adminRow = adminByPhone.get(phone);
+      if (adminRow) {
+        const diff = {};
+        for (const key of MANAGER_EDITABLE) {
+          if (mgrSheet.columnMap[key] === undefined) continue;
+          const mgrValue = (mgrRow.values[key] || '').toString();
+          const adminValue = (adminRow.values[key] || '').toString();
+          if (mgrValue !== adminValue) diff[key] = mgrValue;
+        }
+        if (Object.keys(diff).length > 0) {
+          updateData.push(
+            ...buildRowUpdateData(admin.sheetTitle, adminRow.rowNumber, admin.columnMap, diff)
+          );
+          Object.assign(adminRow.values, diff);
+        }
+      } else if (!seenPhones.has(phone)) {
+        seenPhones.add(phone);
+        const fields = { ...mgrRow.values };
+        if (!fields.manager) fields.manager = manager.name;
+        newRows.push(fields);
+      }
+    }
+  }
+
+  const sheets = getSheetsClient();
+
+  if (updateData.length > 0) {
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: ADMIN_SPREADSHEET_ID,
+      requestBody: { valueInputOption: 'RAW', data: updateData },
+    });
+  }
+
+  if (newRows.length > 0) {
+    const width = Math.max(...Object.values(admin.columnMap)) + 1;
+    const rowArrays = newRows.map((fields) => {
+      const rowArray = new Array(width).fill('');
+      for (const [key, idx] of Object.entries(admin.columnMap)) {
+        if (fields[key] !== undefined) rowArray[idx] = fields[key];
+      }
+      return rowArray;
+    });
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: ADMIN_SPREADSHEET_ID,
+      range: quoteSheetTitle(admin.sheetTitle),
+      valueInputOption: 'RAW',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: rowArrays },
+    });
+  }
+
+  if (updateData.length > 0 || newRows.length > 0) {
+    invalidateCache(ADMIN_SPREADSHEET_ID);
+  }
+
+  return { updatedFields: updateData.length, appendedRows: newRows.length };
 }
 
 // 신규 딜러 추가: 관리자(종합) 시트에 새 행을 추가하고, 담당매니저가 지정되어 있으면
