@@ -153,10 +153,12 @@ export default function FaqNotepad({ isAdmin }) {
           <input type="color" onChange={handleHighlight} />
         </label>
         <button type="button" onMouseDown={(e) => { e.preventDefault(); exec('removeFormat'); }}>서식 지우기</button>
-        <button type="button" className="btn btn-primary notepad-save" onClick={handleSave} disabled={saving}>
-          {saving ? '저장 중...' : '저장'}
-        </button>
-        {saveMsg && <span className="notepad-save-msg">{saveMsg}</span>}
+        <div className="notepad-save-group">
+          {saveMsg && <span className="notepad-save-msg">{saveMsg}</span>}
+          <button type="button" className="btn btn-primary notepad-save" onClick={handleSave} disabled={saving}>
+            {saving ? '저장 중...' : '저장'}
+          </button>
+        </div>
       </div>
       <div
         ref={editorRef}
