@@ -4,7 +4,9 @@ const {
   rowArrayToValues,
   normalizePhone,
   columnIndexToLetter,
+  letterToColumnIndex,
   MANAGER_EDITABLE,
+  REF_SHEETS,
 } = require('./sheetSchema');
 
 const ADMIN_SPREADSHEET_ID = process.env.ADMIN_SPREADSHEET_ID;
@@ -30,6 +32,7 @@ const ACCOUNT_COLUMNS = {
 const CACHE_TTL_MS = 20 * 1000;
 const sheetDataCache = new Map(); // spreadsheetId -> { expires, data }
 const dataSheetTitleCache = new Map(); // spreadsheetId -> title
+const refSheetCache = new Map(); // refSheet key -> { expires, data }
 let accountsCache = null; // { expires, accounts }
 
 function quoteSheetTitle(title) {
@@ -88,6 +91,67 @@ async function readSheetRows(spreadsheetId, { useCache = true } = {}) {
 
 function invalidateCache(spreadsheetId) {
   sheetDataCache.delete(spreadsheetId);
+}
+
+// 시트를 그대로 웹페이지에 심는 화면(REF_SHEETS)용: 의미별 컬럼 매핑 없이 셀 위치 그대로 읽고/씁니다.
+function getRefSheetConfig(key) {
+  const config = REF_SHEETS.find((s) => s.key === key);
+  if (!config) throw new Error(`알 수 없는 시트입니다: ${key}`);
+  return config;
+}
+
+function refSheetRange(config) {
+  const base = quoteSheetTitle(config.title);
+  if (config.colStart && config.colEnd) {
+    return `${base}!${config.colStart}:${config.colEnd}`;
+  }
+  return base;
+}
+
+async function readRefSheetGrid(key, { useCache = true } = {}) {
+  const config = getRefSheetConfig(key);
+  const cached = refSheetCache.get(key);
+  if (useCache && cached && cached.expires > Date.now()) {
+    return cached.data;
+  }
+
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range: refSheetRange(config),
+  });
+  const values = res.data.values || [];
+  const width = Math.max(1, values.reduce((max, row) => Math.max(max, row.length), 0));
+  const rows = values.map((row) => {
+    const padded = row.slice(0, width);
+    while (padded.length < width) padded.push('');
+    return padded;
+  });
+  const startColIndex = config.colStart ? letterToColumnIndex(config.colStart) : 0;
+  const colLetters = Array.from({ length: width }, (_, i) => columnIndexToLetter(startColIndex + i));
+
+  const data = { key, title: config.title, label: config.label, gid: config.gid, colLetters, rows };
+  refSheetCache.set(key, { expires: Date.now() + CACHE_TTL_MS, data });
+  return data;
+}
+
+function invalidateRefSheetCache(key) {
+  refSheetCache.delete(key);
+}
+
+async function updateRefSheetCell(key, rowIndex, colIndex, value) {
+  const config = getRefSheetConfig(key);
+  const startColIndex = config.colStart ? letterToColumnIndex(config.colStart) : 0;
+  const colLetter = columnIndexToLetter(startColIndex + colIndex);
+  const rowNumber = rowIndex + 1; // 그리드 0번째 행 = 시트 1행
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range: `${quoteSheetTitle(config.title)}!${colLetter}${rowNumber}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [[value]] },
+  });
+  invalidateRefSheetCache(key);
 }
 
 // 매니저 개별 시트 ↔ 관리자(종합) 시트 역방향 동기화를 너무 자주 돌리지 않도록
@@ -476,4 +540,6 @@ module.exports = {
   changeOwnPassword,
   adminResetPassword,
   listAccountsForAdmin,
+  readRefSheetGrid,
+  updateRefSheetCell,
 };

@@ -100,13 +100,15 @@ input, select, textarea { font-family: inherit; font-size: 14px; }
 /* ── APP SHELL ── */
 .app-shell { min-height: 100vh; padding-bottom: 60px; }
 .topbar {
-  height: 64px;
+  min-height: 64px;
   background: var(--white);
   border-bottom: 1px solid var(--border);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  padding: 0 28px;
+  gap: 8px 0;
+  padding: 10px 28px;
   position: sticky;
   top: 0;
   z-index: 20;
@@ -121,7 +123,7 @@ input, select, textarea { font-family: inherit; font-size: 14px; }
   background: var(--blue-lt);
   color: var(--blue-dk);
 }
-.topbar-nav { display: flex; gap: 4px; margin-left: 16px; }
+.topbar-nav { display: flex; flex-wrap: wrap; gap: 4px; margin-left: 16px; }
 .topbar-nav-link {
   font-size: 13px;
   font-weight: 700;
@@ -246,6 +248,43 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
 }
 .col-resize-handle:hover, .col-resize-handle:active { background: var(--blue-lt); }
 .col-resize-handle:hover::after, .col-resize-handle:active::after { width: 2px; background: var(--blue); }
+
+/* 구글 시트를 그대로 웹페이지에 심어놓은 것처럼 보여주는 범용 그리드 화면(갱신배정/FAQ/LMS템플릿/리스/CM-TM) */
+.ref-grid-wrap { max-height: 78vh; }
+.ref-grid { table-layout: auto; white-space: normal; }
+.ref-grid thead th { text-align: center; min-width: 70px; }
+.ref-grid-corner { background: #FAFBFD; position: sticky; left: 0; z-index: 6; }
+.ref-grid-rownum {
+  position: sticky;
+  left: 0;
+  background: #FAFBFD;
+  color: var(--gray);
+  text-align: center;
+  font-weight: 700;
+  border-right: 1px solid var(--border);
+  z-index: 4;
+}
+.ref-grid-cell {
+  max-width: 320px;
+  min-width: 120px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: visible;
+  text-overflow: unset;
+  vertical-align: top;
+}
+.ref-grid-cell.editable:hover { background: var(--blue-lt); cursor: pointer; }
+.ref-grid-cell textarea {
+  width: 100%;
+  min-height: 60px;
+  border: 1px solid var(--blue);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+}
+.ref-grid-error { margin-bottom: 12px; padding: 10px 12px; text-align: left; }
 
 .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
 .badge-y { background: #E6F6ED; color: var(--green); }

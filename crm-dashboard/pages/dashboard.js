@@ -9,6 +9,7 @@ import {
   ADMIN_ONLY_EDITABLE,
   MODAL_COMMON_COLLAPSIBLE,
   MODAL_ADMIN_COLLAPSIBLE_EXTRA,
+  REF_SHEETS,
   formatDateDisplay,
   parseContactHistory,
 } from '../lib/sheetSchema';
@@ -411,6 +412,9 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
           <nav className="topbar-nav">
             <Link className="topbar-nav-link active" href="/dashboard">회원관리</Link>
             {isAdmin && <Link className="topbar-nav-link" href="/accounts">계정관리</Link>}
+            {REF_SHEETS.map((s) => (
+              <Link key={s.key} className="topbar-nav-link" href={`/sheet/${s.key}`}>{s.label}</Link>
+            ))}
           </nav>
         </div>
         <div className="topbar-right">
