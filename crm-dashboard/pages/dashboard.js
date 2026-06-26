@@ -481,7 +481,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
             </select>
           </div>
           <div className="filter-field">
-            <label>App가입일자</label>
+            <label>App 가입여부</label>
             <select value={appJoinFilter} onChange={(e) => setAppJoinFilter(e.target.value)}>
               <option value="">전체</option>
               <option value="Y">Y (가입)</option>
@@ -702,6 +702,22 @@ function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onS
 
         <div className="modal-split-body">
           <div className="modal-main-col">
+            {isAdmin && (
+              <>
+                <div className="modal-section-divider">관리자 전용 항목</div>
+                {adminExtraKeys.map((key) => (
+                  <FieldInput
+                    key={key}
+                    fieldKey={key}
+                    value={form[key]}
+                    onChange={update}
+                    managerOptions={managerOptions}
+                  />
+                ))}
+                <ReadOnlyField label="수정자" value={row.lastModifiedBy} />
+              </>
+            )}
+
             <CollapsibleSection title="상세 정보">
               {MODAL_COMMON_COLLAPSIBLE.map((key) => {
                 if (key === 'firstContactDate') {
@@ -719,22 +735,6 @@ function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onS
                 }
                 return <ReadOnlyField key={key} label={FIELD_META[key].label} value={row[key]} />;
               })}
-
-              {isAdmin && (
-                <>
-                  <div className="modal-section-divider">관리자 전용 항목</div>
-                  {adminExtraKeys.map((key) => (
-                    <FieldInput
-                      key={key}
-                      fieldKey={key}
-                      value={form[key]}
-                      onChange={update}
-                      managerOptions={managerOptions}
-                    />
-                  ))}
-                  <ReadOnlyField label="수정자" value={row.lastModifiedBy} />
-                </>
-              )}
             </CollapsibleSection>
 
             <div className="modal-actions">
@@ -932,25 +932,25 @@ function AddDealerModal({ isAdmin, name, saving, message, managerOptions, onClos
           <div className="modal-main-col">
             <FieldInput fieldKey="contactHistory" value={form.contactHistory} onChange={update} />
 
+            {isAdmin && (
+              <>
+                <div className="modal-section-divider">관리자 전용 항목</div>
+                {adminExtraKeys.map((key) => (
+                  <FieldInput
+                    key={key}
+                    fieldKey={key}
+                    value={form[key]}
+                    onChange={update}
+                    managerOptions={managerOptions}
+                  />
+                ))}
+              </>
+            )}
+
             <CollapsibleSection title="상세 정보">
               {collapsibleKeys.map((key) => (
                 <FieldInput key={key} fieldKey={key} value={form[key]} onChange={update} />
               ))}
-
-              {isAdmin && (
-                <>
-                  <div className="modal-section-divider">관리자 전용 항목</div>
-                  {adminExtraKeys.map((key) => (
-                    <FieldInput
-                      key={key}
-                      fieldKey={key}
-                      value={form[key]}
-                      onChange={update}
-                      managerOptions={managerOptions}
-                    />
-                  ))}
-                </>
-              )}
             </CollapsibleSection>
 
             <div className="modal-actions">
