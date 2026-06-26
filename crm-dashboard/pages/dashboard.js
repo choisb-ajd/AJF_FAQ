@@ -3,7 +3,15 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import cookie from 'cookie';
 import { verifySession, COOKIE_NAME } from '../lib/auth';
-import { DISPLAY_COLUMNS, MANAGER_EDITABLE, ADMIN_ONLY_EDITABLE } from '../lib/sheetSchema';
+import {
+  DISPLAY_COLUMNS,
+  MANAGER_EDITABLE,
+  ADMIN_ONLY_EDITABLE,
+  MODAL_COMMON_COLLAPSIBLE,
+  MODAL_ADMIN_COLLAPSIBLE_EXTRA,
+  formatDateDisplay,
+  parseContactHistory,
+} from '../lib/sheetSchema';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import useEscapeKey from '../lib/useEscapeKey';
 
@@ -29,8 +37,8 @@ const FIELD_META = {
   name: { label: '이름', type: 'text', required: true },
   phone: { label: '연락처', type: 'text', placeholder: '예: 010-1234-5678', required: true },
   contacted: { label: '컨택여부', type: 'select', options: ['', 'Y', 'N'] },
-  firstContactDate: { label: '최초컨택일자', type: 'text', placeholder: '예: 2025-08-28' },
-  reContactDate: { label: '재컨택일자', type: 'text', placeholder: '예: 2025-09-01' },
+  firstContactDate: { label: '최초컨택일자', type: 'date' },
+  reContactDate: { label: '재컨택일자', type: 'date' },
   smsSent: { label: '문자여부', type: 'select', options: ['', 'Y', 'N'] },
   contactSentiment: { label: '컨택 호의도', type: 'select', options: ['', 'A', 'B', 'C'] },
   contactHistory: { label: '컨택 히스토리', type: 'textarea' },
@@ -41,7 +49,7 @@ const FIELD_META = {
   region: { label: '권역', type: 'text' },
   branch: { label: '지점/대리점 명', type: 'text' },
   manager: { label: '담당매니저', type: 'text' },
-  assignedDate: { label: '배분일자', type: 'text' },
+  assignedDate: { label: '배분일자', type: 'date' },
   priorityDealer: { label: '우선컨택 딜러여부', type: 'select', options: ['', 'Y', 'N'] },
   highEfficiency: { label: '고효율딜러여부', type: 'select', options: ['', 'Y', 'N'] },
   highEfficiencyScore: { label: '고효율딜러수치', type: 'text' },
@@ -82,6 +90,8 @@ function csvEscape(v) {
 
 const NUMERIC_SORT_KEYS = ['totalContracts', 'last60dContracts', 'last1yTop10', 'highEfficiencyScore'];
 const DATE_SORT_KEYS = ['registeredAt', 'firstContactDate', 'reContactDate', 'assignedDate', 'appJoinDate'];
+// 표/모달에서 날짜 표기를 "YYYY-MM-DD" 한 형식으로 통일해서 보여줄 칼럼들
+const DATE_DISPLAY_KEYS = ['firstContactDate', 'reContactDate', 'assignedDate', 'appJoinDate'];
 
 // 칼럼 종류에 따라 숫자/날짜/문자열 중 알맞은 방식으로 두 값을 비교합니다.
 // 값이 없는 경우(특히 날짜)는 가장 오래된/작은 값으로 취급해 정렬 시 뒤로 밀립니다.
@@ -298,7 +308,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     const cols = DISPLAY_COLUMNS.filter((c) => isAdmin || !c.adminOnly);
     const header = cols.map((c) => csvEscape(c.label)).join(',');
     const body = sorted
-      .map((r) => cols.map((c) => csvEscape(r[c.key])).join(','))
+      .map((r) => cols.map((c) => csvEscape(DATE_DISPLAY_KEYS.includes(c.key) ? formatDateDisplay(r[c.key]) : r[c.key])).join(','))
       .join('\n');
     const csv = '﻿' + header + '\n' + body;
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -336,10 +346,11 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
         setSaving(false);
         return;
       }
+      const merged = { ...formValues, ...(data.updates || {}) };
       setRows((prev) =>
-        prev.map((r) => (r.phone === editing.phone ? { ...r, ...formValues } : r))
+        prev.map((r) => (r.phone === editing.phone ? { ...r, ...merged } : r))
       );
-      setEditing((prev) => (prev ? { ...prev, ...formValues } : prev));
+      setEditing((prev) => (prev ? { ...prev, ...merged } : prev));
       setSaveMsg(
         data.syncedToManagerSheet
           ? { type: 'ok', text: '저장되었습니다. (담당매니저 개별 시트에도 반영됨)' }
@@ -350,6 +361,15 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     } finally {
       setSaving(false);
     }
+  }
+
+  // 컨택 히스토리 패널에서 메모를 추가하면(서버가 컨택히스토리/최초컨택일자를 갱신) 목록과
+  // 열려있는 상세 모달에도 즉시 반영합니다.
+  function handleRowFieldsUpdated(updates) {
+    setRows((prev) =>
+      prev.map((r) => (r.phone === editing.phone ? { ...r, ...updates } : r))
+    );
+    setEditing((prev) => (prev ? { ...prev, ...updates } : prev));
   }
 
   async function handleAddDealer(formValues) {
@@ -521,9 +541,10 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                         {visibleColumns.map((c) => {
                           const val = row[c.key];
                           const isBadgeField = ['contacted', 'smsSent', 'priorityDealer', 'highEfficiency', 'contactSentiment'].includes(c.key);
+                          const display = DATE_DISPLAY_KEYS.includes(c.key) ? formatDateDisplay(val) : val;
                           return (
-                            <td key={c.key} title={val}>
-                              {isBadgeField ? <Badge value={val} /> : (val || '-')}
+                            <td key={c.key} title={display}>
+                              {isBadgeField ? <Badge value={val} /> : (display || '-')}
                             </td>
                           );
                         })}
@@ -595,6 +616,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
           managerOptions={managerOptions}
           onClose={() => setEditing(null)}
           onSave={handleSave}
+          onRowUpdated={handleRowFieldsUpdated}
         />
       )}
 
@@ -617,8 +639,13 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   );
 }
 
-function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onSave }) {
-  const editableKeys = isAdmin ? [...MANAGER_EDITABLE, ...ADMIN_ONLY_EDITABLE] : MANAGER_EDITABLE;
+// 컨택여부 등 본문 저장 폼에서 다루는 필드 목록입니다. 컨택 히스토리/최초컨택일자는
+// 옆의 히스토리 패널이 전용으로 관리하므로(메모 추가 시 즉시 서버에 저장) 본문 저장 폼에서는
+// 제외합니다. 같은 값을 두 곳에서 동시에 들고 있다가 저장 시점이 엇갈리면 서로 덮어쓸 수 있기 때문입니다.
+function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onSave, onRowUpdated }) {
+  const editableKeys = (isAdmin ? [...MANAGER_EDITABLE, ...ADMIN_ONLY_EDITABLE] : MANAGER_EDITABLE).filter(
+    (k) => k !== 'contactHistory' && k !== 'firstContactDate'
+  );
   const [form, setForm] = useState(() => {
     const init = {};
     for (const key of editableKeys) init[key] = row[key] || '';
@@ -630,67 +657,232 @@ function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onS
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  // 화면에 보여주는 순서만 관리자 특이사항을 맨 위로 올립니다. (데이터/권한 배열인 ADMIN_ONLY_EDITABLE 자체는 그대로 둡니다)
-  const adminDetailOrder = ['adminNote', ...ADMIN_ONLY_EDITABLE.filter((k) => k !== 'adminNote')];
+  const adminExtraKeys = MODAL_ADMIN_COLLAPSIBLE_EXTRA.filter((k) => k !== 'lastModifiedBy');
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <div>
+      <div className="modal-card modal-card-wide" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header-fixed">
+          <div className="modal-header">
             <h2>{row.name}</h2>
-            <div className="sub">{row.phone} · {row.branch || '-'} · 담당매니저 {row.manager || '-'}</div>
+            <button className="modal-close" onClick={onClose}>&times;</button>
           </div>
-          <button className="modal-close" onClick={onClose}>&times;</button>
+
+          {message && <div className={`modal-message ${message.type}`}>{message.text}</div>}
+
+          <div className="modal-header-grid">
+            <ReadOnlyField label="그룹" value={row.group} />
+            <ReadOnlyField label="브랜드" value={row.brand} />
+            <ReadOnlyField label="지점/대리점" value={row.branch} />
+            <ReadOnlyField label="성명" value={row.name} />
+            <ReadOnlyField label="연락처" value={row.phone} />
+            <FieldInput fieldKey="contacted" value={form.contacted} onChange={update} />
+          </div>
         </div>
 
-        <div className="modal-readonly-grid">
-          <div><span className="k">그룹</span> {row.group || '-'}</div>
-          <div><span className="k">브랜드</span> {row.brand || '-'}</div>
-          <div><span className="k">권역</span> {row.region || '-'}</div>
-          <div><span className="k">배분일자</span> {row.assignedDate || '-'}</div>
-          {isAdmin && <div><span className="k">수정자</span> {row.lastModifiedBy || '-'}</div>}
-        </div>
+        <div className="modal-split-body">
+          <div className="modal-main-col">
+            <CollapsibleSection title="상세 정보">
+              {MODAL_COMMON_COLLAPSIBLE.map((key) => {
+                if (key === 'firstContactDate') {
+                  return (
+                    <ReadOnlyField
+                      key={key}
+                      label="최초컨택일자"
+                      value={formatDateDisplay(row.firstContactDate)}
+                      placeholder="컨택 히스토리 등록 시 자동 입력"
+                    />
+                  );
+                }
+                if (isAdmin || MANAGER_EDITABLE.includes(key)) {
+                  return <FieldInput key={key} fieldKey={key} value={form[key]} onChange={update} />;
+                }
+                return <ReadOnlyField key={key} label={FIELD_META[key].label} value={row[key]} />;
+              })}
 
-        {message && <div className={`modal-message ${message.type}`}>{message.text}</div>}
+              {isAdmin && (
+                <>
+                  <div className="modal-section-divider">관리자 전용 항목</div>
+                  {adminExtraKeys.map((key) => (
+                    <FieldInput
+                      key={key}
+                      fieldKey={key}
+                      value={form[key]}
+                      onChange={update}
+                      managerOptions={managerOptions}
+                    />
+                  ))}
+                  <ReadOnlyField label="수정자" value={row.lastModifiedBy} />
+                </>
+              )}
+            </CollapsibleSection>
 
-        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>컨택 정보</div>
-        {MANAGER_EDITABLE.map((key) => (
-          <FieldInput key={key} fieldKey={key} value={form[key]} onChange={update} />
-        ))}
+            <div className="modal-actions">
+              <button className="btn" onClick={onClose}>취소</button>
+              <button className="btn btn-primary" disabled={saving} onClick={() => onSave(form)}>
+                {saving ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </div>
 
-        {isAdmin && (
-          <>
-            <div style={{ fontWeight: 700, fontSize: 13, margin: '18px 0 10px' }}>관리자 전용 항목</div>
-            {adminDetailOrder.map((key) => (
-              <FieldInput
-                key={key}
-                fieldKey={key}
-                value={form[key]}
-                onChange={update}
-                managerOptions={managerOptions}
-              />
-            ))}
-          </>
-        )}
-
-        <div className="modal-actions">
-          <button className="btn" onClick={onClose}>취소</button>
-          <button className="btn btn-primary" disabled={saving} onClick={() => onSave(form)}>
-            {saving ? '저장 중...' : '저장'}
-          </button>
+          <div className="modal-side-col">
+            <ContactHistoryPanel row={row} isAdmin={isAdmin} onUpdated={onRowUpdated} />
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
+// 딜러 상세 화면에서 항상 보이는 읽기 전용 정보 한 칸을 그립니다.
+function ReadOnlyField({ label, value, placeholder }) {
+  return (
+    <div className="modal-field modal-field-readonly">
+      <label>{label}</label>
+      <div className="readonly-value">{value || placeholder || '-'}</div>
+    </div>
+  );
+}
+
+// 기본은 접혀있고, 클릭하면 펼쳐지는 섹션입니다. "중요하지 않은 항목"을 평소엔 숨겨서
+// 화면을 간단하게 보여주고, 필요할 때만 펼쳐서 보게 합니다.
+function CollapsibleSection({ title, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="collapsible-section">
+      <button type="button" className="collapsible-toggle" onClick={() => setOpen((o) => !o)}>
+        <span>{title}</span>
+        <span className={`collapsible-chevron ${open ? 'open' : ''}`}>▾</span>
+      </button>
+      {open && <div className="collapsible-body">{children}</div>}
+    </div>
+  );
+}
+
+// 등록 시각 문자열("YYYY-MM-DD HH:mm:ss")을 "n분 전" 같은 상대 시간으로 바꿔줍니다.
+// 일주일이 지난 항목은 상대 시간 대신 날짜만 보여줍니다.
+function formatRelativeTime(timestamp) {
+  if (!timestamp) return '';
+  const ts = Date.parse(timestamp.replace(' ', 'T'));
+  if (!ts) return timestamp;
+  const diffMs = Date.now() - ts;
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return '방금 전';
+  if (min < 60) return `${min}분 전`;
+  const hour = Math.floor(min / 60);
+  if (hour < 24) return `${hour}시간 전`;
+  const day = Math.floor(hour / 24);
+  if (day < 7) return `${day}일 전`;
+  return timestamp.slice(0, 10);
+}
+
+// 딜러를 클릭했을 때 옆에 표시되는 패널입니다. 위쪽은 상담 메모를 자유롭게 적어 쌓는 피드,
+// 아래쪽은 컨택여부 등 상태성 항목이 바뀔 때마다 자동으로 남는 "상담 변경이력"입니다.
+// 두 영역 모두 같은 "컨택 히스토리" 셀 안에 줄 단위로 함께 저장되어 있어, 메모 추가는
+// 본문 저장 폼과 별도로 즉시 서버에 반영됩니다.
+function ContactHistoryPanel({ row, isAdmin, onUpdated }) {
+  const [contactHistory, setContactHistory] = useState(row.contactHistory || '');
+  const [noteText, setNoteText] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const { notes, changes } = useMemo(() => parseContactHistory(contactHistory), [contactHistory]);
+
+  async function submitNote() {
+    const trimmed = noteText.trim();
+    if (!trimmed) return;
+    setSaving(true);
+    setError('');
+    try {
+      const res = await fetch('/api/members/add-note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: row.phone, text: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || '메모 저장에 실패했습니다.');
+        setSaving(false);
+        return;
+      }
+      setContactHistory(data.updates.contactHistory);
+      setNoteText('');
+      if (onUpdated) onUpdated(data.updates);
+    } catch (e) {
+      setError('네트워크 오류가 발생했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="history-panel">
+      <div className="history-section-title">컨택 히스토리</div>
+      <div className="history-feed">
+        {notes.length === 0 ? (
+          <div className="history-empty">등록된 메모가 없습니다.</div>
+        ) : (
+          notes.map((n, i) => (
+            <div className="history-note" key={i}>
+              <div className="history-note-meta">
+                {n.author && <span className="history-note-author">{n.author}</span>}
+                {n.timestamp && <span className="history-note-time">{formatRelativeTime(n.timestamp)}</span>}
+              </div>
+              <div className="history-note-text">{n.text}</div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="history-add-box">
+        {error && <div className="modal-message err">{error}</div>}
+        <textarea
+          value={noteText}
+          maxLength={300}
+          placeholder="상담 내용을 입력해주세요"
+          onChange={(e) => setNoteText(e.target.value)}
+        />
+        <div className="history-add-footer">
+          <span className="history-char-count">{noteText.length}/300자</span>
+          <button className="btn btn-primary" disabled={saving || !noteText.trim()} onClick={submitNote}>
+            {saving ? '저장 중...' : '메모 추가'}
+          </button>
+        </div>
+      </div>
+
+      <div className="history-section-title">상담 변경이력</div>
+      <div className="history-changelog">
+        {changes.length === 0 ? (
+          <div className="history-empty">변경이력이 없습니다.</div>
+        ) : (
+          changes.map((c, i) => (
+            <div className="history-change-item" key={i}>
+              <div className="history-change-meta">
+                <span className="history-change-author">{c.author}</span>
+                <span className="history-change-time">{c.timestamp}</span>
+              </div>
+              <div className="history-change-body">
+                <span className="history-change-field">{c.field}</span>
+                <span className="history-change-from">{c.oldValue || '(미입력)'}</span>
+                <span className="history-change-arrow">→</span>
+                <span className="history-change-to">{c.newValue || '(미입력)'}</span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// 딜러 추가 모달도 상세 모달과 같은 3단계 순서(상시노출/접어두기)를 따릅니다. 다만 최초컨택일자는
+// 등록 시점엔 항상 비어있어(컨택 히스토리를 적어야 자동으로 채워지므로) 입력칸으로 보여줄 필요가 없어 제외합니다.
 function AddDealerModal({ isAdmin, name, saving, message, managerOptions, onClose, onSave }) {
   // 매니저는 다른 매니저에게 배분(manager)하거나 본인이 볼 수 없는 관리자 특이사항(adminNote)은 입력할 수 없습니다.
-  const detailKeys = isAdmin
-    ? ADMIN_ONLY_EDITABLE
-    : ADMIN_ONLY_EDITABLE.filter((k) => k !== 'manager' && k !== 'adminNote');
-  const fieldKeys = ['name', 'phone', ...detailKeys];
+  const collapsibleKeys = MODAL_COMMON_COLLAPSIBLE.filter((k) => k !== 'firstContactDate');
+  const baseKeys = ['group', 'brand', 'branch', 'name', 'phone', 'contacted', 'contactHistory', ...collapsibleKeys];
+  const adminExtraKeys = MODAL_ADMIN_COLLAPSIBLE_EXTRA.filter((k) => k !== 'lastModifiedBy');
+  const fieldKeys = isAdmin ? [...baseKeys, ...adminExtraKeys] : baseKeys;
   const [form, setForm] = useState(() => {
     const init = {};
     for (const key of fieldKeys) init[key] = '';
@@ -714,42 +906,64 @@ function AddDealerModal({ isAdmin, name, saving, message, managerOptions, onClos
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <div>
-            <h2>딜러 추가</h2>
-            <div className="sub">
-              새로운 딜러 정보를 입력해주세요. (이름·연락처는 필수)
-              {!isAdmin && ` 담당매니저는 본인(${name})으로 자동 등록됩니다.`}
+      <div className="modal-card modal-card-wide" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header-fixed">
+          <div className="modal-header">
+            <div>
+              <h2>딜러 추가</h2>
+              <div className="sub">
+                새로운 딜러 정보를 입력해주세요. (이름·연락처는 필수)
+                {!isAdmin && ` 담당매니저는 본인(${name})으로 자동 등록됩니다.`}
+              </div>
+            </div>
+            <button className="modal-close" onClick={onClose}>&times;</button>
+          </div>
+
+          {message && <div className={`modal-message ${message.type}`}>{message.text}</div>}
+          {validationError && <div className="modal-message err">{validationError}</div>}
+
+          <div className="modal-header-grid">
+            <FieldInput fieldKey="group" value={form.group} onChange={update} />
+            <FieldInput fieldKey="brand" value={form.brand} onChange={update} />
+            <FieldInput fieldKey="branch" value={form.branch} onChange={update} />
+            <FieldInput fieldKey="name" value={form.name} onChange={update} />
+            <FieldInput fieldKey="phone" value={form.phone} onChange={update} />
+            <FieldInput fieldKey="contacted" value={form.contacted} onChange={update} />
+          </div>
+        </div>
+
+        <div className="modal-split-body modal-split-body-single">
+          <div className="modal-main-col">
+            <FieldInput fieldKey="contactHistory" value={form.contactHistory} onChange={update} />
+
+            <CollapsibleSection title="상세 정보">
+              {collapsibleKeys.map((key) => (
+                <FieldInput key={key} fieldKey={key} value={form[key]} onChange={update} />
+              ))}
+
+              {isAdmin && (
+                <>
+                  <div className="modal-section-divider">관리자 전용 항목</div>
+                  {adminExtraKeys.map((key) => (
+                    <FieldInput
+                      key={key}
+                      fieldKey={key}
+                      value={form[key]}
+                      onChange={update}
+                      managerOptions={managerOptions}
+                    />
+                  ))}
+                </>
+              )}
+            </CollapsibleSection>
+
+            <div className="modal-actions">
+              <button className="btn" onClick={onClose}>닫기</button>
+              <button className="btn btn-primary" disabled={saving} onClick={submit}>
+                {saving ? '추가 중...' : '추가'}
+              </button>
             </div>
           </div>
-          <button className="modal-close" onClick={onClose}>&times;</button>
-        </div>
-
-        {message && <div className={`modal-message ${message.type}`}>{message.text}</div>}
-        {validationError && <div className="modal-message err">{validationError}</div>}
-
-        <FieldInput fieldKey="name" value={form.name} onChange={update} />
-        <FieldInput fieldKey="phone" value={form.phone} onChange={update} />
-
-        <div style={{ fontWeight: 700, fontSize: 13, margin: '18px 0 10px' }}>
-          {isAdmin ? '관리자 전용 항목' : '상세 정보'}
-        </div>
-        {detailKeys.map((key) => (
-          <FieldInput
-            key={key}
-            fieldKey={key}
-            value={form[key]}
-            onChange={update}
-            managerOptions={managerOptions}
-          />
-        ))}
-
-        <div className="modal-actions">
-          <button className="btn" onClick={onClose}>닫기</button>
-          <button className="btn btn-primary" disabled={saving} onClick={submit}>
-            {saving ? '추가 중...' : '추가'}
-          </button>
         </div>
       </div>
     </div>
@@ -784,6 +998,12 @@ function FieldInput({ fieldKey, value, onChange, managerOptions }) {
         </select>
       ) : meta.type === 'textarea' ? (
         <textarea value={value} onChange={(e) => onChange(fieldKey, e.target.value)} />
+      ) : meta.type === 'date' ? (
+        <input
+          type="date"
+          value={formatDateDisplay(value)}
+          onChange={(e) => onChange(fieldKey, e.target.value)}
+        />
       ) : (
         <input
           type="text"
