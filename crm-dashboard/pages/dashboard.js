@@ -726,7 +726,7 @@ function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onS
           </div>
 
           <div className="modal-side-col">
-            <ContactHistoryPanel row={row} isAdmin={isAdmin} onUpdated={onRowUpdated} />
+            <ContactHistoryPanel row={row} onUpdated={onRowUpdated} />
           </div>
         </div>
       </div>
@@ -776,17 +776,15 @@ function formatRelativeTime(timestamp) {
   return timestamp.slice(0, 10);
 }
 
-// 딜러를 클릭했을 때 옆에 표시되는 패널입니다. 위쪽은 상담 메모를 자유롭게 적어 쌓는 피드,
-// 아래쪽은 컨택여부 등 상태성 항목이 바뀔 때마다 자동으로 남는 "상담 변경이력"입니다.
-// 두 영역 모두 같은 "컨택 히스토리" 셀 안에 줄 단위로 함께 저장되어 있어, 메모 추가는
-// 본문 저장 폼과 별도로 즉시 서버에 반영됩니다.
-function ContactHistoryPanel({ row, isAdmin, onUpdated }) {
+// 딜러를 클릭했을 때 옆에 표시되는 상담 메모 피드입니다. 메모 추가는 본문 저장 폼과 별도로
+// 즉시 서버에 반영됩니다(같은 값을 두 곳에서 들고 있다가 저장 시점이 엇갈리는 걸 방지).
+function ContactHistoryPanel({ row, onUpdated }) {
   const [contactHistory, setContactHistory] = useState(row.contactHistory || '');
   const [noteText, setNoteText] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const { notes, changes } = useMemo(() => parseContactHistory(contactHistory), [contactHistory]);
+  const notes = useMemo(() => parseContactHistory(contactHistory), [contactHistory]);
 
   async function submitNote() {
     const trimmed = noteText.trim();
@@ -848,28 +846,6 @@ function ContactHistoryPanel({ row, isAdmin, onUpdated }) {
             {saving ? '저장 중...' : '메모 추가'}
           </button>
         </div>
-      </div>
-
-      <div className="history-section-title">상담 변경이력</div>
-      <div className="history-changelog">
-        {changes.length === 0 ? (
-          <div className="history-empty">변경이력이 없습니다.</div>
-        ) : (
-          changes.map((c, i) => (
-            <div className="history-change-item" key={i}>
-              <div className="history-change-meta">
-                <span className="history-change-author">{c.author}</span>
-                <span className="history-change-time">{c.timestamp}</span>
-              </div>
-              <div className="history-change-body">
-                <span className="history-change-field">{c.field}</span>
-                <span className="history-change-from">{c.oldValue || '(미입력)'}</span>
-                <span className="history-change-arrow">→</span>
-                <span className="history-change-to">{c.newValue || '(미입력)'}</span>
-              </div>
-            </div>
-          ))
-        )}
       </div>
     </div>
   );

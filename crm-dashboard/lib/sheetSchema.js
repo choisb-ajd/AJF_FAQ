@@ -110,16 +110,6 @@ const MODAL_ADMIN_COLLAPSIBLE_EXTRA = ['manager', 'adminNote', 'lastModifiedBy']
 // 자동으로만 채워지는 값이라 상세/추가 모달에는 노출하지 않고 표(칼럼)에만 보여주는 항목
 const MODAL_EXCLUDED_FIELDS = ['appJoinDate', 'totalContracts', 'last60dContracts', 'last1yTop10', 'wideInsta', 'region'];
 
-// 값이 바뀌면 컨택 히스토리에 "상담 변경이력"으로 자동 기록할 상태성 항목 (필드키 -> 표시 라벨)
-const CHANGE_LOG_FIELDS = {
-  contacted: '컨택여부',
-  contactSentiment: '컨택 호의도',
-  preRegistered: '사전예약여부',
-  smsSent: '문자여부',
-  priorityDealer: '우선컨택 딜러여부',
-  highEfficiency: '고효율딜러여부',
-};
-
 function buildColumnMap(headerRow) {
   const map = {};
   (headerRow || []).forEach((cell, idx) => {
@@ -172,8 +162,7 @@ function formatDateDisplay(value) {
   return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`;
 }
 
-// 컨택 히스토리는 한 셀(문자열) 안에 줄 단위로 "메모"와 "상담 변경이력"을 함께 저장합니다.
-// 형식: "NOTE\t시각\t작성자\t내용" / "CHANGE\t시각\t작성자\t항목명\t이전값\t이후값"
+// 컨택 히스토리는 한 셀(문자열) 안에 줄 단위로 메모를 쌓아둡니다. 형식: "NOTE\t시각\t작성자\t내용"
 // 형식에 맞지 않는 줄(과거에 자유롭게 입력해둔 텍스트)은 작성자/시각 없는 메모로 취급합니다.
 function appendContactHistoryNote(existing, { author, text, timestamp }) {
   const ts = timestamp || formatRegisteredAt();
@@ -183,28 +172,18 @@ function appendContactHistoryNote(existing, { author, text, timestamp }) {
   return base ? `${base}\n${line}` : line;
 }
 
-function appendContactHistoryChange(existing, { author, field, oldValue, newValue, timestamp }) {
-  const ts = timestamp || formatRegisteredAt();
-  const line = `CHANGE\t${ts}\t${author || ''}\t${field}\t${(oldValue || '').toString()}\t${(newValue || '').toString()}`;
-  const base = (existing || '').toString();
-  return base ? `${base}\n${line}` : line;
-}
-
 function parseContactHistory(raw) {
   const lines = (raw || '').toString().split('\n').map((l) => l.trim()).filter(Boolean);
   const notes = [];
-  const changes = [];
   for (const line of lines) {
     const parts = line.split('\t');
     if (parts[0] === 'NOTE' && parts.length >= 4) {
       notes.push({ timestamp: parts[1], author: parts[2], text: parts.slice(3).join('\t') });
-    } else if (parts[0] === 'CHANGE' && parts.length >= 6) {
-      changes.push({ timestamp: parts[1], author: parts[2], field: parts[3], oldValue: parts[4], newValue: parts[5] });
     } else {
       notes.push({ timestamp: '', author: '', text: line });
     }
   }
-  return { notes: notes.reverse(), changes: changes.reverse() };
+  return notes.reverse();
 }
 
 function columnIndexToLetter(index) {
@@ -228,7 +207,6 @@ module.exports = {
   MODAL_COMMON_COLLAPSIBLE,
   MODAL_ADMIN_COLLAPSIBLE_EXTRA,
   MODAL_EXCLUDED_FIELDS,
-  CHANGE_LOG_FIELDS,
   buildColumnMap,
   rowArrayToValues,
   normalizePhone,
@@ -236,6 +214,5 @@ module.exports = {
   formatRegisteredAt,
   formatDateDisplay,
   appendContactHistoryNote,
-  appendContactHistoryChange,
   parseContactHistory,
 };

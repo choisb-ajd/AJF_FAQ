@@ -3,10 +3,8 @@ const { updateMemberRecord, getAdminRows } = require('../../../lib/sheetsRepo');
 const {
   MANAGER_EDITABLE,
   ADMIN_ONLY_EDITABLE,
-  CHANGE_LOG_FIELDS,
   normalizePhone,
   formatRegisteredAt,
-  appendContactHistoryChange,
 } = require('../../../lib/sheetSchema');
 
 export default async function handler(req, res) {
@@ -46,17 +44,6 @@ export default async function handler(req, res) {
   }
 
   const author = isAdmin ? '관리자' : session.name;
-
-  // 컨택여부 등 상태성 항목이 바뀌면 컨택 히스토리에 "상담 변경이력"을 자동으로 남깁니다.
-  let history = target.values.contactHistory;
-  for (const [field, label] of Object.entries(CHANGE_LOG_FIELDS)) {
-    if (cleaned[field] === undefined) continue;
-    const oldValue = target.values[field] || '';
-    const newValue = cleaned[field] || '';
-    if (oldValue === newValue) continue;
-    history = appendContactHistoryChange(history, { author, field: label, oldValue, newValue });
-  }
-  if (history !== target.values.contactHistory) cleaned.contactHistory = history;
 
   // 최초로 컨택 히스토리가 등록되면 최초컨택일자를 자동으로 채워줍니다.
   if (cleaned.contactHistory !== undefined && cleaned.contactHistory.trim() && !target.values.firstContactDate) {

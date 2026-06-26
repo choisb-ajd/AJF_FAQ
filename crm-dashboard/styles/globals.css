@@ -396,11 +396,10 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
 .collapsible-chevron.open { transform: rotate(180deg); color: var(--blue); }
 .collapsible-body { padding: 16px; border-top: 1px solid var(--border); }
 
-/* 컨택 히스토리 패널 (메모 피드 + 상담 변경이력) */
+/* 컨택 히스토리 패널 (상담 메모 피드) */
 .history-panel { display: flex; flex-direction: column; gap: 8px; height: 100%; }
-.history-section-title { font-size: 13px; font-weight: 800; color: var(--navy); margin-top: 4px; }
-.history-section-title:first-child { margin-top: 0; }
-.history-feed { display: flex; flex-direction: column; gap: 10px; max-height: 260px; overflow-y: auto; }
+.history-section-title { font-size: 13px; font-weight: 800; color: var(--navy); }
+.history-feed { flex: 1 1 auto; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; min-height: 120px; }
 .history-empty { font-size: 12px; color: var(--gray-lt); padding: 10px 0; }
 .history-note {
   background: var(--white);
@@ -414,6 +413,7 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
 .history-note-text { font-size: 13px; color: var(--navy); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
 
 .history-add-box {
+  flex: 0 0 auto;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -429,17 +429,6 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
 }
 .history-add-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
 .history-char-count { font-size: 11px; color: var(--gray-lt); }
-
-.history-changelog { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
-.history-change-item { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; }
-.history-change-meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
-.history-change-author { font-size: 12px; font-weight: 700; color: var(--navy); }
-.history-change-time { font-size: 11px; color: var(--gray-lt); }
-.history-change-body { display: flex; align-items: center; gap: 6px; font-size: 12px; flex-wrap: wrap; }
-.history-change-field { font-weight: 700; color: var(--gray); margin-right: 4px; }
-.history-change-from { color: var(--gray); }
-.history-change-arrow { color: var(--gray-lt); }
-.history-change-to { color: var(--blue-dk); font-weight: 700; }
 
 @media (max-width: 860px) {
   .modal-header-grid { grid-template-columns: repeat(2, 1fr); gap: 10px 14px; }
