@@ -39,7 +39,7 @@ const DISPLAY_COLUMNS = [
   { key: 'phone', label: '연락처' },
   { key: 'manager', label: '담당매니저' },
   { key: 'group', label: '그룹' },
-  { key: 'brand', label: '브랜드' },
+  { key: 'brand', label: '딜러상세유형' },
   { key: 'branch', label: '지점/대리점' },
   { key: 'contacted', label: '컨택여부' },
   { key: 'firstContactDate', label: '최초컨택일자' },

@@ -44,8 +44,19 @@ const FIELD_META = {
   contactSentiment: { label: '컨택 호의도', type: 'select', options: ['', 'A', 'B', 'C'] },
   contactHistory: { label: '컨택 히스토리', type: 'textarea' },
   preRegistered: { label: '사전예약여부', type: 'select', options: ['', 'Y', 'N'] },
-  group: { label: '그룹', type: 'text' },
-  brand: { label: '브랜드', type: 'text' },
+  group: {
+    label: '그룹',
+    type: 'select',
+    options: [
+      { value: '', label: '(미선택)' },
+      { value: 'G1', label: 'G1(수입)' },
+      { value: 'G2', label: 'G2(국산)' },
+      { value: 'G3', label: 'G3(중고차)' },
+      { value: 'G4', label: 'G4(보험설계)' },
+      { value: 'G5', label: 'G5(에이전시)' },
+    ],
+  },
+  brand: { label: '딜러상세유형', type: 'select', options: ['', '수입차', '국산차'] },
   wideInsta: { label: '광역/인스타', type: 'text' },
   region: { label: '권역', type: 'text' },
   branch: { label: '지점/대리점 명', type: 'text' },
@@ -146,8 +157,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [managerFilter, setManagerFilter] = useState('');
   const [contactedFilter, setContactedFilter] = useState('');
   const [preRegFilter, setPreRegFilter] = useState('');
-  const [appJoinFrom, setAppJoinFrom] = useState('');
-  const [appJoinTo, setAppJoinTo] = useState('');
+  const [appJoinFilter, setAppJoinFilter] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [gotoInput, setGotoInput] = useState('');
@@ -229,15 +239,14 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
       if (isAdmin && managerFilter && r.manager !== managerFilter) return false;
       if (contactedFilter && (r.contacted || '').toUpperCase() !== contactedFilter) return false;
       if (preRegFilter && (r.preRegistered || '').toUpperCase() !== preRegFilter) return false;
-      if (appJoinFrom || appJoinTo) {
-        const rowTs = Date.parse(r.appJoinDate);
-        if (!rowTs) return false;
-        if (appJoinFrom && rowTs < Date.parse(appJoinFrom)) return false;
-        if (appJoinTo && rowTs > Date.parse(appJoinTo) + 86399999) return false;
+      if (appJoinFilter) {
+        const hasAppJoinDate = !!(r.appJoinDate || '').toString().trim();
+        if (appJoinFilter === 'Y' && !hasAppJoinDate) return false;
+        if (appJoinFilter === 'N' && hasAppJoinDate) return false;
       }
       return true;
     });
-  }, [rows, search, managerFilter, contactedFilter, preRegFilter, appJoinFrom, appJoinTo, isAdmin]);
+  }, [rows, search, managerFilter, contactedFilter, preRegFilter, appJoinFilter, isAdmin]);
 
   const sorted = useMemo(() => {
     const list = [...filtered];
@@ -263,15 +272,14 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
 
   useEffect(() => {
     setPage(1);
-  }, [search, managerFilter, contactedFilter, preRegFilter, appJoinFrom, appJoinTo, pageSize]);
+  }, [search, managerFilter, contactedFilter, preRegFilter, appJoinFilter, pageSize]);
 
   function resetFilters() {
     setSearch('');
     setManagerFilter('');
     setContactedFilter('');
     setPreRegFilter('');
-    setAppJoinFrom('');
-    setAppJoinTo('');
+    setAppJoinFilter('');
   }
 
   // 칼럼 제목을 클릭하면 그 칼럼으로 정렬하고, 같은 칼럼을 다시 클릭하면 방향을 반대로 바꿉니다.
@@ -474,11 +482,11 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
           </div>
           <div className="filter-field">
             <label>App가입일자</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input type="date" value={appJoinFrom} onChange={(e) => setAppJoinFrom(e.target.value)} />
-              <span style={{ color: 'var(--gray)' }}>~</span>
-              <input type="date" value={appJoinTo} onChange={(e) => setAppJoinTo(e.target.value)} />
-            </div>
+            <select value={appJoinFilter} onChange={(e) => setAppJoinFilter(e.target.value)}>
+              <option value="">전체</option>
+              <option value="Y">Y (가입)</option>
+              <option value="N">N (미가입)</option>
+            </select>
           </div>
           <div className="filter-field">
             <label>정렬기준</label>
@@ -675,8 +683,16 @@ function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onS
           {message && <div className={`modal-message ${message.type}`}>{message.text}</div>}
 
           <div className="modal-header-grid">
-            <ReadOnlyField label="그룹" value={row.group} />
-            <ReadOnlyField label="브랜드" value={row.brand} />
+            {isAdmin ? (
+              <FieldInput fieldKey="group" value={form.group} onChange={update} />
+            ) : (
+              <ReadOnlyField label={FIELD_META.group.label} value={row.group} />
+            )}
+            {isAdmin ? (
+              <FieldInput fieldKey="brand" value={form.brand} onChange={update} />
+            ) : (
+              <ReadOnlyField label={FIELD_META.brand.label} value={row.brand} />
+            )}
             <ReadOnlyField label="지점/대리점" value={row.branch} />
             <ReadOnlyField label="성명" value={row.name} />
             <ReadOnlyField label="연락처" value={row.phone} />
@@ -972,9 +988,13 @@ function FieldInput({ fieldKey, value, onChange, managerOptions }) {
       <label>{meta.label}{meta.required && <span className="required-mark"> *</span>}</label>
       {meta.type === 'select' ? (
         <select value={value} onChange={(e) => onChange(fieldKey, e.target.value)}>
-          {meta.options.map((opt) => (
-            <option key={opt} value={opt}>{opt === '' ? '(미입력)' : opt}</option>
-          ))}
+          {meta.options.map((opt) => {
+            const { value: optValue, label: optLabel } =
+              typeof opt === 'string' ? { value: opt, label: opt === '' ? '(미입력)' : opt } : opt;
+            return (
+              <option key={optValue} value={optValue}>{optLabel}</option>
+            );
+          })}
         </select>
       ) : meta.type === 'textarea' ? (
         <textarea value={value} onChange={(e) => onChange(fieldKey, e.target.value)} />
