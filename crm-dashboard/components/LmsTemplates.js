@@ -96,7 +96,7 @@ export default function LmsTemplates({ isAdmin }) {
       if (!res.ok) throw new Error(data.error || '저장하지 못했습니다.');
       setEntries(data.entries);
       setEditingEntryId(null);
-      showToast('수정 완료되었습니다.');
+      showToast('수정 되었습니다.');
     } catch (e) {
       setEntryError(e.message);
     } finally {
@@ -120,6 +120,7 @@ export default function LmsTemplates({ isAdmin }) {
       const created = data.entries[data.entries.length - 1];
       setEditingEntryId(created.id);
       setEditContent('');
+      showToast('완료 되었습니다.');
     } catch (e) {
       setEntryError(e.message);
     }
@@ -138,7 +139,7 @@ export default function LmsTemplates({ isAdmin }) {
       if (!res.ok) throw new Error(data.error || '삭제하지 못했습니다.');
       setEntries(data.entries);
       if (editingEntryId === entry.id) setEditingEntryId(null);
-      showToast('삭제 완료되었습니다.');
+      showToast('삭제 되었습니다.');
     } catch (e) {
       setEntryError(e.message);
     }
@@ -187,6 +188,7 @@ export default function LmsTemplates({ isAdmin }) {
       setActiveCategoryId(created.id);
       setAddingCategory(false);
       setNewCategoryTitle('');
+      showToast('완료 되었습니다.');
     } catch (e) {
       setCategoryError(e.message);
     }
@@ -259,7 +261,7 @@ export default function LmsTemplates({ isAdmin }) {
 
   return (
     <>
-      {toast && <div className="lms-toast">{toast}</div>}
+      {toast && <div className="app-toast">{toast}</div>}
       <div className="lms-wrap">
       <aside className="lms-sidebar">
         <div className="lms-sidebar-list">

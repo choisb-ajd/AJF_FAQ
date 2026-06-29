@@ -7,6 +7,7 @@ import { REF_SHEETS } from '../../lib/sheetSchema';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
 import FaqNotepad from '../../components/FaqNotepad';
 import LmsTemplates from '../../components/LmsTemplates';
+import LeaseRegistry from '../../components/LeaseRegistry';
 
 export async function getServerSideProps({ req, params }) {
   const cookies = cookie.parse(req.headers.cookie || '');
@@ -20,8 +21,9 @@ export async function getServerSideProps({ req, params }) {
   }
   const isNotepad = !!config.notepad;
   const isTemplates = !!config.templates;
+  const isRegistry = !!config.registry;
   const sheetUrl =
-    !isNotepad && !isTemplates && session.role === '관리자' && process.env.ADMIN_SPREADSHEET_ID
+    !isNotepad && !isTemplates && !isRegistry && session.role === '관리자' && process.env.ADMIN_SPREADSHEET_ID
       ? `https://docs.google.com/spreadsheets/d/${process.env.ADMIN_SPREADSHEET_ID}/edit#gid=${config.gid}`
       : null;
   return {
@@ -33,11 +35,12 @@ export async function getServerSideProps({ req, params }) {
       sheetUrl,
       isNotepad,
       isTemplates,
+      isRegistry,
     },
   };
 }
 
-export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUrl, isNotepad, isTemplates }) {
+export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUrl, isNotepad, isTemplates, isRegistry }) {
   const router = useRouter();
   const isAdmin = role === '관리자';
   const [grid, setGrid] = useState(null);
@@ -65,14 +68,14 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
   }
 
   useEffect(() => {
-    if (isNotepad || isTemplates) {
+    if (isNotepad || isTemplates || isRegistry) {
       setLoading(false);
       return;
     }
     fetchGrid();
     setEditingCell(null);
     setCellError('');
-  }, [sheetKey, isNotepad, isTemplates]);
+  }, [sheetKey, isNotepad, isTemplates, isRegistry]);
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -172,18 +175,24 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
                   : '보기 전용 화면입니다. 수정은 관리자만 할 수 있습니다.'
                 : isTemplates
                 ? '왼쪽 카테고리마다 여러 개의 템플릿을 등록·수정·복사할 수 있습니다. 관리자 등록 템플릿은 상단에 고정되며 관리자가 수정하면 모두에게 즉시 반영됩니다.'
+                : isRegistry
+                ? isAdmin
+                  ? '리스(질권사)와 사업자등록번호를 등록·수정·삭제할 수 있습니다. 수정하면 매니저 화면에도 바로 동일하게 반영됩니다.'
+                  : '보기 전용 화면입니다. 수정은 관리자만 할 수 있습니다.'
                 : isAdmin
                 ? '셀을 클릭하면 바로 수정할 수 있고, 저장하면 구글 시트에 즉시 반영됩니다.'
                 : '보기 전용 화면입니다. 수정은 관리자만 할 수 있습니다.'}
             </div>
           </div>
-          {!isNotepad && !isTemplates && <button className="btn" onClick={fetchGrid}>새로고침</button>}
+          {!isNotepad && !isTemplates && !isRegistry && <button className="btn" onClick={fetchGrid}>새로고침</button>}
         </div>
 
         {isNotepad ? (
           <FaqNotepad isAdmin={isAdmin} />
         ) : isTemplates ? (
           <LmsTemplates isAdmin={isAdmin} />
+        ) : isRegistry ? (
+          <LeaseRegistry isAdmin={isAdmin} />
         ) : (
           <>
         {cellError && <div className="error-state ref-grid-error">{cellError}</div>}

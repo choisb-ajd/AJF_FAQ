@@ -8,6 +8,7 @@ const {
   MANAGER_EDITABLE,
   REF_SHEETS,
   LMS_TEMPLATE_CATEGORIES,
+  LEASE_PLEDGE_DEFAULTS,
   formatRegisteredAt,
 } = require('./sheetSchema');
 const { sanitizeNotepadHtml, escapeHtml } = require('./sanitizeHtml');
@@ -38,6 +39,7 @@ const dataSheetTitleCache = new Map(); // spreadsheetId -> title
 const refSheetCache = new Map(); // refSheet key -> { expires, data }
 const notepadCache = new Map(); // refSheet key -> { expires, data }
 const templatesCache = new Map(); // refSheet key -> { expires, data }
+const registryCache = new Map(); // refSheet key -> { expires, data }
 let accountsCache = null; // { expires, accounts }
 
 function quoteSheetTitle(title) {
@@ -355,6 +357,107 @@ async function deleteTemplateEntry(key, id, actor) {
   const entries = data.entries.filter((e) => e.id !== id);
   await writeTemplatesData(key, { categories: data.categories, entries });
   return { categories: data.categories, entries };
+}
+
+function makeLeaseEntryId() {
+  return `lp${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function assertAdmin(actor) {
+  if (!actor || actor.role !== '관리자') {
+    throw new Error('관리자만 수정할 수 있습니다.');
+  }
+}
+
+// 리스(질권사) 탭(REF_SHEETS의 registry:true)은 한 개의 셀(registryCell)에
+// [{id, company, businessNumber}] 형태의 JSON 배열을 통째로 저장합니다.
+// 전체 탭이 관리자 전용 수정 권한이라(개별 항목 단위 구분 없음) 매니저 화면에는
+// 항상 관리자가 등록한 최신 내용 그대로 보입니다(같은 데이터를 공유하므로 별도 동기화가 필요 없습니다).
+async function readLeaseRegistry(key, { useCache = true } = {}) {
+  const config = getRefSheetConfig(key);
+  if (!config.registry) throw new Error(`등록부 형태가 아닌 시트입니다: ${key}`);
+
+  const cached = registryCache.get(key);
+  if (useCache && cached && cached.expires > Date.now()) {
+    return cached.data;
+  }
+
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range: `${quoteSheetTitle(config.title)}!${config.registryCell}`,
+  });
+  const raw = ((res.data.values && res.data.values[0] && res.data.values[0][0]) || '').toString();
+
+  let entries;
+  if (raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      entries = Array.isArray(parsed) ? parsed : LEASE_PLEDGE_DEFAULTS;
+    } catch {
+      entries = LEASE_PLEDGE_DEFAULTS;
+    }
+  } else {
+    entries = LEASE_PLEDGE_DEFAULTS;
+  }
+
+  const data = { key, entries };
+  registryCache.set(key, { expires: Date.now() + CACHE_TTL_MS, data });
+  return data;
+}
+
+async function writeLeaseRegistryData(key, entries) {
+  const config = getRefSheetConfig(key);
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range: `${quoteSheetTitle(config.title)}!${config.registryCell}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [[JSON.stringify(entries)]] },
+  });
+  registryCache.delete(key);
+}
+
+async function addLeaseEntry(key, { company, businessNumber }, actor) {
+  assertAdmin(actor);
+  const trimmedCompany = (company || '').toString().trim();
+  if (!trimmedCompany) throw new Error('리스(질권사) 이름을 입력해주세요.');
+
+  const data = await readLeaseRegistry(key, { useCache: false });
+  const entry = {
+    id: makeLeaseEntryId(),
+    company: trimmedCompany,
+    businessNumber: (businessNumber || '').toString().trim(),
+  };
+  const entries = [...data.entries, entry];
+  await writeLeaseRegistryData(key, entries);
+  return { entries };
+}
+
+async function updateLeaseEntry(key, id, { company, businessNumber }, actor) {
+  assertAdmin(actor);
+  const data = await readLeaseRegistry(key, { useCache: false });
+  let found = false;
+  const entries = data.entries.map((e) => {
+    if (e.id !== id) return e;
+    found = true;
+    return {
+      ...e,
+      company: company !== undefined ? (company || '').toString().trim() : e.company,
+      businessNumber: businessNumber !== undefined ? (businessNumber || '').toString().trim() : e.businessNumber,
+    };
+  });
+  if (!found) throw new Error('존재하지 않는 항목입니다.');
+  await writeLeaseRegistryData(key, entries);
+  return { entries };
+}
+
+async function deleteLeaseEntry(key, id, actor) {
+  assertAdmin(actor);
+  const data = await readLeaseRegistry(key, { useCache: false });
+  const entries = data.entries.filter((e) => e.id !== id);
+  await writeLeaseRegistryData(key, entries);
+  return { entries };
 }
 
 // 매니저 개별 시트 ↔ 관리자(종합) 시트 역방향 동기화를 너무 자주 돌리지 않도록
@@ -752,4 +855,8 @@ module.exports = {
   addTemplateEntry,
   updateTemplateEntry,
   deleteTemplateEntry,
+  readLeaseRegistry,
+  addLeaseEntry,
+  updateLeaseEntry,
+  deleteLeaseEntry,
 };
