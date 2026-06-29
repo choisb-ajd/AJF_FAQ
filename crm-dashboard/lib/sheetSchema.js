@@ -213,7 +213,7 @@ const REF_SHEETS = [
   { key: 'dealer-faq', title: '딜러앱 FAQ', label: '딜러앱 FAQ', gid: '470466582', notepad: true, noteCell: 'A1' },
   { key: 'lms-template', title: 'LMS템플릿', label: 'LMS템플릿', templates: true, templatesCell: 'A1' },
   { key: 'lease-pledge', title: '리스(질권사)', label: '리스(질권사)', gid: '1656883024', registry: true, registryCell: 'A1' },
-  { key: 'cm-tm', title: '원수사별 CM/TM', label: '원수사별 CM/TM', gid: '107612819' },
+  { key: 'cm-tm', title: '원수사별 CM/TM', label: '원수사별 CM/TM', linkHub: true, linkHubCell: 'A1' },
 ];
 
 // LMS템플릿 탭의 기본 카테고리(사이드바) 목록(처음 한 번도 저장되기 전 보여줄 기본값).

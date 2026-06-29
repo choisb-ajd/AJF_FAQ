@@ -8,6 +8,7 @@ import ChangePasswordModal from '../../components/ChangePasswordModal';
 import FaqNotepad from '../../components/FaqNotepad';
 import LmsTemplates from '../../components/LmsTemplates';
 import LeaseRegistry from '../../components/LeaseRegistry';
+import LinkHub from '../../components/LinkHub';
 
 export async function getServerSideProps({ req, params }) {
   const cookies = cookie.parse(req.headers.cookie || '');
@@ -22,8 +23,9 @@ export async function getServerSideProps({ req, params }) {
   const isNotepad = !!config.notepad;
   const isTemplates = !!config.templates;
   const isRegistry = !!config.registry;
+  const isLinkHub = !!config.linkHub;
   const sheetUrl =
-    !isNotepad && !isTemplates && !isRegistry && session.role === '관리자' && process.env.ADMIN_SPREADSHEET_ID
+    !isNotepad && !isTemplates && !isRegistry && !isLinkHub && session.role === '관리자' && process.env.ADMIN_SPREADSHEET_ID
       ? `https://docs.google.com/spreadsheets/d/${process.env.ADMIN_SPREADSHEET_ID}/edit#gid=${config.gid}`
       : null;
   return {
@@ -36,11 +38,12 @@ export async function getServerSideProps({ req, params }) {
       isNotepad,
       isTemplates,
       isRegistry,
+      isLinkHub,
     },
   };
 }
 
-export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUrl, isNotepad, isTemplates, isRegistry }) {
+export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUrl, isNotepad, isTemplates, isRegistry, isLinkHub }) {
   const router = useRouter();
   const isAdmin = role === '관리자';
   const [grid, setGrid] = useState(null);
@@ -68,14 +71,14 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
   }
 
   useEffect(() => {
-    if (isNotepad || isTemplates || isRegistry) {
+    if (isNotepad || isTemplates || isRegistry || isLinkHub) {
       setLoading(false);
       return;
     }
     fetchGrid();
     setEditingCell(null);
     setCellError('');
-  }, [sheetKey, isNotepad, isTemplates, isRegistry]);
+  }, [sheetKey, isNotepad, isTemplates, isRegistry, isLinkHub]);
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -179,12 +182,16 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
                 ? isAdmin
                   ? '리스(질권사)와 사업자등록번호를 등록·수정·삭제할 수 있습니다. 수정하면 매니저 화면에도 바로 동일하게 반영됩니다.'
                   : '보기 전용 화면입니다. 수정은 관리자만 할 수 있습니다.'
+                : isLinkHub
+                ? isAdmin
+                  ? '왼쪽 메뉴에서 항목을 선택해 등록·수정·삭제할 수 있습니다. 수정하면 매니저 화면에도 바로 동일하게 반영됩니다.'
+                  : '보기 전용 화면입니다. 수정은 관리자만 할 수 있습니다.'
                 : isAdmin
                 ? '셀을 클릭하면 바로 수정할 수 있고, 저장하면 구글 시트에 즉시 반영됩니다.'
                 : '보기 전용 화면입니다. 수정은 관리자만 할 수 있습니다.'}
             </div>
           </div>
-          {!isNotepad && !isTemplates && !isRegistry && <button className="btn" onClick={fetchGrid}>새로고침</button>}
+          {!isNotepad && !isTemplates && !isRegistry && !isLinkHub && <button className="btn" onClick={fetchGrid}>새로고침</button>}
         </div>
 
         {isNotepad ? (
@@ -193,6 +200,8 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
           <LmsTemplates isAdmin={isAdmin} />
         ) : isRegistry ? (
           <LeaseRegistry isAdmin={isAdmin} />
+        ) : isLinkHub ? (
+          <LinkHub isAdmin={isAdmin} />
         ) : (
           <>
         {cellError && <div className="error-state ref-grid-error">{cellError}</div>}

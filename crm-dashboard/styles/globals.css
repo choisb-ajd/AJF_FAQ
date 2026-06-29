@@ -566,6 +566,52 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
   outline: none;
 }
 
+/* 원수사별 CM/TM: 사이드 메뉴 + 두 섹션(사내 업무 링크, 원수사별 링크) */
+.linkhub-table-wrap { }
+.linkhub-table { width: 100%; }
+.linkhub-table td { max-width: none; white-space: normal; overflow: visible; text-overflow: unset; word-break: break-word; }
+.linkhub-col-num { width: 56px; text-align: center; color: var(--gray); }
+.linkhub-col-category { width: 180px; }
+.linkhub-col-actions { width: 148px; text-align: center; }
+.linkhub-row-actions { display: flex; gap: 6px; justify-content: center; }
+.linkhub-col-insurer { width: 160px; }
+.linkhub-col-tm { width: 140px; }
+.linkhub-col-url { width: 180px; }
+.linkhub-url-row { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+.linkhub-url-row a { color: var(--blue); font-size: 13px; text-decoration: underline; white-space: nowrap; }
+.linkhub-url-row a:hover { color: var(--blue-dark, #1a56db); }
+.linkhub-url-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gray);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.linkhub-detail-text { white-space: pre-wrap; word-break: break-word; font-size: 13px; line-height: 1.6; }
+.linkhub-edit-input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--blue);
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+}
+.linkhub-edit-textarea {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--blue);
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  resize: vertical;
+  min-height: 60px;
+  line-height: 1.5;
+}
+
 .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
 .badge-y { background: #E6F6ED; color: var(--green); }
 .badge-n { background: #F1F2F4; color: var(--gray); }

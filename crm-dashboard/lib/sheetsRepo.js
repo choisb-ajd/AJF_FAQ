@@ -40,6 +40,7 @@ const refSheetCache = new Map(); // refSheet key -> { expires, data }
 const notepadCache = new Map(); // refSheet key -> { expires, data }
 const templatesCache = new Map(); // refSheet key -> { expires, data }
 const registryCache = new Map(); // refSheet key -> { expires, data }
+const linkHubCache = new Map(); // refSheet key -> { expires, data }
 let accountsCache = null; // { expires, accounts }
 
 function quoteSheetTitle(title) {
@@ -460,6 +461,145 @@ async function deleteLeaseEntry(key, id, actor) {
   return { entries };
 }
 
+function makeLinkId() {
+  return `lk${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+}
+
+// 원수사별 CM/TM 탭(REF_SHEETS의 linkHub:true)은 한 개의 셀(linkHubCell)에
+// { internalLinks: [{id,category,detail}], insurerLinks: [{id,insurer,tmNumber,cmUrlPc,cmUrlMobile,note,remark}] }
+// 형태의 JSON을 통째로 저장합니다. 두 목록 모두 관리자 전용 수정 권한이라
+// 매니저 화면에는 항상 관리자가 등록한 최신 내용 그대로 보입니다.
+async function readLinkHub(key, { useCache = true } = {}) {
+  const config = getRefSheetConfig(key);
+  if (!config.linkHub) throw new Error(`링크 모음 형태가 아닌 시트입니다: ${key}`);
+
+  const cached = linkHubCache.get(key);
+  if (useCache && cached && cached.expires > Date.now()) {
+    return cached.data;
+  }
+
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range: `${quoteSheetTitle(config.title)}!${config.linkHubCell}`,
+  });
+  const raw = ((res.data.values && res.data.values[0] && res.data.values[0][0]) || '').toString();
+
+  let parsed = null;
+  if (raw.trim()) {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = null;
+    }
+  }
+
+  const internalLinks = parsed && Array.isArray(parsed.internalLinks) ? parsed.internalLinks : [];
+  const insurerLinks = parsed && Array.isArray(parsed.insurerLinks) ? parsed.insurerLinks : [];
+
+  const data = { key, internalLinks, insurerLinks };
+  linkHubCache.set(key, { expires: Date.now() + CACHE_TTL_MS, data });
+  return data;
+}
+
+async function writeLinkHubData(key, { internalLinks, insurerLinks }) {
+  const config = getRefSheetConfig(key);
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range: `${quoteSheetTitle(config.title)}!${config.linkHubCell}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [[JSON.stringify({ internalLinks, insurerLinks })]] },
+  });
+  linkHubCache.delete(key);
+}
+
+async function addInternalLink(key, { category, detail }, actor) {
+  assertAdmin(actor);
+  const data = await readLinkHub(key, { useCache: false });
+  const entry = {
+    id: makeLinkId(),
+    category: (category || '').toString().trim(),
+    detail: (detail || '').toString(),
+  };
+  const internalLinks = [...data.internalLinks, entry];
+  await writeLinkHubData(key, { internalLinks, insurerLinks: data.insurerLinks });
+  return { internalLinks, insurerLinks: data.insurerLinks };
+}
+
+async function updateInternalLink(key, id, { category, detail }, actor) {
+  assertAdmin(actor);
+  const data = await readLinkHub(key, { useCache: false });
+  let found = false;
+  const internalLinks = data.internalLinks.map((e) => {
+    if (e.id !== id) return e;
+    found = true;
+    return {
+      ...e,
+      category: category !== undefined ? (category || '').toString().trim() : e.category,
+      detail: detail !== undefined ? (detail || '').toString() : e.detail,
+    };
+  });
+  if (!found) throw new Error('존재하지 않는 항목입니다.');
+  await writeLinkHubData(key, { internalLinks, insurerLinks: data.insurerLinks });
+  return { internalLinks, insurerLinks: data.insurerLinks };
+}
+
+async function deleteInternalLink(key, id, actor) {
+  assertAdmin(actor);
+  const data = await readLinkHub(key, { useCache: false });
+  const internalLinks = data.internalLinks.filter((e) => e.id !== id);
+  await writeLinkHubData(key, { internalLinks, insurerLinks: data.insurerLinks });
+  return { internalLinks, insurerLinks: data.insurerLinks };
+}
+
+async function addInsurerLink(key, { insurer, tmNumber, cmUrlPc, cmUrlMobile, note, remark }, actor) {
+  assertAdmin(actor);
+  const data = await readLinkHub(key, { useCache: false });
+  const entry = {
+    id: makeLinkId(),
+    insurer: (insurer || '').toString().trim(),
+    tmNumber: (tmNumber || '').toString().trim(),
+    cmUrlPc: (cmUrlPc || '').toString().trim(),
+    cmUrlMobile: (cmUrlMobile || '').toString().trim(),
+    note: (note || '').toString(),
+    remark: (remark || '').toString(),
+  };
+  const insurerLinks = [...data.insurerLinks, entry];
+  await writeLinkHubData(key, { internalLinks: data.internalLinks, insurerLinks });
+  return { internalLinks: data.internalLinks, insurerLinks };
+}
+
+async function updateInsurerLink(key, id, { insurer, tmNumber, cmUrlPc, cmUrlMobile, note, remark }, actor) {
+  assertAdmin(actor);
+  const data = await readLinkHub(key, { useCache: false });
+  let found = false;
+  const insurerLinks = data.insurerLinks.map((e) => {
+    if (e.id !== id) return e;
+    found = true;
+    return {
+      ...e,
+      insurer: insurer !== undefined ? (insurer || '').toString().trim() : e.insurer,
+      tmNumber: tmNumber !== undefined ? (tmNumber || '').toString().trim() : e.tmNumber,
+      cmUrlPc: cmUrlPc !== undefined ? (cmUrlPc || '').toString().trim() : e.cmUrlPc,
+      cmUrlMobile: cmUrlMobile !== undefined ? (cmUrlMobile || '').toString().trim() : e.cmUrlMobile,
+      note: note !== undefined ? (note || '').toString() : e.note,
+      remark: remark !== undefined ? (remark || '').toString() : e.remark,
+    };
+  });
+  if (!found) throw new Error('존재하지 않는 항목입니다.');
+  await writeLinkHubData(key, { internalLinks: data.internalLinks, insurerLinks });
+  return { internalLinks: data.internalLinks, insurerLinks };
+}
+
+async function deleteInsurerLink(key, id, actor) {
+  assertAdmin(actor);
+  const data = await readLinkHub(key, { useCache: false });
+  const insurerLinks = data.insurerLinks.filter((e) => e.id !== id);
+  await writeLinkHubData(key, { internalLinks: data.internalLinks, insurerLinks });
+  return { internalLinks: data.internalLinks, insurerLinks };
+}
+
 // 매니저 개별 시트 ↔ 관리자(종합) 시트 역방향 동기화를 너무 자주 돌리지 않도록
 // (여러 사용자가 동시에 화면을 보고 있어도) 20초에 한 번만 실행되게 막습니다.
 const MANAGER_SYNC_INTERVAL_MS = CACHE_TTL_MS;
@@ -859,4 +999,11 @@ module.exports = {
   addLeaseEntry,
   updateLeaseEntry,
   deleteLeaseEntry,
+  readLinkHub,
+  addInternalLink,
+  updateInternalLink,
+  deleteInternalLink,
+  addInsurerLink,
+  updateInsurerLink,
+  deleteInsurerLink,
 };
