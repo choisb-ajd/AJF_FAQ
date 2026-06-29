@@ -16,6 +16,12 @@ export default function LmsTemplates({ isAdmin }) {
   const [saving, setSaving] = useState(false);
   const [entryError, setEntryError] = useState('');
   const [copyMsgId, setCopyMsgId] = useState('');
+  const [toast, setToast] = useState('');
+
+  function showToast(message) {
+    setToast(message);
+    setTimeout(() => setToast((t) => (t === message ? '' : t)), 2000);
+  }
 
   useEffect(() => {
     let alive = true;
@@ -90,6 +96,7 @@ export default function LmsTemplates({ isAdmin }) {
       if (!res.ok) throw new Error(data.error || '저장하지 못했습니다.');
       setEntries(data.entries);
       setEditingEntryId(null);
+      showToast('수정 완료되었습니다.');
     } catch (e) {
       setEntryError(e.message);
     } finally {
@@ -131,6 +138,7 @@ export default function LmsTemplates({ isAdmin }) {
       if (!res.ok) throw new Error(data.error || '삭제하지 못했습니다.');
       setEntries(data.entries);
       if (editingEntryId === entry.id) setEditingEntryId(null);
+      showToast('삭제 완료되었습니다.');
     } catch (e) {
       setEntryError(e.message);
     }
@@ -250,7 +258,9 @@ export default function LmsTemplates({ isAdmin }) {
   }
 
   return (
-    <div className="lms-wrap">
+    <>
+      {toast && <div className="lms-toast">{toast}</div>}
+      <div className="lms-wrap">
       <aside className="lms-sidebar">
         <div className="lms-sidebar-list">
           {categories.map((c) => (
@@ -329,6 +339,7 @@ export default function LmsTemplates({ isAdmin }) {
           <div className="lms-empty">왼쪽에서 카테고리를 선택해주세요.</div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
