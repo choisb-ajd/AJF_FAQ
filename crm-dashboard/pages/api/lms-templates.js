@@ -1,5 +1,11 @@
 const { getSessionFromReq } = require('../../lib/auth');
-const { readTemplatesSheet, addTemplateEntry, updateTemplateEntry } = require('../../lib/sheetsRepo');
+const {
+  readTemplatesSheet,
+  addTemplateCategory,
+  addTemplateEntry,
+  updateTemplateEntry,
+  deleteTemplateEntry,
+} = require('../../lib/sheetsRepo');
 
 const TEMPLATES_KEY = 'lms-template';
 
@@ -12,7 +18,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const data = await readTemplatesSheet(TEMPLATES_KEY);
-      return res.status(200).json({ ok: true, templates: data.templates });
+      return res.status(200).json({ ok: true, categories: data.categories, entries: data.entries });
     } catch (e) {
       console.error(e);
       return res.status(500).json({ error: e.message || '불러오지 못했습니다.' });
@@ -20,23 +26,37 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const { action, id, title, content } = req.body || {};
+    const { action, id, categoryId, title, content, isAdminTemplate } = req.body || {};
     try {
-      if (action === 'add') {
-        const templates = await addTemplateEntry(TEMPLATES_KEY, title);
-        return res.status(200).json({ ok: true, templates });
+      if (action === 'addCategory') {
+        const result = await addTemplateCategory(TEMPLATES_KEY, title);
+        return res.status(200).json({ ok: true, ...result });
       }
-      if (action === 'update') {
+      if (action === 'addEntry') {
+        if (typeof categoryId !== 'string' || !categoryId) {
+          return res.status(400).json({ error: '잘못된 요청입니다.' });
+        }
+        const result = await addTemplateEntry(TEMPLATES_KEY, { categoryId, content, isAdminTemplate }, session);
+        return res.status(200).json({ ok: true, ...result });
+      }
+      if (action === 'updateEntry') {
         if (typeof id !== 'string' || !id) {
           return res.status(400).json({ error: '잘못된 요청입니다.' });
         }
-        const templates = await updateTemplateEntry(TEMPLATES_KEY, id, { content });
-        return res.status(200).json({ ok: true, templates });
+        const result = await updateTemplateEntry(TEMPLATES_KEY, id, { content, isAdminTemplate }, session);
+        return res.status(200).json({ ok: true, ...result });
+      }
+      if (action === 'deleteEntry') {
+        if (typeof id !== 'string' || !id) {
+          return res.status(400).json({ error: '잘못된 요청입니다.' });
+        }
+        const result = await deleteTemplateEntry(TEMPLATES_KEY, id, session);
+        return res.status(200).json({ ok: true, ...result });
       }
       return res.status(400).json({ error: '잘못된 요청입니다.' });
     } catch (e) {
       console.error(e);
-      return res.status(500).json({ error: e.message || '저장 중 오류가 발생했습니다.' });
+      return res.status(400).json({ error: e.message || '저장 중 오류가 발생했습니다.' });
     }
   }
 

@@ -216,9 +216,10 @@ const REF_SHEETS = [
   { key: 'cm-tm', title: '원수사별 CM/TM', label: '원수사별 CM/TM', gid: '107612819' },
 ];
 
-// LMS템플릿 탭의 기본 문자 템플릿 목록(처음 한 번도 저장되기 전 보여줄 기본값).
+// LMS템플릿 탭의 기본 카테고리(사이드바) 목록(처음 한 번도 저장되기 전 보여줄 기본값).
+// 카테고리 하나에 여러 개의 템플릿(문구)을 등록할 수 있습니다.
 // id는 고정값으로 둬서, 시트 셀이 비어있는 동안 매번 다시 만들어내도(저장 전이라) 항상 같은 id가 유지되게 합니다.
-const LMS_TEMPLATE_DEFAULTS = [
+const LMS_TEMPLATE_CATEGORIES = [
   { id: 'dealer-promo', title: '딜러 홍보 메시지' },
   { id: 'new-car-quote', title: '신차 견적 요청(딜러 발송용)' },
   { id: 'existing-dealer-referral', title: '기존 가입딜러(소개 가입)' },
@@ -245,7 +246,7 @@ module.exports = {
   MODAL_ADMIN_COLLAPSIBLE_EXTRA,
   MODAL_EXCLUDED_FIELDS,
   REF_SHEETS,
-  LMS_TEMPLATE_DEFAULTS,
+  LMS_TEMPLATE_CATEGORIES,
   buildColumnMap,
   rowArrayToValues,
   normalizePhone,

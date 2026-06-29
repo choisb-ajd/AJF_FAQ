@@ -171,7 +171,7 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
                   ? '자유롭게 글자 크기·색상 등 서식을 적용해 작성하는 메모장입니다. 엑셀 등에서 붙여넣으면 서식 없이 글자만 들어갑니다.'
                   : '보기 전용 화면입니다. 수정은 관리자만 할 수 있습니다.'
                 : isTemplates
-                ? '매니저/관리자 누구나 각 템플릿의 문구를 수정·저장할 수 있고, 복사 버튼으로 바로 문자에 붙여넣을 수 있습니다.'
+                ? '왼쪽 카테고리마다 여러 개의 템플릿을 등록·수정·복사할 수 있습니다. 관리자 등록 템플릿은 상단에 고정되며 관리자가 수정하면 모두에게 즉시 반영됩니다.'
                 : isAdmin
                 ? '셀을 클릭하면 바로 수정할 수 있고, 저장하면 구글 시트에 즉시 반영됩니다.'
                 : '보기 전용 화면입니다. 수정은 관리자만 할 수 있습니다.'}
@@ -183,7 +183,7 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
         {isNotepad ? (
           <FaqNotepad isAdmin={isAdmin} />
         ) : isTemplates ? (
-          <LmsTemplates />
+          <LmsTemplates isAdmin={isAdmin} />
         ) : (
           <>
         {cellError && <div className="error-state ref-grid-error">{cellError}</div>}

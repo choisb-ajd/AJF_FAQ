@@ -7,7 +7,8 @@ const {
   letterToColumnIndex,
   MANAGER_EDITABLE,
   REF_SHEETS,
-  LMS_TEMPLATE_DEFAULTS,
+  LMS_TEMPLATE_CATEGORIES,
+  formatRegisteredAt,
 } = require('./sheetSchema');
 const { sanitizeNotepadHtml, escapeHtml } = require('./sanitizeHtml');
 
@@ -215,10 +216,13 @@ function makeTemplateId() {
   return `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 }
 
-// LMS템플릿 탭(REF_SHEETS의 templates:true)은 한 개의 셀(templatesCell)에 템플릿 목록을
-// JSON 배열([{id, title, content}, ...])로 통째로 저장합니다. 매니저/관리자 누구나 개별
-// 템플릿을 수정·저장할 수 있어서, 쓸 때마다 시트에서 최신 목록을 다시 읽어 해당 항목만
-// 바꾼 뒤 전체를 다시 씁니다(동시에 다른 템플릿을 수정 중인 다른 사람의 내용을 덮어쓰지 않도록).
+// LMS템플릿 탭(REF_SHEETS의 templates:true)은 한 개의 셀(templatesCell)에
+// { categories: [{id,title}], entries: [{id,categoryId,content,isAdminTemplate,updatedBy,updatedAt}] }
+// 형태의 JSON을 통째로 저장합니다. 카테고리(사이드바) 하나에 여러 개의 템플릿을 등록할 수 있고,
+// isAdminTemplate인 항목은 관리자만 수정·삭제할 수 있어 매니저 화면에는 항상 관리자가 등록한
+// 최신 내용 그대로 보입니다(같은 데이터를 공유하므로 별도 동기화가 필요 없습니다).
+// 쓸 때마다 시트에서 최신 데이터를 다시 읽어 해당 항목만 바꾼 뒤 전체를 다시 씁니다
+// (동시에 다른 템플릿을 수정 중인 다른 사람의 내용을 덮어쓰지 않도록).
 async function readTemplatesSheet(key, { useCache = true } = {}) {
   const config = getRefSheetConfig(key);
   if (!config.templates) throw new Error(`템플릿 형태가 아닌 시트입니다: ${key}`);
@@ -235,57 +239,122 @@ async function readTemplatesSheet(key, { useCache = true } = {}) {
   });
   const raw = ((res.data.values && res.data.values[0] && res.data.values[0][0]) || '').toString();
 
-  let list = [];
+  let parsed = null;
   if (raw.trim()) {
     try {
-      list = JSON.parse(raw);
+      parsed = JSON.parse(raw);
     } catch {
-      list = [];
+      parsed = null;
     }
   }
-  if (!Array.isArray(list) || list.length === 0) {
-    list = LMS_TEMPLATE_DEFAULTS.map((t) => ({ ...t, content: '' }));
+
+  let categories;
+  let entries;
+  if (parsed && Array.isArray(parsed.categories)) {
+    categories = parsed.categories;
+    entries = Array.isArray(parsed.entries) ? parsed.entries : [];
+  } else if (Array.isArray(parsed)) {
+    // 이전 형식(카테고리 1개 = 템플릿 1개) 호환: 내용이 있던 항목만 해당 카테고리의 템플릿으로 옮겨줍니다.
+    categories = LMS_TEMPLATE_CATEGORIES.map((c) => ({ id: c.id, title: c.title }));
+    entries = parsed
+      .filter((t) => (t.content || '').toString().trim())
+      .map((t) => ({
+        id: t.id,
+        categoryId: t.id,
+        content: t.content,
+        isAdminTemplate: false,
+        updatedBy: '',
+        updatedAt: '',
+      }));
+  } else {
+    categories = LMS_TEMPLATE_CATEGORIES.map((c) => ({ id: c.id, title: c.title }));
+    entries = [];
   }
 
-  const data = { key, templates: list };
+  const data = { key, categories, entries };
   templatesCache.set(key, { expires: Date.now() + CACHE_TTL_MS, data });
   return data;
 }
 
-async function writeTemplatesList(key, list) {
+async function writeTemplatesData(key, { categories, entries }) {
   const config = getRefSheetConfig(key);
   const sheets = getSheetsClient();
   await sheets.spreadsheets.values.update({
     spreadsheetId: ADMIN_SPREADSHEET_ID,
     range: `${quoteSheetTitle(config.title)}!${config.templatesCell}`,
     valueInputOption: 'RAW',
-    requestBody: { values: [[JSON.stringify(list)]] },
+    requestBody: { values: [[JSON.stringify({ categories, entries })]] },
   });
   templatesCache.delete(key);
 }
 
-async function addTemplateEntry(key, title) {
+async function addTemplateCategory(key, title) {
   const trimmedTitle = (title || '').toString().trim();
-  if (!trimmedTitle) throw new Error('템플릿 이름을 입력해주세요.');
+  if (!trimmedTitle) throw new Error('카테고리 이름을 입력해주세요.');
 
   const data = await readTemplatesSheet(key, { useCache: false });
-  const entry = { id: makeTemplateId(), title: trimmedTitle, content: '' };
-  const list = [...data.templates, entry];
-  await writeTemplatesList(key, list);
-  return list;
+  const categories = [...data.categories, { id: makeTemplateId(), title: trimmedTitle }];
+  await writeTemplatesData(key, { categories, entries: data.entries });
+  return { categories, entries: data.entries };
 }
 
-async function updateTemplateEntry(key, id, { content }) {
+async function addTemplateEntry(key, { categoryId, content, isAdminTemplate }, actor) {
+  if (isAdminTemplate && actor.role !== '관리자') {
+    throw new Error('관리자만 관리자 등록 템플릿을 추가할 수 있습니다.');
+  }
+
+  const data = await readTemplatesSheet(key, { useCache: false });
+  if (!data.categories.some((c) => c.id === categoryId)) {
+    throw new Error('존재하지 않는 카테고리입니다.');
+  }
+  const entry = {
+    id: makeTemplateId(),
+    categoryId,
+    content: (content || '').toString(),
+    isAdminTemplate: !!isAdminTemplate,
+    updatedBy: actor.name || '',
+    updatedAt: formatRegisteredAt(),
+  };
+  const entries = [...data.entries, entry];
+  await writeTemplatesData(key, { categories: data.categories, entries });
+  return { categories: data.categories, entries };
+}
+
+async function updateTemplateEntry(key, id, { content, isAdminTemplate }, actor) {
   const data = await readTemplatesSheet(key, { useCache: false });
   let found = false;
-  const list = data.templates.map((t) => {
-    if (t.id !== id) return t;
+  const entries = data.entries.map((e) => {
+    if (e.id !== id) return e;
     found = true;
-    return { ...t, content: (content || '').toString() };
+    if (e.isAdminTemplate && actor.role !== '관리자') {
+      throw new Error('관리자 등록 템플릿은 관리자만 수정할 수 있습니다.');
+    }
+    if (isAdminTemplate !== undefined && actor.role !== '관리자') {
+      throw new Error('관리자만 관리자 등록 템플릿 여부를 변경할 수 있습니다.');
+    }
+    return {
+      ...e,
+      content: content !== undefined ? (content || '').toString() : e.content,
+      isAdminTemplate: isAdminTemplate !== undefined ? !!isAdminTemplate : e.isAdminTemplate,
+      updatedBy: actor.name || '',
+      updatedAt: formatRegisteredAt(),
+    };
   });
   if (!found) throw new Error('존재하지 않는 템플릿입니다.');
-  await writeTemplatesList(key, list);
-  return list;
+  await writeTemplatesData(key, { categories: data.categories, entries });
+  return { categories: data.categories, entries };
+}
+
+async function deleteTemplateEntry(key, id, actor) {
+  const data = await readTemplatesSheet(key, { useCache: false });
+  const target = data.entries.find((e) => e.id === id);
+  if (!target) throw new Error('존재하지 않는 템플릿입니다.');
+  if (target.isAdminTemplate && actor.role !== '관리자') {
+    throw new Error('관리자 등록 템플릿은 관리자만 삭제할 수 있습니다.');
+  }
+  const entries = data.entries.filter((e) => e.id !== id);
+  await writeTemplatesData(key, { categories: data.categories, entries });
+  return { categories: data.categories, entries };
 }
 
 // 매니저 개별 시트 ↔ 관리자(종합) 시트 역방향 동기화를 너무 자주 돌리지 않도록
@@ -679,6 +748,8 @@ module.exports = {
   readNotepadSheet,
   saveNotepadSheet,
   readTemplatesSheet,
+  addTemplateCategory,
   addTemplateEntry,
   updateTemplateEntry,
+  deleteTemplateEntry,
 };
