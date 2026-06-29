@@ -211,9 +211,27 @@ function letterToColumnIndex(letters) {
 const REF_SHEETS = [
   { key: 'renewal', title: '갱신배정', label: '갱신배정', colStart: 'B', colEnd: 'P', gid: '1205371231' },
   { key: 'dealer-faq', title: '딜러앱 FAQ', label: '딜러앱 FAQ', gid: '470466582', notepad: true, noteCell: 'A1' },
-  { key: 'lms-template', title: 'LMS템플릿', label: 'LMS템플릿', gid: '1466234732' },
+  { key: 'lms-template', title: 'LMS템플릿', label: 'LMS템플릿', templates: true, templatesCell: 'A1' },
   { key: 'lease-pledge', title: '리스(질권사)', label: '리스(질권사)', gid: '1656883024' },
   { key: 'cm-tm', title: '원수사별 CM/TM', label: '원수사별 CM/TM', gid: '107612819' },
+];
+
+// LMS템플릿 탭의 기본 문자 템플릿 목록(처음 한 번도 저장되기 전 보여줄 기본값).
+// id는 고정값으로 둬서, 시트 셀이 비어있는 동안 매번 다시 만들어내도(저장 전이라) 항상 같은 id가 유지되게 합니다.
+const LMS_TEMPLATE_DEFAULTS = [
+  { id: 'dealer-promo', title: '딜러 홍보 메시지' },
+  { id: 'new-car-quote', title: '신차 견적 요청(딜러 발송용)' },
+  { id: 'existing-dealer-referral', title: '기존 가입딜러(소개 가입)' },
+  { id: 'signup-complete', title: '가입완료(고객용)' },
+  { id: 'insurer-cs-numbers', title: '원수사별 고객센터 대표전화' },
+  { id: 'commission-schedule', title: '수수료 지급 일정 안내' },
+  { id: 'off-handover-request', title: '오프 인수요청(총무님 전송)' },
+  { id: 'birthday-coupon-before', title: '생일쿠폰발송 안내(생일 전)' },
+  { id: 'birthday-coupon-after', title: '생일쿠폰발송 안내(생일 후)' },
+  { id: 'etc', title: '기타' },
+  { id: 'insurer-endorsement-numbers', title: '보험사별 배서 전용 번호' },
+  { id: 'extra-discount-request', title: '추가할인 요청 안내' },
+  { id: 'ad-fee-adjustment', title: '광고비 조정 안내 문자' },
 ];
 
 module.exports = {
@@ -227,6 +245,7 @@ module.exports = {
   MODAL_ADMIN_COLLAPSIBLE_EXTRA,
   MODAL_EXCLUDED_FIELDS,
   REF_SHEETS,
+  LMS_TEMPLATE_DEFAULTS,
   buildColumnMap,
   rowArrayToValues,
   normalizePhone,

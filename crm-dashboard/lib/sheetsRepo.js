@@ -7,6 +7,7 @@ const {
   letterToColumnIndex,
   MANAGER_EDITABLE,
   REF_SHEETS,
+  LMS_TEMPLATE_DEFAULTS,
 } = require('./sheetSchema');
 const { sanitizeNotepadHtml, escapeHtml } = require('./sanitizeHtml');
 
@@ -35,6 +36,7 @@ const sheetDataCache = new Map(); // spreadsheetId -> { expires, data }
 const dataSheetTitleCache = new Map(); // spreadsheetId -> title
 const refSheetCache = new Map(); // refSheet key -> { expires, data }
 const notepadCache = new Map(); // refSheet key -> { expires, data }
+const templatesCache = new Map(); // refSheet key -> { expires, data }
 let accountsCache = null; // { expires, accounts }
 
 function quoteSheetTitle(title) {
@@ -207,6 +209,83 @@ async function saveNotepadSheet(key, html) {
   });
   notepadCache.delete(key);
   return { html: safeHtml };
+}
+
+function makeTemplateId() {
+  return `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+}
+
+// LMS템플릿 탭(REF_SHEETS의 templates:true)은 한 개의 셀(templatesCell)에 템플릿 목록을
+// JSON 배열([{id, title, content}, ...])로 통째로 저장합니다. 매니저/관리자 누구나 개별
+// 템플릿을 수정·저장할 수 있어서, 쓸 때마다 시트에서 최신 목록을 다시 읽어 해당 항목만
+// 바꾼 뒤 전체를 다시 씁니다(동시에 다른 템플릿을 수정 중인 다른 사람의 내용을 덮어쓰지 않도록).
+async function readTemplatesSheet(key, { useCache = true } = {}) {
+  const config = getRefSheetConfig(key);
+  if (!config.templates) throw new Error(`템플릿 형태가 아닌 시트입니다: ${key}`);
+
+  const cached = templatesCache.get(key);
+  if (useCache && cached && cached.expires > Date.now()) {
+    return cached.data;
+  }
+
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range: `${quoteSheetTitle(config.title)}!${config.templatesCell}`,
+  });
+  const raw = ((res.data.values && res.data.values[0] && res.data.values[0][0]) || '').toString();
+
+  let list = [];
+  if (raw.trim()) {
+    try {
+      list = JSON.parse(raw);
+    } catch {
+      list = [];
+    }
+  }
+  if (!Array.isArray(list) || list.length === 0) {
+    list = LMS_TEMPLATE_DEFAULTS.map((t) => ({ ...t, content: '' }));
+  }
+
+  const data = { key, templates: list };
+  templatesCache.set(key, { expires: Date.now() + CACHE_TTL_MS, data });
+  return data;
+}
+
+async function writeTemplatesList(key, list) {
+  const config = getRefSheetConfig(key);
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range: `${quoteSheetTitle(config.title)}!${config.templatesCell}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [[JSON.stringify(list)]] },
+  });
+  templatesCache.delete(key);
+}
+
+async function addTemplateEntry(key, title) {
+  const trimmedTitle = (title || '').toString().trim();
+  if (!trimmedTitle) throw new Error('템플릿 이름을 입력해주세요.');
+
+  const data = await readTemplatesSheet(key, { useCache: false });
+  const entry = { id: makeTemplateId(), title: trimmedTitle, content: '' };
+  const list = [...data.templates, entry];
+  await writeTemplatesList(key, list);
+  return list;
+}
+
+async function updateTemplateEntry(key, id, { content }) {
+  const data = await readTemplatesSheet(key, { useCache: false });
+  let found = false;
+  const list = data.templates.map((t) => {
+    if (t.id !== id) return t;
+    found = true;
+    return { ...t, content: (content || '').toString() };
+  });
+  if (!found) throw new Error('존재하지 않는 템플릿입니다.');
+  await writeTemplatesList(key, list);
+  return list;
 }
 
 // 매니저 개별 시트 ↔ 관리자(종합) 시트 역방향 동기화를 너무 자주 돌리지 않도록
@@ -599,4 +678,7 @@ module.exports = {
   updateRefSheetCell,
   readNotepadSheet,
   saveNotepadSheet,
+  readTemplatesSheet,
+  addTemplateEntry,
+  updateTemplateEntry,
 };
