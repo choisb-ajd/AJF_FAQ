@@ -188,8 +188,8 @@ export default function LeaseRegistry({ isAdmin }) {
           <thead>
             <tr>
               <th className="lease-col-num">번호</th>
-              <th>리스(질권사)</th>
-              <th>사업자등록번호</th>
+              <th className="lease-col-company">리스(질권사)</th>
+              <th className="lease-col-bizno">사업자등록번호</th>
               {isAdmin && <th className="lease-col-actions">관리</th>}
             </tr>
           </thead>
