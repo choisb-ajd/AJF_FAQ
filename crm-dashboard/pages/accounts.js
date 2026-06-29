@@ -59,10 +59,10 @@ export default function AccountsPage({ role, name }) {
           <span className="topbar-badge">{role}</span>
           <nav className="topbar-nav">
             <Link className="topbar-nav-link" href="/dashboard">회원관리</Link>
-            <Link className="topbar-nav-link active" href="/accounts">계정관리</Link>
             {REF_SHEETS.map((s) => (
               <Link key={s.key} className="topbar-nav-link" href={`/sheet/${s.key}`}>{s.label}</Link>
             ))}
+            <Link className="topbar-nav-link active" href="/accounts">계정관리</Link>
           </nav>
         </div>
         <div className="topbar-right">

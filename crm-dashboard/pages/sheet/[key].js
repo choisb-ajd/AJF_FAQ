@@ -140,7 +140,6 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
           <span className="topbar-badge">{role}</span>
           <nav className="topbar-nav">
             <Link className="topbar-nav-link" href="/dashboard">회원관리</Link>
-            {isAdmin && <Link className="topbar-nav-link" href="/accounts">계정관리</Link>}
             {REF_SHEETS.map((s) => (
               <Link
                 key={s.key}
@@ -150,6 +149,7 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
                 {s.label}
               </Link>
             ))}
+            {isAdmin && <Link className="topbar-nav-link" href="/accounts">계정관리</Link>}
           </nav>
         </div>
         <div className="topbar-right">

@@ -183,7 +183,7 @@ export default function LeaseRegistry({ isAdmin }) {
 
       {rowError && <div className="error-state lms-inline-error">{rowError}</div>}
 
-      <div className="table-wrap">
+      <div className="table-wrap lease-table-wrap">
         <table className="lease-table">
           <thead>
             <tr>
