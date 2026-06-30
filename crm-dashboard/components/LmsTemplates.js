@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function LmsTemplates({ isAdmin }) {
   const [categories, setCategories] = useState([]);
@@ -13,6 +13,8 @@ export default function LmsTemplates({ isAdmin }) {
 
   const [renamingCategoryId, setRenamingCategoryId] = useState(null);
   const [renameCategoryTitle, setRenameCategoryTitle] = useState('');
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const menuRef = useRef(null);
 
   const [editingEntryId, setEditingEntryId] = useState(null);
   const [editContent, setEditContent] = useState('');
@@ -25,6 +27,16 @@ export default function LmsTemplates({ isAdmin }) {
     setToast(message);
     setTimeout(() => setToast((t) => (t === message ? '' : t)), 2000);
   }
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenuId(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -319,43 +331,55 @@ export default function LmsTemplates({ isAdmin }) {
       {toast && <div className="app-toast">{toast}</div>}
       <div className="lms-wrap">
       <aside className="lms-sidebar">
-        <div className="lms-sidebar-list">
-          {categories.map((c) => (
-            <div key={c.id} className={`lms-sidebar-item-wrap${c.id === activeCategoryId ? ' active' : ''}`}>
-              {renamingCategoryId === c.id ? (
-                <div className="lms-sidebar-rename-form">
-                  <input
-                    autoFocus
-                    value={renameCategoryTitle}
-                    onChange={(e) => setRenameCategoryTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') submitRenameCategory();
-                      if (e.key === 'Escape') { setRenamingCategoryId(null); setCategoryError(''); }
-                    }}
-                  />
-                  <div className="lms-sidebar-rename-actions">
-                    <button type="button" className="btn btn-primary btn-xs" onClick={submitRenameCategory}>저장</button>
-                    <button type="button" className="btn btn-xs" onClick={() => { setRenamingCategoryId(null); setCategoryError(''); }}>취소</button>
+        <div className="lms-sidebar-list" ref={menuRef}>
+          {categories.map((c) => {
+            const canManage = isAdmin || !c.isAdminCategory;
+            return (
+              <div key={c.id} className={`lms-sidebar-item-wrap${c.id === activeCategoryId ? ' active' : ''}`}>
+                {renamingCategoryId === c.id ? (
+                  <div className="lms-sidebar-rename-form">
+                    <input
+                      autoFocus
+                      value={renameCategoryTitle}
+                      onChange={(e) => setRenameCategoryTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') submitRenameCategory();
+                        if (e.key === 'Escape') { setRenamingCategoryId(null); setCategoryError(''); }
+                      }}
+                    />
+                    <div className="lms-sidebar-rename-actions">
+                      <button type="button" className="btn btn-primary btn-xs" onClick={submitRenameCategory}>저장</button>
+                      <button type="button" className="btn btn-xs" onClick={() => { setRenamingCategoryId(null); setCategoryError(''); }}>취소</button>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className="lms-sidebar-item"
-                  onClick={() => selectCategory(c.id)}
-                >
-                  <span className="lms-sidebar-item-title">{c.title}</span>
-                  {countFor(c.id) > 0 && <span className="lms-sidebar-count">{countFor(c.id)}</span>}
-                </button>
-              )}
-              {renamingCategoryId !== c.id && (isAdmin || !c.isAdminCategory) && (
-                <div className="lms-sidebar-item-actions">
-                  <button type="button" className="lms-cat-action-btn" title="이름 수정" onClick={(e) => { e.stopPropagation(); startRenameCategory(c); }}>✎</button>
-                  <button type="button" className="lms-cat-action-btn danger" title="삭제" onClick={(e) => { e.stopPropagation(); deleteCategory(c); }}>✕</button>
-                </div>
-              )}
-            </div>
-          ))}
+                ) : (
+                  <button
+                    type="button"
+                    className="lms-sidebar-item"
+                    onClick={() => selectCategory(c.id)}
+                  >
+                    <span className="lms-sidebar-item-title">{c.title}</span>
+                    {countFor(c.id) > 0 && <span className="lms-sidebar-count">{countFor(c.id)}</span>}
+                  </button>
+                )}
+                {canManage && renamingCategoryId !== c.id && (
+                  <div className="lms-cat-menu-wrap">
+                    <button
+                      type="button"
+                      className="lms-cat-kebab"
+                      onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === c.id ? null : c.id); }}
+                    >⋮</button>
+                    {openMenuId === c.id && (
+                      <div className="lms-cat-dropdown">
+                        <button type="button" onClick={() => { setOpenMenuId(null); startRenameCategory(c); }}>수정</button>
+                        <button type="button" className="danger" onClick={() => { setOpenMenuId(null); deleteCategory(c); }}>삭제</button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
         {categoryError && <div className="error-state lms-inline-error">{categoryError}</div>}
         {addingCategory ? (
