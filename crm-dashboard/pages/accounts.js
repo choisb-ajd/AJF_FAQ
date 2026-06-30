@@ -8,6 +8,9 @@ import Announcement from '../components/Announcement';
 import FaqWidget from '../components/FaqWidget';
 import useEscapeKey from '../lib/useEscapeKey';
 import { REF_SHEETS } from '../lib/sheetSchema';
+import { getEntry, fetchAndCache } from '../lib/dataCache';
+
+const ACCOUNTS_KEY = 'accounts';
 
 export async function getServerSideProps({ req }) {
   const cookies = cookie.parse(req.headers.cookie || '');
@@ -23,20 +26,19 @@ export async function getServerSideProps({ req }) {
 
 export default function AccountsPage({ role, name }) {
   const router = useRouter();
-  const [accounts, setAccounts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const initialAccounts = getEntry(ACCOUNTS_KEY);
+  const [accounts, setAccounts] = useState(() => (initialAccounts ? initialAccounts.data.accounts || [] : []));
+  const [loading, setLoading] = useState(() => !initialAccounts);
   const [error, setError] = useState('');
   const [resetTarget, setResetTarget] = useState(null);
   const [changingPassword, setChangingPassword] = useState(false);
 
-  async function fetchAccounts() {
+  async function fetchAccounts({ force = false } = {}) {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/accounts');
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '계정 목록을 불러오지 못했습니다.');
-      setAccounts(data.accounts);
+      const data = await fetchAndCache(ACCOUNTS_KEY, '/api/accounts', { force });
+      if (data) setAccounts(data.accounts);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -45,6 +47,7 @@ export default function AccountsPage({ role, name }) {
   }
 
   useEffect(() => {
+    if (getEntry(ACCOUNTS_KEY)) return;
     fetchAccounts();
   }, []);
 
@@ -82,7 +85,7 @@ export default function AccountsPage({ role, name }) {
             <h1>계정관리</h1>
             <div className="count">등록된 계정 수: {accounts.length.toLocaleString()}개</div>
           </div>
-          <button className="btn" onClick={fetchAccounts}>새로고침</button>
+          <button className="btn" onClick={() => fetchAccounts({ force: true })}>새로고침</button>
         </div>
 
         {loading ? (
@@ -143,7 +146,7 @@ export default function AccountsPage({ role, name }) {
           onClose={() => setResetTarget(null)}
           onDone={() => {
             setResetTarget(null);
-            fetchAccounts();
+            fetchAccounts({ force: true });
           }}
         />
       )}

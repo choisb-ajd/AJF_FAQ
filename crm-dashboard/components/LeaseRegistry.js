@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import { getEntry, fetchAndCache, mergeEntry } from '../lib/dataCache';
+
+const LEASE_KEY = 'lease-registry';
 
 export default function LeaseRegistry({ isAdmin }) {
-  const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const initialLease = getEntry(LEASE_KEY);
+  const [entries, setEntries] = useState(() => (initialLease ? initialLease.data.entries || [] : []));
+  const [loading, setLoading] = useState(() => !initialLease);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
 
@@ -24,15 +28,11 @@ export default function LeaseRegistry({ isAdmin }) {
   }
 
   useEffect(() => {
+    if (getEntry(LEASE_KEY)) return;
     let alive = true;
-    fetch('/api/lease-registry')
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || '불러오지 못했습니다.');
-        return data;
-      })
+    fetchAndCache(LEASE_KEY, '/api/lease-registry')
       .then((data) => {
-        if (!alive) return;
+        if (!alive || !data) return;
         setEntries(data.entries || []);
       })
       .catch((e) => alive && setError(e.message))
@@ -85,6 +85,7 @@ export default function LeaseRegistry({ isAdmin }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '추가하지 못했습니다.');
       setEntries(data.entries);
+      mergeEntry(LEASE_KEY, { entries: data.entries });
       setAdding(false);
       setNewCompany('');
       setNewBusinessNumber('');
@@ -131,6 +132,7 @@ export default function LeaseRegistry({ isAdmin }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '저장하지 못했습니다.');
       setEntries(data.entries);
+      mergeEntry(LEASE_KEY, { entries: data.entries });
       setEditingId(null);
       showToast('수정 되었습니다.');
     } catch (e) {
@@ -152,6 +154,7 @@ export default function LeaseRegistry({ isAdmin }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '삭제하지 못했습니다.');
       setEntries(data.entries);
+      mergeEntry(LEASE_KEY, { entries: data.entries });
       if (editingId === entry.id) setEditingId(null);
       showToast('삭제 되었습니다.');
     } catch (e) {

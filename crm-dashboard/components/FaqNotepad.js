@@ -1,29 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
+import { getEntry, fetchAndCache, setEntry } from '../lib/dataCache';
 
 const FONT_SIZES = [12, 14, 16, 18, 20, 24, 28, 32, 36, 48];
+const FAQ_KEY = 'faq';
 
 export default function FaqNotepad({ isAdmin }) {
   const editorRef = useRef(null);
   const savedRangeRef = useRef(null);
-  const [loading, setLoading] = useState(true);
+  const initialFaq = getEntry(FAQ_KEY);
+  const [loading, setLoading] = useState(() => !initialFaq);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
-  const [migrated, setMigrated] = useState(false);
-  const [loadedHtml, setLoadedHtml] = useState(null);
+  const [migrated, setMigrated] = useState(() => !!(initialFaq && initialFaq.data.migrated));
+  const [loadedHtml, setLoadedHtml] = useState(() => (initialFaq ? initialFaq.data.html || '' : null));
 
   useEffect(() => {
+    if (getEntry(FAQ_KEY)) return;
     let alive = true;
     setLoading(true);
     setError('');
-    fetch('/api/faq')
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || '불러오지 못했습니다.');
-        return data;
-      })
+    fetchAndCache(FAQ_KEY, '/api/faq')
       .then((data) => {
-        if (!alive) return;
+        if (!alive || !data) return;
         setLoadedHtml(data.html || '');
         setMigrated(!!data.migrated);
       })
@@ -93,6 +92,7 @@ export default function FaqNotepad({ isAdmin }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '저장하지 못했습니다.');
       setMigrated(false);
+      setEntry(FAQ_KEY, { ok: true, html, migrated: false });
       setSaveMsg('저장되었습니다.');
     } catch (e) {
       setError(e.message);

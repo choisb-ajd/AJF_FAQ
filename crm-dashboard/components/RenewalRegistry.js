@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   RENEWAL_FIELDS,
   RENEWAL_MANAGER_EDITABLE,
@@ -7,6 +7,7 @@ import {
   parseContactHistory,
 } from '../lib/sheetSchema';
 import useEscapeKey from '../lib/useEscapeKey';
+import { getEntry, fetchAndCache, mergeEntry } from '../lib/dataCache';
 
 const FIELD_META = Object.fromEntries(RENEWAL_FIELDS.map((f) => [f.key, f]));
 const DATE_KEYS = ['assignedDate', 'expiryDate', 'dealerLastContractDate'];
@@ -37,17 +38,16 @@ function compareRows(a, b, key) {
 }
 
 const POLL_INTERVAL_MS = 60 * 60 * 1000; // 1시간 — 자동 업데이트 주기
-
-// 다른 탭에 갔다가 돌아와도(같은 브라우저 탭 안에서는) 마지막으로 불러온 데이터를 그대로 재사용해
-// 재방문 시 로딩 화면 없이 바로 표가 보이고, 다음 자동 업데이트 전까지는 같은 데이터를 유지합니다.
-let renewalCache = { rows: null, etag: null, fetchedAt: 0 };
+const RENEWAL_KEY = 'renewal';
 
 export default function RenewalRegistry({ isAdmin, name }) {
-  const [rows, setRows] = useState(() => renewalCache.rows || []);
-  const [loading, setLoading] = useState(() => !renewalCache.rows);
+  // 로그인 직후 프리페치되었거나(_app.js) 다른 탭에서 이미 불러온 데이터가 캐시에 있으면
+  // 재방문/첫 진입 시 로딩 화면 없이 바로 표를 그립니다.
+  const initialRenewal = getEntry(RENEWAL_KEY);
+  const [rows, setRows] = useState(() => (initialRenewal ? initialRenewal.data.rows || [] : []));
+  const [loading, setLoading] = useState(() => !initialRenewal);
   const [error, setError] = useState('');
   const [refreshTick, setRefreshTick] = useState(0);
-  const etagRef = useRef(renewalCache.etag);
 
   const [search, setSearch] = useState('');
   const [managerFilter, setManagerFilter] = useState('');
@@ -68,23 +68,8 @@ export default function RenewalRegistry({ isAdmin, name }) {
     if (!silent) setLoading(true);
     setError('');
     try {
-      const headers = {};
-      if (!force && etagRef.current) headers['If-None-Match'] = etagRef.current;
-      const res = await fetch(force ? '/api/renewal?force=1' : '/api/renewal', { headers });
-
-      if (res.status === 304) {
-        renewalCache.fetchedAt = Date.now();
-        return;
-      }
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '데이터를 불러오지 못했습니다.');
-
-      const etag = res.headers.get('ETag');
-      if (etag) etagRef.current = etag;
-
-      setRows(data.rows || []);
-      renewalCache = { rows: data.rows || [], etag: etagRef.current, fetchedAt: Date.now() };
+      const data = await fetchAndCache(RENEWAL_KEY, '/api/renewal', { force });
+      if (data) setRows(data.rows || []);
     } catch (e) {
       if (!silent) setError(e.message);
     } finally {
@@ -97,7 +82,7 @@ export default function RenewalRegistry({ isAdmin, name }) {
   function updateRowsLocal(updater) {
     setRows((prev) => {
       const next = updater(prev);
-      renewalCache.rows = next;
+      mergeEntry(RENEWAL_KEY, { rows: next });
       return next;
     });
   }
@@ -108,7 +93,7 @@ export default function RenewalRegistry({ isAdmin, name }) {
   }
 
   useEffect(() => {
-    if (!renewalCache.rows) {
+    if (!getEntry(RENEWAL_KEY)) {
       fetchRows();
     }
   }, []);
@@ -117,8 +102,9 @@ export default function RenewalRegistry({ isAdmin, name }) {
   // 자동으로 한 번 조용히 새 데이터를 가져옵니다. 그 전까지는 같은 데이터를 그대로 보여줍니다.
   useEffect(() => {
     if (editing) return;
-    const age = Date.now() - renewalCache.fetchedAt;
-    const delay = renewalCache.rows ? Math.max(0, POLL_INTERVAL_MS - age) : POLL_INTERVAL_MS;
+    const entry = getEntry(RENEWAL_KEY);
+    const age = entry ? Date.now() - entry.fetchedAt : 0;
+    const delay = entry ? Math.max(0, POLL_INTERVAL_MS - age) : POLL_INTERVAL_MS;
     let interval;
     const timeout = setTimeout(() => {
       fetchRows({ silent: true });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import cookie from 'cookie';
@@ -17,6 +17,7 @@ import ChangePasswordModal from '../components/ChangePasswordModal';
 import Announcement from '../components/Announcement';
 import FaqWidget from '../components/FaqWidget';
 import useEscapeKey from '../lib/useEscapeKey';
+import { getEntry, fetchAndCache, mergeEntry } from '../lib/dataCache';
 
 export async function getServerSideProps({ req }) {
   const cookies = cookie.parse(req.headers.cookie || '');
@@ -148,21 +149,19 @@ const MIN_COL_WIDTH = 50;
 const ACTION_COL_WIDTH = 70;
 
 const POLL_INTERVAL_MS = 60 * 60 * 1000; // 1시간 — 자동 업데이트 주기
-
-// 페이지를 옮겨갔다 다시 돌아와도(같은 브라우저 탭 안에서는) 모듈이 메모리에 남아있는 동안
-// 마지막으로 불러온 데이터를 그대로 재사용합니다. 그래서 재방문 시 로딩 화면 없이 바로 표가 보이고,
-// 다음 자동 업데이트(1시간 후)가 될 때까지는 같은 데이터를 유지합니다.
-let membersCache = { rows: null, etag: null, fetchedAt: 0 };
+const MEMBERS_KEY = 'members';
 
 export default function DashboardPage({ role, name, adminSheetUrl }) {
   const router = useRouter();
   const isAdmin = role === '관리자';
 
-  const [rows, setRows] = useState(() => membersCache.rows || []);
-  const [loading, setLoading] = useState(() => !membersCache.rows);
+  // 로그인 직후 프리페치되었거나(_app.js) 다른 탭에서 이미 불러온 데이터가 캐시에 있으면
+  // 재방문/첫 진입 시 로딩 화면 없이 바로 표를 그립니다.
+  const initialMembers = getEntry(MEMBERS_KEY);
+  const [rows, setRows] = useState(() => (initialMembers ? initialMembers.data.rows : []));
+  const [loading, setLoading] = useState(() => !initialMembers);
   const [error, setError] = useState('');
   const [refreshTick, setRefreshTick] = useState(0);
-  const membersEtagRef = useRef(membersCache.etag);
 
   const [search, setSearch] = useState('');
   const [managerFilter, setManagerFilter] = useState('');
@@ -194,25 +193,8 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     if (!silent) setLoading(true);
     setError('');
     try {
-      const headers = {};
-      if (!force && membersEtagRef.current) headers['If-None-Match'] = membersEtagRef.current;
-      const res = await fetch(force ? '/api/members?force=1' : '/api/members', { headers });
-
-      // 304 Not Modified: 데이터 변경 없음, 현재 상태 유지
-      if (res.status === 304) {
-        membersCache.fetchedAt = Date.now();
-        setLastSynced(new Date());
-        return;
-      }
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '데이터를 불러오지 못했습니다.');
-
-      const etag = res.headers.get('ETag');
-      if (etag) membersEtagRef.current = etag;
-
-      setRows(data.rows);
-      membersCache = { rows: data.rows, etag: membersEtagRef.current, fetchedAt: Date.now() };
+      const data = await fetchAndCache(MEMBERS_KEY, '/api/members', { force });
+      if (data) setRows(data.rows);
       setLastSynced(new Date());
     } catch (e) {
       if (!silent) setError(e.message);
@@ -226,7 +208,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   function updateRowsLocal(updater) {
     setRows((prev) => {
       const next = updater(prev);
-      membersCache.rows = next;
+      mergeEntry(MEMBERS_KEY, { rows: next });
       return next;
     });
   }
@@ -237,7 +219,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   }
 
   useEffect(() => {
-    if (!membersCache.rows) {
+    if (!getEntry(MEMBERS_KEY)) {
       fetchRows();
     }
   }, []);
@@ -264,8 +246,9 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   // (편집 중에 화면이 바뀌면 입력 중인 내용을 잃어버릴 수 있어 그 동안은 잠시 멈춥니다)
   useEffect(() => {
     if (editing || addingDealer) return;
-    const age = Date.now() - membersCache.fetchedAt;
-    const delay = membersCache.rows ? Math.max(0, POLL_INTERVAL_MS - age) : POLL_INTERVAL_MS;
+    const entry = getEntry(MEMBERS_KEY);
+    const age = entry ? Date.now() - entry.fetchedAt : 0;
+    const delay = entry ? Math.max(0, POLL_INTERVAL_MS - age) : POLL_INTERVAL_MS;
     let interval;
     const timeout = setTimeout(() => {
       fetchRows({ silent: true });

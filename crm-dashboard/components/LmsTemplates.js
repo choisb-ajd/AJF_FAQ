@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
+import { getEntry, fetchAndCache, mergeEntry } from '../lib/dataCache';
+
+const LMS_KEY = 'lms-templates';
 
 export default function LmsTemplates({ isAdmin }) {
-  const [categories, setCategories] = useState([]);
-  const [entries, setEntries] = useState([]);
-  const [activeCategoryId, setActiveCategoryId] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const initialLms = getEntry(LMS_KEY);
+  const [categories, setCategories] = useState(() => (initialLms ? initialLms.data.categories || [] : []));
+  const [entries, setEntries] = useState(() => (initialLms ? initialLms.data.entries || [] : []));
+  const [activeCategoryId, setActiveCategoryId] = useState(() => {
+    const cats = initialLms ? initialLms.data.categories || [] : [];
+    return cats.length > 0 ? cats[0].id : null;
+  });
+  const [loading, setLoading] = useState(() => !initialLms);
   const [error, setError] = useState('');
 
   const [addingCategory, setAddingCategory] = useState(false);
@@ -39,15 +46,11 @@ export default function LmsTemplates({ isAdmin }) {
   }, []);
 
   useEffect(() => {
+    if (getEntry(LMS_KEY)) return;
     let alive = true;
-    fetch('/api/lms-templates')
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || '불러오지 못했습니다.');
-        return data;
-      })
+    fetchAndCache(LMS_KEY, '/api/lms-templates')
       .then((data) => {
-        if (!alive) return;
+        if (!alive || !data) return;
         const cats = data.categories || [];
         setCategories(cats);
         setEntries(data.entries || []);
@@ -110,6 +113,7 @@ export default function LmsTemplates({ isAdmin }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '저장하지 못했습니다.');
       setEntries(data.entries);
+      mergeEntry(LMS_KEY, { entries: data.entries });
       setEditingEntryId(null);
       showToast('수정 되었습니다.');
     } catch (e) {
@@ -132,6 +136,7 @@ export default function LmsTemplates({ isAdmin }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '추가하지 못했습니다.');
       setEntries(data.entries);
+      mergeEntry(LMS_KEY, { entries: data.entries });
       const created = data.entries[data.entries.length - 1];
       setEditingEntryId(created.id);
       setEditContent('');
@@ -153,6 +158,7 @@ export default function LmsTemplates({ isAdmin }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '삭제하지 못했습니다.');
       setEntries(data.entries);
+      mergeEntry(LMS_KEY, { entries: data.entries });
       if (editingEntryId === entry.id) setEditingEntryId(null);
       showToast('삭제 되었습니다.');
     } catch (e) {
@@ -199,6 +205,7 @@ export default function LmsTemplates({ isAdmin }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '추가하지 못했습니다.');
       setCategories(data.categories);
+      mergeEntry(LMS_KEY, { categories: data.categories });
       const created = data.categories[data.categories.length - 1];
       setActiveCategoryId(created.id);
       setAddingCategory(false);
@@ -228,6 +235,7 @@ export default function LmsTemplates({ isAdmin }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '수정하지 못했습니다.');
       setCategories(data.categories);
+      mergeEntry(LMS_KEY, { categories: data.categories });
       setRenamingCategoryId(null);
       showToast('수정 되었습니다.');
     } catch (e) {
@@ -252,6 +260,7 @@ export default function LmsTemplates({ isAdmin }) {
       if (!res.ok) throw new Error(data.error || '삭제하지 못했습니다.');
       setCategories(data.categories);
       setEntries(data.entries);
+      mergeEntry(LMS_KEY, { categories: data.categories, entries: data.entries });
       if (activeCategoryId === c.id) {
         setActiveCategoryId(data.categories.length > 0 ? data.categories[0].id : null);
         setEditingEntryId(null);

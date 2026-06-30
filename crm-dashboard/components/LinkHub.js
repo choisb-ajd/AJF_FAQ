@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { getEntry, fetchAndCache, mergeEntry } from '../lib/dataCache';
+
+const LINKHUB_KEY = 'link-hub';
 
 const SECTIONS = [
   { id: 'internal', title: '사내 업무 링크' },
@@ -6,10 +9,11 @@ const SECTIONS = [
 ];
 
 export default function LinkHub({ isAdmin }) {
-  const [internalLinks, setInternalLinks] = useState([]);
-  const [insurerLinks, setInsurerLinks] = useState([]);
+  const initialLinkHub = getEntry(LINKHUB_KEY);
+  const [internalLinks, setInternalLinks] = useState(() => (initialLinkHub ? initialLinkHub.data.internalLinks || [] : []));
+  const [insurerLinks, setInsurerLinks] = useState(() => (initialLinkHub ? initialLinkHub.data.insurerLinks || [] : []));
   const [activeSection, setActiveSection] = useState('internal');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !initialLinkHub);
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
 
@@ -19,15 +23,11 @@ export default function LinkHub({ isAdmin }) {
   }
 
   useEffect(() => {
+    if (getEntry(LINKHUB_KEY)) return;
     let alive = true;
-    fetch('/api/link-hub')
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || '불러오지 못했습니다.');
-        return data;
-      })
+    fetchAndCache(LINKHUB_KEY, '/api/link-hub')
       .then((data) => {
-        if (!alive) return;
+        if (!alive || !data) return;
         setInternalLinks(data.internalLinks || []);
         setInsurerLinks(data.insurerLinks || []);
       })
@@ -37,6 +37,16 @@ export default function LinkHub({ isAdmin }) {
       alive = false;
     };
   }, []);
+
+  function updateInternalLinks(next) {
+    setInternalLinks(next);
+    mergeEntry(LINKHUB_KEY, { internalLinks: next });
+  }
+
+  function updateInsurerLinks(next) {
+    setInsurerLinks(next);
+    mergeEntry(LINKHUB_KEY, { insurerLinks: next });
+  }
 
   if (loading) return <div className="loading-state">불러오는 중...</div>;
   if (error && internalLinks.length === 0 && insurerLinks.length === 0) {
@@ -64,9 +74,9 @@ export default function LinkHub({ isAdmin }) {
 
         <div className="lms-main">
           {activeSection === 'internal' ? (
-            <InternalLinksPanel isAdmin={isAdmin} entries={internalLinks} setEntries={setInternalLinks} showToast={showToast} />
+            <InternalLinksPanel isAdmin={isAdmin} entries={internalLinks} setEntries={updateInternalLinks} showToast={showToast} />
           ) : (
-            <InsurerLinksPanel isAdmin={isAdmin} entries={insurerLinks} setEntries={setInsurerLinks} showToast={showToast} />
+            <InsurerLinksPanel isAdmin={isAdmin} entries={insurerLinks} setEntries={updateInsurerLinks} showToast={showToast} />
           )}
         </div>
       </div>
