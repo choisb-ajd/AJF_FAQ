@@ -15,7 +15,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { rows } = await getAdminRows();
+    const force = req.query.force === '1';
+    const { rows } = await getAdminRows({ useCache: !force });
 
     let scoped = rows;
     if (session.role !== '관리자') {

@@ -36,10 +36,18 @@ function compareRows(a, b, key) {
   return av.toString().localeCompare(bv.toString(), 'ko');
 }
 
+const POLL_INTERVAL_MS = 60 * 60 * 1000; // 1시간 — 자동 업데이트 주기
+
+// 다른 탭에 갔다가 돌아와도(같은 브라우저 탭 안에서는) 마지막으로 불러온 데이터를 그대로 재사용해
+// 재방문 시 로딩 화면 없이 바로 표가 보이고, 다음 자동 업데이트 전까지는 같은 데이터를 유지합니다.
+let renewalCache = { rows: null, etag: null, fetchedAt: 0 };
+
 export default function RenewalRegistry({ isAdmin, name }) {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState(() => renewalCache.rows || []);
+  const [loading, setLoading] = useState(() => !renewalCache.rows);
   const [error, setError] = useState('');
+  const [refreshTick, setRefreshTick] = useState(0);
+  const etagRef = useRef(renewalCache.etag);
 
   const [search, setSearch] = useState('');
   const [managerFilter, setManagerFilter] = useState('');
@@ -55,14 +63,28 @@ export default function RenewalRegistry({ isAdmin, name }) {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState(null);
 
-  async function fetchRows({ silent = false } = {}) {
+  // force=true면 서버 캐시까지 건너뛰고 구글 시트에서 바로 최신 데이터를 가져옵니다("새로고침" 버튼 전용).
+  async function fetchRows({ silent = false, force = false } = {}) {
     if (!silent) setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/renewal');
+      const headers = {};
+      if (!force && etagRef.current) headers['If-None-Match'] = etagRef.current;
+      const res = await fetch(force ? '/api/renewal?force=1' : '/api/renewal', { headers });
+
+      if (res.status === 304) {
+        renewalCache.fetchedAt = Date.now();
+        return;
+      }
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '데이터를 불러오지 못했습니다.');
+
+      const etag = res.headers.get('ETag');
+      if (etag) etagRef.current = etag;
+
       setRows(data.rows || []);
+      renewalCache = { rows: data.rows || [], etag: etagRef.current, fetchedAt: Date.now() };
     } catch (e) {
       if (!silent) setError(e.message);
     } finally {
@@ -70,15 +92,43 @@ export default function RenewalRegistry({ isAdmin, name }) {
     }
   }
 
-  useEffect(() => {
-    fetchRows();
-  }, []);
+  // 로컬에서 즉시 반영하는 변경(저장/통화이력 추가)도 캐시에 함께 기록해둬야
+  // 다른 탭에 갔다가 돌아왔을 때 방금 한 수정 내용이 사라지지 않습니다.
+  function updateRowsLocal(updater) {
+    setRows((prev) => {
+      const next = updater(prev);
+      renewalCache.rows = next;
+      return next;
+    });
+  }
+
+  async function handleManualRefresh() {
+    await fetchRows({ force: true });
+    setRefreshTick((t) => t + 1);
+  }
 
   useEffect(() => {
+    if (!renewalCache.rows) {
+      fetchRows();
+    }
+  }, []);
+
+  // 편집창이 열려있지 않을 때, 캐시된 데이터를 마지막으로 불러온 시점 기준 1시간 후에
+  // 자동으로 한 번 조용히 새 데이터를 가져옵니다. 그 전까지는 같은 데이터를 그대로 보여줍니다.
+  useEffect(() => {
     if (editing) return;
-    const interval = setInterval(() => fetchRows({ silent: true }), 60000);
-    return () => clearInterval(interval);
-  }, [editing]);
+    const age = Date.now() - renewalCache.fetchedAt;
+    const delay = renewalCache.rows ? Math.max(0, POLL_INTERVAL_MS - age) : POLL_INTERVAL_MS;
+    let interval;
+    const timeout = setTimeout(() => {
+      fetchRows({ silent: true });
+      interval = setInterval(() => fetchRows({ silent: true }), POLL_INTERVAL_MS);
+    }, delay);
+    return () => {
+      clearTimeout(timeout);
+      if (interval) clearInterval(interval);
+    };
+  }, [editing, refreshTick]);
 
   const managers = useMemo(() => {
     const set = new Set(rows.map((r) => r.values.manager).filter(Boolean));
@@ -168,7 +218,7 @@ export default function RenewalRegistry({ isAdmin, name }) {
         return;
       }
       const merged = { ...formValues, ...(data.updates || {}) };
-      setRows((prev) =>
+      updateRowsLocal((prev) =>
         prev.map((r) => (r.rowNumber === editing.rowNumber ? { ...r, values: { ...r.values, ...merged } } : r))
       );
       setEditing((prev) => (prev ? { ...prev, values: { ...prev.values, ...merged } } : prev));
@@ -181,7 +231,7 @@ export default function RenewalRegistry({ isAdmin, name }) {
   }
 
   function handleHistoryUpdated(callHistory) {
-    setRows((prev) =>
+    updateRowsLocal((prev) =>
       prev.map((r) => (r.rowNumber === editing.rowNumber ? { ...r, values: { ...r.values, callHistory } } : r))
     );
     setEditing((prev) => (prev ? { ...prev, values: { ...prev.values, callHistory } } : prev));
@@ -226,7 +276,7 @@ export default function RenewalRegistry({ isAdmin, name }) {
         </div>
         <div className="filter-actions">
           <button className="btn" onClick={resetFilters}>초기화</button>
-          <button className="btn" onClick={() => fetchRows()}>새로고침</button>
+          <button className="btn" onClick={handleManualRefresh}>새로고침</button>
         </div>
       </div>
 

@@ -147,14 +147,22 @@ const DEFAULT_COL_WIDTH = 110;
 const MIN_COL_WIDTH = 50;
 const ACTION_COL_WIDTH = 70;
 
+const POLL_INTERVAL_MS = 60 * 60 * 1000; // 1시간 — 자동 업데이트 주기
+
+// 페이지를 옮겨갔다 다시 돌아와도(같은 브라우저 탭 안에서는) 모듈이 메모리에 남아있는 동안
+// 마지막으로 불러온 데이터를 그대로 재사용합니다. 그래서 재방문 시 로딩 화면 없이 바로 표가 보이고,
+// 다음 자동 업데이트(1시간 후)가 될 때까지는 같은 데이터를 유지합니다.
+let membersCache = { rows: null, etag: null, fetchedAt: 0 };
+
 export default function DashboardPage({ role, name, adminSheetUrl }) {
   const router = useRouter();
   const isAdmin = role === '관리자';
 
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState(() => membersCache.rows || []);
+  const [loading, setLoading] = useState(() => !membersCache.rows);
   const [error, setError] = useState('');
-  const membersEtagRef = useRef(null);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const membersEtagRef = useRef(membersCache.etag);
 
   const [search, setSearch] = useState('');
   const [managerFilter, setManagerFilter] = useState('');
@@ -181,16 +189,18 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   // silent=true면 화면에 "불러오는 중..." 스피너를 띄우지 않고 조용히 최신 데이터로 교체합니다.
   // 구글 시트에서 직접 수정한 내용도 이 폴링을 통해 자동으로 화면에 반영됩니다.
   // ETag를 보내 데이터가 바뀌지 않았으면(304) 상태 업데이트를 건너뜁니다.
-  async function fetchRows({ silent = false } = {}) {
+  // force=true면 서버 캐시까지 건너뛰고 구글 시트에서 바로 최신 데이터를 가져옵니다("새로고침" 버튼 전용).
+  async function fetchRows({ silent = false, force = false } = {}) {
     if (!silent) setLoading(true);
     setError('');
     try {
       const headers = {};
-      if (membersEtagRef.current) headers['If-None-Match'] = membersEtagRef.current;
-      const res = await fetch('/api/members', { headers });
+      if (!force && membersEtagRef.current) headers['If-None-Match'] = membersEtagRef.current;
+      const res = await fetch(force ? '/api/members?force=1' : '/api/members', { headers });
 
       // 304 Not Modified: 데이터 변경 없음, 현재 상태 유지
       if (res.status === 304) {
+        membersCache.fetchedAt = Date.now();
         setLastSynced(new Date());
         return;
       }
@@ -202,6 +212,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
       if (etag) membersEtagRef.current = etag;
 
       setRows(data.rows);
+      membersCache = { rows: data.rows, etag: membersEtagRef.current, fetchedAt: Date.now() };
       setLastSynced(new Date());
     } catch (e) {
       if (!silent) setError(e.message);
@@ -210,8 +221,25 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     }
   }
 
+  // 로컬에서 즉시 반영하는 변경(저장/메모 추가 등)도 캐시에 함께 기록해둬야
+  // 다른 탭에 갔다가 돌아왔을 때 방금 한 수정 내용이 사라지지 않습니다.
+  function updateRowsLocal(updater) {
+    setRows((prev) => {
+      const next = updater(prev);
+      membersCache.rows = next;
+      return next;
+    });
+  }
+
+  async function handleManualRefresh() {
+    await fetchRows({ force: true });
+    setRefreshTick((t) => t + 1);
+  }
+
   useEffect(() => {
-    fetchRows();
+    if (!membersCache.rows) {
+      fetchRows();
+    }
   }, []);
 
   // 담당매니저 드롭박스에 쓸 매니저 이름 목록을 계정관리 탭 데이터에서 가져옵니다. (관리자만)
@@ -231,15 +259,23 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
       .catch(() => {});
   }, [isAdmin]);
 
-  // 편집창이 열려있지 않을 때만 일정 주기로 조용히 새 데이터를 가져옵니다.
+  // 편집창이 열려있지 않을 때, 캐시된 데이터를 마지막으로 불러온 시점 기준 1시간 후에
+  // 자동으로 한 번 조용히 새 데이터를 가져옵니다. 그 전까지는 같은 데이터를 그대로 보여줍니다.
   // (편집 중에 화면이 바뀌면 입력 중인 내용을 잃어버릴 수 있어 그 동안은 잠시 멈춥니다)
   useEffect(() => {
     if (editing || addingDealer) return;
-    const interval = setInterval(() => {
+    const age = Date.now() - membersCache.fetchedAt;
+    const delay = membersCache.rows ? Math.max(0, POLL_INTERVAL_MS - age) : POLL_INTERVAL_MS;
+    let interval;
+    const timeout = setTimeout(() => {
       fetchRows({ silent: true });
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [editing, addingDealer]);
+      interval = setInterval(() => fetchRows({ silent: true }), POLL_INTERVAL_MS);
+    }, delay);
+    return () => {
+      clearTimeout(timeout);
+      if (interval) clearInterval(interval);
+    };
+  }, [editing, addingDealer, refreshTick]);
 
   const managers = useMemo(() => {
     const set = new Set(rows.map((r) => r.manager).filter(Boolean));
@@ -373,7 +409,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
         return;
       }
       const merged = { ...formValues, ...(data.updates || {}) };
-      setRows((prev) =>
+      updateRowsLocal((prev) =>
         prev.map((r) => (r.phone === editing.phone ? { ...r, ...merged } : r))
       );
       setEditing((prev) => (prev ? { ...prev, ...merged } : prev));
@@ -392,7 +428,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   // 컨택 히스토리 패널에서 메모를 추가하면(서버가 컨택히스토리/최초컨택일자를 갱신) 목록과
   // 열려있는 상세 모달에도 즉시 반영합니다.
   function handleRowFieldsUpdated(updates) {
-    setRows((prev) =>
+    updateRowsLocal((prev) =>
       prev.map((r) => (r.phone === editing.phone ? { ...r, ...updates } : r))
     );
     setEditing((prev) => (prev ? { ...prev, ...updates } : prev));
@@ -523,7 +559,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
           </div>
           <div className="filter-actions">
             <button className="btn" onClick={resetFilters}>초기화</button>
-            <button className="btn" onClick={() => fetchRows()}>새로고침</button>
+            <button className="btn" onClick={handleManualRefresh}>새로고침</button>
             <button className="btn btn-primary" onClick={exportCsv}>엑셀(CSV) 다운로드</button>
             <button className="btn btn-primary" onClick={() => { setAddMsg(null); setAddingDealer(true); }}>
               딜러 추가
