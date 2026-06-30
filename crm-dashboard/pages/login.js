@@ -63,7 +63,7 @@ export default function LoginPage() {
     <div className="login-screen">
       <div className="login-card">
         <div className="login-logo">AJF DEALER CRM</div>
-        <div className="login-title">회원 관리 대시보드</div>
+        <div className="login-title">My Dealer</div>
         <form onSubmit={handleSubmit}>
           <div className="login-field">
             <label htmlFor="loginId">아이디</label>

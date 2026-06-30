@@ -139,7 +139,7 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
     <div className="app-shell">
       <div className="topbar">
         <div className="topbar-left">
-          <span className="topbar-title">AJF 회원 관리 대시보드</span>
+          <span className="topbar-title">My Dealer</span>
           <span className="topbar-badge">{role}</span>
           <nav className="topbar-nav">
             <Link className="topbar-nav-link" href="/dashboard">회원관리</Link>
