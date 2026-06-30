@@ -14,6 +14,7 @@ import {
   parseContactHistory,
 } from '../lib/sheetSchema';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import Announcement from '../components/Announcement';
 import useEscapeKey from '../lib/useEscapeKey';
 
 export async function getServerSideProps({ req }) {
@@ -440,6 +441,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
             {isAdmin && <Link className="topbar-nav-link" href="/accounts">계정관리</Link>}
           </nav>
         </div>
+        <Announcement isAdmin={isAdmin} />
         <div className="topbar-right">
           {adminSheetUrl && (
             <a className="logout-btn" href={adminSheetUrl} target="_blank" rel="noreferrer">

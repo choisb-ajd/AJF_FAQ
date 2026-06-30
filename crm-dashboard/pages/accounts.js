@@ -4,6 +4,7 @@ import Link from 'next/link';
 import cookie from 'cookie';
 import { verifySession, COOKIE_NAME } from '../lib/auth';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import Announcement from '../components/Announcement';
 import useEscapeKey from '../lib/useEscapeKey';
 import { REF_SHEETS } from '../lib/sheetSchema';
 
@@ -65,6 +66,7 @@ export default function AccountsPage({ role, name }) {
             <Link className="topbar-nav-link active" href="/accounts">계정관리</Link>
           </nav>
         </div>
+        <Announcement isAdmin={role === '관리자'} />
         <div className="topbar-right">
           <span className="topbar-user">{name}님</span>
           <button className="logout-btn" onClick={() => setChangingPassword(true)}>비밀번호 변경</button>

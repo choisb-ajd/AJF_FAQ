@@ -5,6 +5,7 @@ import cookie from 'cookie';
 import { verifySession, COOKIE_NAME } from '../../lib/auth';
 import { REF_SHEETS } from '../../lib/sheetSchema';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
+import Announcement from '../../components/Announcement';
 import FaqNotepad from '../../components/FaqNotepad';
 import LmsTemplates from '../../components/LmsTemplates';
 import LeaseRegistry from '../../components/LeaseRegistry';
@@ -155,6 +156,7 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
             {isAdmin && <Link className="topbar-nav-link" href="/accounts">계정관리</Link>}
           </nav>
         </div>
+        <Announcement isAdmin={isAdmin} />
         <div className="topbar-right">
           {sheetUrl && (
             <a className="logout-btn" href={sheetUrl} target="_blank" rel="noreferrer">

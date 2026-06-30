@@ -32,6 +32,10 @@ const ACCOUNT_COLUMNS = {
   locked: 'H',
 };
 
+// 상단 공지사항은 새 탭을 만들지 않고 "계정관리" 탭의 사용하지 않는 셀(J1)에 텍스트 한 줄로 저장합니다.
+const ANNOUNCEMENT_CELL = 'J1';
+const ANNOUNCEMENT_MAX_LENGTH = 50;
+
 // 같은 서버 인스턴스에서 너무 자주 구글 API를 호출하지 않도록 짧게 캐시합니다.
 const CACHE_TTL_MS = 2 * 60 * 1000; // 2분 — Google Sheets API 호출 빈도 제한
 const sheetDataCache = new Map(); // spreadsheetId -> { expires, data }
@@ -42,6 +46,7 @@ const templatesCache = new Map(); // refSheet key -> { expires, data }
 const registryCache = new Map(); // refSheet key -> { expires, data }
 const linkHubCache = new Map(); // refSheet key -> { expires, data }
 let accountsCache = null; // { expires, accounts }
+let announcementCache = null; // { expires, text }
 
 function quoteSheetTitle(title) {
   return `'${String(title).replace(/'/g, "''")}'`;
@@ -688,6 +693,41 @@ function invalidateAccountsCache() {
   accountsCache = null;
 }
 
+// 상단 공지사항: "계정관리" 탭의 빈 셀(J1)에 텍스트 한 줄을 저장/조회합니다.
+async function readAnnouncement({ useCache = true } = {}) {
+  if (useCache && announcementCache && announcementCache.expires > Date.now()) {
+    return announcementCache.text;
+  }
+  const sheets = getSheetsClient();
+  const range = `${quoteSheetTitle(ACCOUNTS_SHEET_TITLE)}!${ANNOUNCEMENT_CELL}`;
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range,
+  });
+  const text = ((res.data.values && res.data.values[0] && res.data.values[0][0]) || '').trim();
+  announcementCache = { expires: Date.now() + CACHE_TTL_MS, text };
+  return text;
+}
+
+async function saveAnnouncement(text, actor) {
+  if (!actor || actor.role !== '관리자') {
+    throw new Error('관리자만 공지사항을 수정할 수 있습니다.');
+  }
+  const trimmedText = (text || '').toString().trim();
+  if (trimmedText.length > ANNOUNCEMENT_MAX_LENGTH) {
+    throw new Error(`공지사항은 ${ANNOUNCEMENT_MAX_LENGTH}자 이내로 입력해주세요.`);
+  }
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range: `${quoteSheetTitle(ACCOUNTS_SHEET_TITLE)}!${ANNOUNCEMENT_CELL}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [[trimmedText]] },
+  });
+  announcementCache = { expires: Date.now() + CACHE_TTL_MS, text: trimmedText };
+  return trimmedText;
+}
+
 async function findAccountByLoginId(loginId, opts) {
   const accounts = await getAccountsConfig(opts);
   return accounts.find((a) => a.loginId === loginId) || null;
@@ -1040,4 +1080,6 @@ module.exports = {
   addInsurerLink,
   updateInsurerLink,
   deleteInsurerLink,
+  readAnnouncement,
+  saveAnnouncement,
 };
