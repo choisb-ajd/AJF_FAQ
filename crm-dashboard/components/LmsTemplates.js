@@ -348,7 +348,7 @@ export default function LmsTemplates({ isAdmin }) {
                   {countFor(c.id) > 0 && <span className="lms-sidebar-count">{countFor(c.id)}</span>}
                 </button>
               )}
-              {isAdmin && renamingCategoryId !== c.id && (
+              {renamingCategoryId !== c.id && (
                 <div className="lms-sidebar-item-actions">
                   <button type="button" className="lms-cat-action-btn" title="이름 수정" onClick={(e) => { e.stopPropagation(); startRenameCategory(c); }}>✎</button>
                   <button type="button" className="lms-cat-action-btn danger" title="삭제" onClick={(e) => { e.stopPropagation(); deleteCategory(c); }}>✕</button>
