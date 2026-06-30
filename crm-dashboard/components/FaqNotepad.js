@@ -72,16 +72,6 @@ export default function FaqNotepad({ isAdmin }) {
     });
   }
 
-  function handleColor(e) {
-    restoreSelection();
-    document.execCommand('foreColor', false, e.target.value);
-  }
-
-  function handleHighlight(e) {
-    restoreSelection();
-    document.execCommand('hiliteColor', false, e.target.value);
-  }
-
   // 엑셀/워드 등에서 복사한 내용을 붙여넣어도 서식 없이 글자만 들어가도록 강제합니다.
   function handlePaste(e) {
     e.preventDefault();
@@ -144,14 +134,6 @@ export default function FaqNotepad({ isAdmin }) {
             <option key={s} value={s}>{s}px</option>
           ))}
         </select>
-        <label className="notepad-color-field">
-          글자색
-          <input type="color" onChange={handleColor} />
-        </label>
-        <label className="notepad-color-field">
-          배경색
-          <input type="color" onChange={handleHighlight} />
-        </label>
         <button type="button" onMouseDown={(e) => { e.preventDefault(); exec('removeFormat'); }}>서식 지우기</button>
         <div className="notepad-save-group">
           {saveMsg && <span className="notepad-save-msg">{saveMsg}</span>}
