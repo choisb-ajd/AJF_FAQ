@@ -446,7 +446,12 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
 .btn-danger { color: var(--red); border-color: var(--border); }
 .btn-danger:hover { background: #FDECEC; border-color: var(--red); }
 
-.lms-cards { display: flex; flex-direction: column; gap: 16px; }
+.lms-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
 .lms-empty {
   background: #fff;
   border: 1px solid var(--border);
@@ -455,6 +460,7 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
   text-align: center;
   color: var(--gray-lt);
   font-size: 13px;
+  grid-column: 1 / -1;
 }
 
 .lms-card {
@@ -462,16 +468,16 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
   border: 1px solid var(--border);
   border-radius: var(--r);
   padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
 }
 .lms-card.admin { border-color: var(--blue-md); background: var(--blue-lt); }
 .lms-card-head {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
 }
-.lms-card-head-left { display: flex; flex-direction: column; gap: 5px; }
 .lms-admin-badge {
   display: inline-block;
   align-self: flex-start;
@@ -483,7 +489,16 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
   padding: 3px 10px;
 }
 .lms-entry-meta { font-size: 12px; color: var(--gray); }
-.lms-card-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.lms-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.lms-card.admin .lms-card-footer { border-color: var(--blue-md); }
 .lms-copy-msg { font-size: 12px; color: var(--green); font-weight: 600; }
 .lms-copy-msg.fail { color: var(--red); }
 

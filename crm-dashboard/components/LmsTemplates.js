@@ -203,29 +203,12 @@ export default function LmsTemplates({ isAdmin }) {
     return (
       <div key={entry.id} className={`lms-card${entry.isAdminTemplate ? ' admin' : ''}`}>
         <div className="lms-card-head">
-          <div className="lms-card-head-left">
-            {entry.isAdminTemplate && <span className="lms-admin-badge">관리자 등록 템플릿</span>}
-            {entry.updatedAt && (
-              <span className="lms-entry-meta">
-                {entry.updatedBy ? `${entry.updatedBy} · ` : ''}{entry.updatedAt}
-              </span>
-            )}
-          </div>
-          <div className="lms-card-actions">
-            {copyMsgId === entry.id && <span className="lms-copy-msg">복사되었습니다.</span>}
-            {copyMsgId === `${entry.id}:fail` && <span className="lms-copy-msg fail">복사에 실패했습니다.</span>}
-            {!isEditing && (
-              <button type="button" className="btn" onClick={() => handleCopy(entry)} disabled={!entry.content}>
-                복사
-              </button>
-            )}
-            {!isEditing && canEdit && (
-              <button type="button" className="btn btn-primary" onClick={() => startEdit(entry)}>수정</button>
-            )}
-            {!isEditing && canEdit && (
-              <button type="button" className="btn btn-danger" onClick={() => deleteEntry(entry)}>삭제</button>
-            )}
-          </div>
+          {entry.isAdminTemplate && <span className="lms-admin-badge">관리자 등록 템플릿</span>}
+          {entry.updatedAt && (
+            <span className="lms-entry-meta">
+              {entry.updatedBy ? `${entry.updatedBy} · ` : ''}{entry.updatedAt}
+            </span>
+          )}
         </div>
 
         {isEditing ? (
@@ -253,6 +236,22 @@ export default function LmsTemplates({ isAdmin }) {
             <div className="lms-preview-bubble">
               {entry.content || <span className="notepad-empty">아직 내용이 없습니다. 수정 버튼을 눌러 작성해보세요.</span>}
             </div>
+          </div>
+        )}
+
+        {!isEditing && (
+          <div className="lms-card-footer">
+            {copyMsgId === entry.id && <span className="lms-copy-msg">복사되었습니다.</span>}
+            {copyMsgId === `${entry.id}:fail` && <span className="lms-copy-msg fail">복사에 실패했습니다.</span>}
+            <button type="button" className="btn" onClick={() => handleCopy(entry)} disabled={!entry.content}>
+              복사
+            </button>
+            {canEdit && (
+              <button type="button" className="btn btn-primary" onClick={() => startEdit(entry)}>수정</button>
+            )}
+            {canEdit && (
+              <button type="button" className="btn btn-danger" onClick={() => deleteEntry(entry)}>삭제</button>
+            )}
           </div>
         )}
       </div>
