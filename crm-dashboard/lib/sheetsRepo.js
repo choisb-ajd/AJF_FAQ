@@ -291,12 +291,13 @@ async function writeTemplatesData(key, { categories, entries }) {
   templatesCache.delete(key);
 }
 
-async function addTemplateCategory(key, title) {
+async function addTemplateCategory(key, title, actor) {
   const trimmedTitle = (title || '').toString().trim();
   if (!trimmedTitle) throw new Error('카테고리 이름을 입력해주세요.');
 
   const data = await readTemplatesSheet(key, { useCache: false });
-  const categories = [...data.categories, { id: makeTemplateId(), title: trimmedTitle }];
+  const isAdminCategory = actor && actor.role === '관리자';
+  const categories = [...data.categories, { id: makeTemplateId(), title: trimmedTitle, isAdminCategory }];
   await writeTemplatesData(key, { categories, entries: data.entries });
   return { categories, entries: data.entries };
 }
@@ -360,7 +361,7 @@ async function deleteTemplateEntry(key, id, actor) {
   return { categories: data.categories, entries };
 }
 
-async function renameTemplateCategory(key, id, title) {
+async function renameTemplateCategory(key, id, title, actor) {
   const trimmedTitle = (title || '').toString().trim();
   if (!trimmedTitle) throw new Error('카테고리 이름을 입력해주세요.');
   const data = await readTemplatesSheet(key, { useCache: false });
@@ -368,6 +369,9 @@ async function renameTemplateCategory(key, id, title) {
   const categories = data.categories.map((c) => {
     if (c.id !== id) return c;
     found = true;
+    if (c.isAdminCategory && actor.role !== '관리자') {
+      throw new Error('관리자가 등록한 카테고리는 관리자만 수정할 수 있습니다.');
+    }
     return { ...c, title: trimmedTitle };
   });
   if (!found) throw new Error('존재하지 않는 카테고리입니다.');
@@ -375,9 +379,13 @@ async function renameTemplateCategory(key, id, title) {
   return { categories, entries: data.entries };
 }
 
-async function deleteTemplateCategory(key, id) {
+async function deleteTemplateCategory(key, id, actor) {
   const data = await readTemplatesSheet(key, { useCache: false });
-  if (!data.categories.some((c) => c.id === id)) throw new Error('존재하지 않는 카테고리입니다.');
+  const target = data.categories.find((c) => c.id === id);
+  if (!target) throw new Error('존재하지 않는 카테고리입니다.');
+  if (target.isAdminCategory && actor.role !== '관리자') {
+    throw new Error('관리자가 등록한 카테고리는 관리자만 삭제할 수 있습니다.');
+  }
   const categories = data.categories.filter((c) => c.id !== id);
   const entries = data.entries.filter((e) => e.categoryId !== id);
   await writeTemplatesData(key, { categories, entries });

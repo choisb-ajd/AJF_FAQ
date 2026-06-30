@@ -31,17 +31,17 @@ export default async function handler(req, res) {
     const { action, id, categoryId, title, content, isAdminTemplate } = req.body || {};
     try {
       if (action === 'addCategory') {
-        const result = await addTemplateCategory(TEMPLATES_KEY, title);
+        const result = await addTemplateCategory(TEMPLATES_KEY, title, session);
         return res.status(200).json({ ok: true, ...result });
       }
       if (action === 'renameCategory') {
         if (typeof id !== 'string' || !id) return res.status(400).json({ error: '잘못된 요청입니다.' });
-        const result = await renameTemplateCategory(TEMPLATES_KEY, id, title);
+        const result = await renameTemplateCategory(TEMPLATES_KEY, id, title, session);
         return res.status(200).json({ ok: true, ...result });
       }
       if (action === 'deleteCategory') {
         if (typeof id !== 'string' || !id) return res.status(400).json({ error: '잘못된 요청입니다.' });
-        const result = await deleteTemplateCategory(TEMPLATES_KEY, id);
+        const result = await deleteTemplateCategory(TEMPLATES_KEY, id, session);
         return res.status(200).json({ ok: true, ...result });
       }
       if (action === 'addEntry') {
