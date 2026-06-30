@@ -11,6 +11,9 @@ export default function LmsTemplates({ isAdmin }) {
   const [newCategoryTitle, setNewCategoryTitle] = useState('');
   const [categoryError, setCategoryError] = useState('');
 
+  const [renamingCategoryId, setRenamingCategoryId] = useState(null);
+  const [renameCategoryTitle, setRenameCategoryTitle] = useState('');
+
   const [editingEntryId, setEditingEntryId] = useState(null);
   const [editContent, setEditContent] = useState('');
   const [saving, setSaving] = useState(false);
@@ -194,6 +197,59 @@ export default function LmsTemplates({ isAdmin }) {
     }
   }
 
+  function startRenameCategory(c) {
+    setRenamingCategoryId(c.id);
+    setRenameCategoryTitle(c.title);
+    setCategoryError('');
+  }
+
+  async function submitRenameCategory() {
+    const title = renameCategoryTitle.trim();
+    if (!title) { setCategoryError('카테고리 이름을 입력해주세요.'); return; }
+    setCategoryError('');
+    try {
+      const res = await fetch('/api/lms-templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'renameCategory', id: renamingCategoryId, title }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '수정하지 못했습니다.');
+      setCategories(data.categories);
+      setRenamingCategoryId(null);
+      showToast('수정 되었습니다.');
+    } catch (e) {
+      setCategoryError(e.message);
+    }
+  }
+
+  async function deleteCategory(c) {
+    const entryCount = entries.filter((e) => e.categoryId === c.id).length;
+    const msg = entryCount > 0
+      ? `"${c.title}" 카테고리를 삭제하면 포함된 템플릿 ${entryCount}개도 함께 삭제됩니다. 삭제하시겠습니까?`
+      : `"${c.title}" 카테고리를 삭제하시겠습니까?`;
+    if (!window.confirm(msg)) return;
+    setCategoryError('');
+    try {
+      const res = await fetch('/api/lms-templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'deleteCategory', id: c.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '삭제하지 못했습니다.');
+      setCategories(data.categories);
+      setEntries(data.entries);
+      if (activeCategoryId === c.id) {
+        setActiveCategoryId(data.categories.length > 0 ? data.categories[0].id : null);
+        setEditingEntryId(null);
+      }
+      showToast('삭제 되었습니다.');
+    } catch (e) {
+      setCategoryError(e.message);
+    }
+  }
+
   if (loading) return <div className="loading-state">불러오는 중...</div>;
   if (error && categories.length === 0) return <div className="error-state">{error}</div>;
 
@@ -265,17 +321,43 @@ export default function LmsTemplates({ isAdmin }) {
       <aside className="lms-sidebar">
         <div className="lms-sidebar-list">
           {categories.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              className={`lms-sidebar-item${c.id === activeCategoryId ? ' active' : ''}`}
-              onClick={() => selectCategory(c.id)}
-            >
-              <span>{c.title}</span>
-              {countFor(c.id) > 0 && <span className="lms-sidebar-count">{countFor(c.id)}</span>}
-            </button>
+            <div key={c.id} className={`lms-sidebar-item-wrap${c.id === activeCategoryId ? ' active' : ''}`}>
+              {renamingCategoryId === c.id ? (
+                <div className="lms-sidebar-rename-form">
+                  <input
+                    autoFocus
+                    value={renameCategoryTitle}
+                    onChange={(e) => setRenameCategoryTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') submitRenameCategory();
+                      if (e.key === 'Escape') { setRenamingCategoryId(null); setCategoryError(''); }
+                    }}
+                  />
+                  <div className="lms-sidebar-rename-actions">
+                    <button type="button" className="btn btn-primary btn-xs" onClick={submitRenameCategory}>저장</button>
+                    <button type="button" className="btn btn-xs" onClick={() => { setRenamingCategoryId(null); setCategoryError(''); }}>취소</button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="lms-sidebar-item"
+                  onClick={() => selectCategory(c.id)}
+                >
+                  <span className="lms-sidebar-item-title">{c.title}</span>
+                  {countFor(c.id) > 0 && <span className="lms-sidebar-count">{countFor(c.id)}</span>}
+                </button>
+              )}
+              {isAdmin && renamingCategoryId !== c.id && (
+                <div className="lms-sidebar-item-actions">
+                  <button type="button" className="lms-cat-action-btn" title="이름 수정" onClick={(e) => { e.stopPropagation(); startRenameCategory(c); }}>✎</button>
+                  <button type="button" className="lms-cat-action-btn danger" title="삭제" onClick={(e) => { e.stopPropagation(); deleteCategory(c); }}>✕</button>
+                </div>
+              )}
+            </div>
           ))}
         </div>
+        {categoryError && <div className="error-state lms-inline-error">{categoryError}</div>}
         {addingCategory ? (
           <div className="lms-sidebar-add-form">
             <input
@@ -306,7 +388,6 @@ export default function LmsTemplates({ isAdmin }) {
                 취소
               </button>
             </div>
-            {categoryError && <div className="error-state lms-inline-error">{categoryError}</div>}
           </div>
         ) : (
           <button type="button" className="lms-sidebar-add" onClick={() => setAddingCategory(true)}>+ 카테고리 등록</button>

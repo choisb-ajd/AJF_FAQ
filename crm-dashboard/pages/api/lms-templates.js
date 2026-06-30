@@ -2,6 +2,8 @@ const { getSessionFromReq } = require('../../lib/auth');
 const {
   readTemplatesSheet,
   addTemplateCategory,
+  renameTemplateCategory,
+  deleteTemplateCategory,
   addTemplateEntry,
   updateTemplateEntry,
   deleteTemplateEntry,
@@ -30,6 +32,18 @@ export default async function handler(req, res) {
     try {
       if (action === 'addCategory') {
         const result = await addTemplateCategory(TEMPLATES_KEY, title);
+        return res.status(200).json({ ok: true, ...result });
+      }
+      if (action === 'renameCategory') {
+        if (session.role !== '관리자') return res.status(403).json({ error: '관리자만 수정할 수 있습니다.' });
+        if (typeof id !== 'string' || !id) return res.status(400).json({ error: '잘못된 요청입니다.' });
+        const result = await renameTemplateCategory(TEMPLATES_KEY, id, title);
+        return res.status(200).json({ ok: true, ...result });
+      }
+      if (action === 'deleteCategory') {
+        if (session.role !== '관리자') return res.status(403).json({ error: '관리자만 삭제할 수 있습니다.' });
+        if (typeof id !== 'string' || !id) return res.status(400).json({ error: '잘못된 요청입니다.' });
+        const result = await deleteTemplateCategory(TEMPLATES_KEY, id);
         return res.status(200).json({ ok: true, ...result });
       }
       if (action === 'addEntry') {

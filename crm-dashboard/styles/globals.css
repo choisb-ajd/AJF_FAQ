@@ -381,12 +381,57 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
   top: 16px;
 }
 .lms-sidebar-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.lms-sidebar-item-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 8px;
+}
+.lms-sidebar-item-wrap:hover .lms-sidebar-item-actions,
+.lms-sidebar-item-wrap.active .lms-sidebar-item-actions { opacity: 1; }
+.lms-sidebar-item-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+.lms-cat-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--gray);
+  padding: 4px 5px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.lms-cat-action-btn:hover { background: var(--bg); color: var(--navy); }
+.lms-cat-action-btn.danger:hover { background: #FDECEC; color: var(--red); }
+.lms-sidebar-rename-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 4px;
+}
+.lms-sidebar-rename-form input {
+  width: 100%;
+  border: 1px solid var(--blue);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 13px;
+  outline: none;
+}
+.lms-sidebar-rename-actions { display: flex; gap: 4px; }
+.btn-xs { font-size: 11px; padding: 4px 10px; }
 .lms-sidebar-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   border: none;
   background: transparent;
   color: var(--navy);
@@ -397,7 +442,7 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
   cursor: pointer;
 }
 .lms-sidebar-item:hover { background: var(--bg); }
-.lms-sidebar-item.active { background: var(--blue-lt); color: var(--blue); font-weight: 700; }
+.lms-sidebar-item-wrap.active .lms-sidebar-item { background: var(--blue-lt); color: var(--blue); font-weight: 700; }
 .lms-sidebar-count {
   font-size: 11px;
   font-weight: 700;
@@ -407,7 +452,7 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
   padding: 1px 7px;
   flex-shrink: 0;
 }
-.lms-sidebar-item.active .lms-sidebar-count { background: #fff; color: var(--blue); }
+.lms-sidebar-item-wrap.active .lms-sidebar-count { background: #fff; color: var(--blue); }
 .lms-sidebar-add {
   width: 100%;
   border: 1px dashed var(--border);

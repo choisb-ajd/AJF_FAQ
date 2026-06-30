@@ -360,6 +360,30 @@ async function deleteTemplateEntry(key, id, actor) {
   return { categories: data.categories, entries };
 }
 
+async function renameTemplateCategory(key, id, title) {
+  const trimmedTitle = (title || '').toString().trim();
+  if (!trimmedTitle) throw new Error('카테고리 이름을 입력해주세요.');
+  const data = await readTemplatesSheet(key, { useCache: false });
+  let found = false;
+  const categories = data.categories.map((c) => {
+    if (c.id !== id) return c;
+    found = true;
+    return { ...c, title: trimmedTitle };
+  });
+  if (!found) throw new Error('존재하지 않는 카테고리입니다.');
+  await writeTemplatesData(key, { categories, entries: data.entries });
+  return { categories, entries: data.entries };
+}
+
+async function deleteTemplateCategory(key, id) {
+  const data = await readTemplatesSheet(key, { useCache: false });
+  if (!data.categories.some((c) => c.id === id)) throw new Error('존재하지 않는 카테고리입니다.');
+  const categories = data.categories.filter((c) => c.id !== id);
+  const entries = data.entries.filter((e) => e.categoryId !== id);
+  await writeTemplatesData(key, { categories, entries });
+  return { categories, entries };
+}
+
 function makeLeaseEntryId() {
   return `lp${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 }
@@ -992,6 +1016,8 @@ module.exports = {
   saveNotepadSheet,
   readTemplatesSheet,
   addTemplateCategory,
+  renameTemplateCategory,
+  deleteTemplateCategory,
   addTemplateEntry,
   updateTemplateEntry,
   deleteTemplateEntry,
