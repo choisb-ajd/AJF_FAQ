@@ -5,6 +5,7 @@ import cookie from 'cookie';
 import { verifySession, COOKIE_NAME } from '../lib/auth';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import Announcement from '../components/Announcement';
+import FaqWidget from '../components/FaqWidget';
 import useEscapeKey from '../lib/useEscapeKey';
 import { REF_SHEETS } from '../lib/sheetSchema';
 
@@ -54,13 +55,14 @@ export default function AccountsPage({ role, name }) {
 
   return (
     <div className="app-shell">
+      <FaqWidget isAdmin={role === '관리자'} />
       <div className="topbar">
         <div className="topbar-left">
           <span className="topbar-title">My Dealer</span>
           <span className="topbar-badge">{role}</span>
           <nav className="topbar-nav">
             <Link className="topbar-nav-link" href="/dashboard">회원관리</Link>
-            {REF_SHEETS.map((s) => (
+            {REF_SHEETS.filter((s) => !s.hiddenFromNav).map((s) => (
               <Link key={s.key} className="topbar-nav-link" href={`/sheet/${s.key}`}>{s.label}</Link>
             ))}
             <Link className="topbar-nav-link active" href="/accounts">계정관리</Link>

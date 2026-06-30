@@ -6,6 +6,7 @@ import { verifySession, COOKIE_NAME } from '../../lib/auth';
 import { REF_SHEETS } from '../../lib/sheetSchema';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
 import Announcement from '../../components/Announcement';
+import FaqWidget from '../../components/FaqWidget';
 import FaqNotepad from '../../components/FaqNotepad';
 import LmsTemplates from '../../components/LmsTemplates';
 import LeaseRegistry from '../../components/LeaseRegistry';
@@ -138,13 +139,14 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
 
   return (
     <div className="app-shell">
+      {!isNotepad && <FaqWidget isAdmin={isAdmin} />}
       <div className="topbar">
         <div className="topbar-left">
           <span className="topbar-title">My Dealer</span>
           <span className="topbar-badge">{role}</span>
           <nav className="topbar-nav">
             <Link className="topbar-nav-link" href="/dashboard">회원관리</Link>
-            {REF_SHEETS.map((s) => (
+            {REF_SHEETS.filter((s) => !s.hiddenFromNav).map((s) => (
               <Link
                 key={s.key}
                 className={`topbar-nav-link${s.key === sheetKey ? ' active' : ''}`}

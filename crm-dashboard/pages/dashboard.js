@@ -15,6 +15,7 @@ import {
 } from '../lib/sheetSchema';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import Announcement from '../components/Announcement';
+import FaqWidget from '../components/FaqWidget';
 import useEscapeKey from '../lib/useEscapeKey';
 
 export async function getServerSideProps({ req }) {
@@ -429,13 +430,14 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
 
   return (
     <div className="app-shell">
+      <FaqWidget isAdmin={isAdmin} />
       <div className="topbar">
         <div className="topbar-left">
           <span className="topbar-title">My Dealer</span>
           <span className="topbar-badge">{role}</span>
           <nav className="topbar-nav">
             <Link className="topbar-nav-link active" href="/dashboard">회원관리</Link>
-            {REF_SHEETS.map((s) => (
+            {REF_SHEETS.filter((s) => !s.hiddenFromNav).map((s) => (
               <Link key={s.key} className="topbar-nav-link" href={`/sheet/${s.key}`}>{s.label}</Link>
             ))}
             {isAdmin && <Link className="topbar-nav-link" href="/accounts">계정관리</Link>}
