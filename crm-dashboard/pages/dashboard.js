@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import cookie from 'cookie';
@@ -152,6 +152,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const membersEtagRef = useRef(null);
 
   const [search, setSearch] = useState('');
   const [managerFilter, setManagerFilter] = useState('');
@@ -177,13 +178,27 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
 
   // silent=true면 화면에 "불러오는 중..." 스피너를 띄우지 않고 조용히 최신 데이터로 교체합니다.
   // 구글 시트에서 직접 수정한 내용도 이 폴링을 통해 자동으로 화면에 반영됩니다.
+  // ETag를 보내 데이터가 바뀌지 않았으면(304) 상태 업데이트를 건너뜁니다.
   async function fetchRows({ silent = false } = {}) {
     if (!silent) setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/members');
+      const headers = {};
+      if (membersEtagRef.current) headers['If-None-Match'] = membersEtagRef.current;
+      const res = await fetch('/api/members', { headers });
+
+      // 304 Not Modified: 데이터 변경 없음, 현재 상태 유지
+      if (res.status === 304) {
+        setLastSynced(new Date());
+        return;
+      }
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '데이터를 불러오지 못했습니다.');
+
+      const etag = res.headers.get('ETag');
+      if (etag) membersEtagRef.current = etag;
+
       setRows(data.rows);
       setLastSynced(new Date());
     } catch (e) {
@@ -220,7 +235,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     if (editing || addingDealer) return;
     const interval = setInterval(() => {
       fetchRows({ silent: true });
-    }, 20000);
+    }, 60000);
     return () => clearInterval(interval);
   }, [editing, addingDealer]);
 

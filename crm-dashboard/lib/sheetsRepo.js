@@ -33,7 +33,7 @@ const ACCOUNT_COLUMNS = {
 };
 
 // 같은 서버 인스턴스에서 너무 자주 구글 API를 호출하지 않도록 짧게 캐시합니다.
-const CACHE_TTL_MS = 20 * 1000;
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2분 — Google Sheets API 호출 빈도 제한
 const sheetDataCache = new Map(); // spreadsheetId -> { expires, data }
 const dataSheetTitleCache = new Map(); // spreadsheetId -> title
 const refSheetCache = new Map(); // refSheet key -> { expires, data }

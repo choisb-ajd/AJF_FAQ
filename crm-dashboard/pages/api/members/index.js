@@ -1,6 +1,12 @@
+const crypto = require('crypto');
 const { getSessionFromReq } = require('../../../lib/auth');
 const { getAdminRows } = require('../../../lib/sheetsRepo');
 const { ADMIN_ONLY_VISIBLE } = require('../../../lib/sheetSchema');
+
+function computeETag(rows) {
+  const body = JSON.stringify(rows);
+  return '"' + crypto.createHash('md5').update(body).digest('hex') + '"';
+}
 
 export default async function handler(req, res) {
   const session = getSessionFromReq(req);
@@ -24,6 +30,15 @@ export default async function handler(req, res) {
       return v;
     });
 
+    const etag = computeETag(result);
+
+    // 클라이언트가 보낸 ETag와 일치하면 데이터 변경 없음 → 빈 응답으로 전송 절약
+    if (req.headers['if-none-match'] === etag) {
+      return res.status(304).end();
+    }
+
+    res.setHeader('ETag', etag);
+    res.setHeader('Cache-Control', 'no-cache');
     return res.status(200).json({ ok: true, role: session.role, name: session.name, rows: result });
   } catch (e) {
     console.error(e);
