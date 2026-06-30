@@ -209,11 +209,68 @@ function letterToColumnIndex(letters) {
 // title은 관리자용 종합 스프레드시트 안의 실제 탭 이름과 정확히 일치해야 합니다.
 // colStart/colEnd를 지정하면 그 범위(예: 갱신배정 탭의 B~P열)만 읽고/씁니다. 지정하지 않으면 탭 전체를 사용합니다.
 const REF_SHEETS = [
-  { key: 'renewal', title: '갱신배정', label: '갱신배정', colStart: 'B', colEnd: 'P', gid: '1205371231' },
+  { key: 'renewal', title: '갱신배정', label: '갱신배정', gid: '1205371231', renewalTable: true },
   { key: 'dealer-faq', title: '딜러앱 FAQ', label: '딜러앱 FAQ', gid: '470466582', notepad: true, noteCell: 'A1', hiddenFromNav: true },
   { key: 'lms-template', title: 'LMS템플릿', label: 'LMS템플릿', templates: true, templatesCell: 'A1' },
   { key: 'lease-pledge', title: '리스(질권사)', label: '리스(질권사)', gid: '1656883024', registry: true, registryCell: 'A1' },
   { key: 'cm-tm', title: '원수사별 CM/TM', label: '원수사별 CM/TM', linkHub: true, linkHubCell: 'A1' },
+];
+
+// 갱신배정 탭: 헤더는 2행, 데이터는 3행부터 시작합니다. 헤더 문구로 찾지 않고 칼럼 위치(B~P)를 고정 매핑합니다.
+// "딜러연락처"와 "딜러이름"은 시트에는 L열 한 칸("딜러연락처&이름")에 같이 들어있어서,
+// "연락처 / 이름" 형식으로 합쳐 저장하고 화면에서는 입력칸 2개로 나눠 보여줍니다.
+const RENEWAL_FIELDS = [
+  { key: 'renewalMonth', label: '갱신월', col: 'B' },
+  { key: 'assignedDate', label: '배정일', col: 'C' },
+  { key: 'assignOrder', label: '배정순번', col: 'D', adminOnly: true },
+  { key: 'manager', label: '갱신담당매니저', col: 'E' },
+  { key: 'customerName', label: '고객명', col: 'F' },
+  { key: 'residentNumber', label: '주민번호', col: 'G' },
+  { key: 'phone', label: '연락처', col: 'H' },
+  { key: 'carNumber', label: '차량번호', col: 'I' },
+  { key: 'expiryDate', label: '만기일자', col: 'J' },
+  { key: 'insurer', label: '가입보험사', col: 'K' },
+  { key: 'dealerContact', label: '딜러연락처', col: 'L' },
+  { key: 'dealerName', label: '딜러이름', col: 'L' },
+  { key: 'dealerType', label: '딜러유형', col: 'M' },
+  { key: 'dealerRecent60d', label: '딜러 직전 60일 계약여부', col: 'N', type: 'select', options: ['', 'Y', 'N'] },
+  { key: 'dealerLastContractDate', label: '딜러 최종 계약일자', col: 'O' },
+  { key: 'callHistory', label: '통화이력', col: 'P' },
+];
+
+function splitDealerContactName(raw) {
+  const v = (raw || '').toString().trim();
+  if (!v || v === '-') return { dealerContact: '', dealerName: '' };
+  const idx = v.indexOf('/');
+  if (idx === -1) return { dealerContact: '', dealerName: v };
+  return { dealerContact: v.slice(0, idx).trim(), dealerName: v.slice(idx + 1).trim() };
+}
+
+function joinDealerContactName(dealerContact, dealerName) {
+  const c = (dealerContact || '').toString().trim();
+  const n = (dealerName || '').toString().trim();
+  if (!c && !n) return '';
+  if (!c) return n;
+  if (!n) return c;
+  return `${c} / ${n}`;
+}
+
+// 갱신배정 탭에서 매니저가 직접 수정할 수 있는 항목 (딜러와 통화하며 알게 되는 내용).
+// 통화이력은 회원관리의 컨택 히스토리처럼 별도 메모 추가 API로만 기록합니다(본문 저장과 분리).
+const RENEWAL_MANAGER_EDITABLE = ['dealerContact', 'dealerName', 'dealerType', 'dealerRecent60d', 'dealerLastContractDate'];
+
+// 관리자만 수정 가능한 항목 (배정 단계에서 정해지는 기본 데이터)
+const RENEWAL_ADMIN_ONLY_EDITABLE = [
+  'renewalMonth',
+  'assignedDate',
+  'assignOrder',
+  'manager',
+  'customerName',
+  'residentNumber',
+  'phone',
+  'carNumber',
+  'expiryDate',
+  'insurer',
 ];
 
 // LMS템플릿 탭의 기본 카테고리(사이드바) 목록(처음 한 번도 저장되기 전 보여줄 기본값).
@@ -296,6 +353,11 @@ module.exports = {
   MODAL_ADMIN_COLLAPSIBLE_EXTRA,
   MODAL_EXCLUDED_FIELDS,
   REF_SHEETS,
+  RENEWAL_FIELDS,
+  RENEWAL_MANAGER_EDITABLE,
+  RENEWAL_ADMIN_ONLY_EDITABLE,
+  splitDealerContactName,
+  joinDealerContactName,
   LMS_TEMPLATE_CATEGORIES,
   LEASE_PLEDGE_DEFAULTS,
   buildColumnMap,

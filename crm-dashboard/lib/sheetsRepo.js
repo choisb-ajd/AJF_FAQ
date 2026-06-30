@@ -7,6 +7,10 @@ const {
   letterToColumnIndex,
   MANAGER_EDITABLE,
   REF_SHEETS,
+  RENEWAL_FIELDS,
+  splitDealerContactName,
+  joinDealerContactName,
+  appendContactHistoryNote,
   LMS_TEMPLATE_CATEGORIES,
   LEASE_PLEDGE_DEFAULTS,
   formatRegisteredAt,
@@ -45,6 +49,7 @@ const notepadCache = new Map(); // refSheet key -> { expires, data }
 const templatesCache = new Map(); // refSheet key -> { expires, data }
 const registryCache = new Map(); // refSheet key -> { expires, data }
 const linkHubCache = new Map(); // refSheet key -> { expires, data }
+let renewalCache = null; // { expires, data }
 let accountsCache = null; // { expires, accounts }
 let announcementCache = null; // { expires, text }
 
@@ -165,6 +170,105 @@ async function updateRefSheetCell(key, rowIndex, colIndex, value) {
     requestBody: { values: [[value]] },
   });
   invalidateRefSheetCache(key);
+}
+
+// 갱신배정 탭: 헤더는 2행, 데이터는 3행부터 시작합니다(REF_SHEETS의 renewalTable:true).
+// 다른 참고용 시트들과 달리 칼럼별 의미(RENEWAL_FIELDS)를 그대로 사용해 회원관리와 같은
+// 표/모달 UI로 보여줍니다. L열은 시트에 "딜러연락처&이름"이 한 칸에 같이 들어있어
+// 읽을 때 두 필드로 나누고, 저장할 때 다시 합쳐서 같은 칸에 씁니다.
+function invalidateRenewalCache() {
+  renewalCache = null;
+}
+
+async function readRenewalRows({ useCache = true } = {}) {
+  const config = getRefSheetConfig('renewal');
+  if (useCache && renewalCache && renewalCache.expires > Date.now()) {
+    return renewalCache.data;
+  }
+
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range: `${quoteSheetTitle(config.title)}!B3:P`,
+  });
+  const values = res.data.values || [];
+  const baseIndex = letterToColumnIndex('B');
+
+  const rows = values
+    .map((rowArray, i) => {
+      const get = (col) => (rowArray[letterToColumnIndex(col) - baseIndex] || '').toString().trim();
+      const { dealerContact, dealerName } = splitDealerContactName(get('L'));
+      return {
+        rowNumber: i + 3, // 시트 상의 실제 행 번호 (1~2행은 빈줄/헤더)
+        values: {
+          renewalMonth: get('B'),
+          assignedDate: get('C'),
+          assignOrder: get('D'),
+          manager: get('E'),
+          customerName: get('F'),
+          residentNumber: get('G'),
+          phone: get('H'),
+          carNumber: get('I'),
+          expiryDate: get('J'),
+          insurer: get('K'),
+          dealerContact,
+          dealerName,
+          dealerType: get('M'),
+          dealerRecent60d: get('N'),
+          dealerLastContractDate: get('O'),
+          callHistory: get('P'),
+        },
+      };
+    })
+    .filter((r) => r.values.customerName || r.values.phone);
+
+  const data = { rows };
+  renewalCache = { expires: Date.now() + CACHE_TTL_MS, data };
+  return data;
+}
+
+async function updateRenewalRecord({ rowNumber, updates }) {
+  const config = getRefSheetConfig('renewal');
+  const cleaned = { ...updates };
+  if (cleaned.dealerContact !== undefined || cleaned.dealerName !== undefined) {
+    cleaned.__dealerCombined = joinDealerContactName(cleaned.dealerContact, cleaned.dealerName);
+    delete cleaned.dealerContact;
+    delete cleaned.dealerName;
+  }
+
+  const colOf = { ...Object.fromEntries(RENEWAL_FIELDS.map((f) => [f.key, f.col])), __dealerCombined: 'L' };
+  const data = [];
+  for (const [key, value] of Object.entries(cleaned)) {
+    const col = colOf[key];
+    if (!col) continue;
+    data.push({
+      range: `${quoteSheetTitle(config.title)}!${col}${rowNumber}`,
+      values: [[value == null ? '' : String(value)]],
+    });
+  }
+  if (data.length === 0) return { ok: true };
+
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    requestBody: { valueInputOption: 'RAW', data },
+  });
+  invalidateRenewalCache();
+  return { ok: true };
+}
+
+async function addRenewalCallNote(rowNumber, currentHistory, text, author) {
+  const config = getRefSheetConfig('renewal');
+  const newHistory = appendContactHistoryNote(currentHistory, { author, text });
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range: `${quoteSheetTitle(config.title)}!P${rowNumber}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [[newHistory]] },
+  });
+  invalidateRenewalCache();
+  return newHistory;
 }
 
 // 메모장 형태(REF_SHEETS의 notepad:true)의 시트는 한 개의 셀(noteCell)에 리치텍스트(HTML)를
@@ -1060,6 +1164,9 @@ module.exports = {
   listAccountsForAdmin,
   readRefSheetGrid,
   updateRefSheetCell,
+  readRenewalRows,
+  updateRenewalRecord,
+  addRenewalCallNote,
   readNotepadSheet,
   saveNotepadSheet,
   readTemplatesSheet,
