@@ -747,6 +747,14 @@ const MANAGER_SYNC_INTERVAL_MS = CACHE_TTL_MS;
 let lastManagerSyncAt = 0;
 let managerSyncInFlight = null;
 
+// 앱 저장 직후에는 매니저 시트의 구버전 값으로 관리자 시트를 덮어쓰지 않도록
+// 최근에 앱에서 업데이트된 연락처를 추적합니다.
+// (매니저 시트 미설정·오류로 동기화가 빠진 경우에도 관리자 시트 값이 살아남도록 보호)
+const appRecentlyUpdated = new Map(); // normalizedPhone → timestamp
+
+// 이름/연락처는 앱 등록 필드이므로 매니저 시트 역방향 동기화 대상에서 제외합니다.
+const SYNC_FROM_MANAGER_FIELDS = MANAGER_EDITABLE.filter((k) => k !== 'name' && k !== 'phone');
+
 function ensureManagerSync() {
   if (managerSyncInFlight) return managerSyncInFlight;
   if (Date.now() - lastManagerSyncAt < MANAGER_SYNC_INTERVAL_MS) return Promise.resolve();
@@ -977,6 +985,12 @@ async function appendRowToSheet(spreadsheetId, sheetTitle, columnMap, fieldsObje
 // 값이 다르면 매니저의 개별 시트 값을 우선합니다(매니저가 본인 시트에 직접 적은 내용이므로).
 // 관리자 시트에 없는 연락처(매니저가 자기 시트에 직접 추가한 신규 딜러)는 관리자 시트에도 추가합니다.
 async function syncManagerSheetsIntoAdmin() {
+  // 만료된 앱 업데이트 기록 정리
+  const now = Date.now();
+  for (const [p, ts] of appRecentlyUpdated) {
+    if (now - ts > MANAGER_SYNC_INTERVAL_MS * 2) appRecentlyUpdated.delete(p);
+  }
+
   const admin = await readSheetRows(ADMIN_SPREADSHEET_ID, { useCache: false });
   const accounts = await getAccountsConfig({ useCache: false });
   const managers = accounts.filter((a) => a.role === '매니저' && a.sheetUrl);
@@ -1009,8 +1023,13 @@ async function syncManagerSheetsIntoAdmin() {
 
       const adminRow = adminByPhone.get(phone);
       if (adminRow) {
+        // 앱에서 최근에 저장된 행은 매니저 시트의 구버전 값으로 덮어쓰지 않습니다.
+        // (매니저 시트 동기화 실패 시 관리자 시트 값이 롤백되는 것을 방지)
+        const appUpdate = appRecentlyUpdated.get(phone);
+        if (appUpdate && Date.now() - appUpdate < MANAGER_SYNC_INTERVAL_MS) continue;
+
         const diff = {};
-        for (const key of MANAGER_EDITABLE) {
+        for (const key of SYNC_FROM_MANAGER_FIELDS) {
           if (mgrSheet.columnMap[key] === undefined) continue;
           const mgrValue = (mgrRow.values[key] || '').toString();
           const adminValue = (adminRow.values[key] || '').toString();
@@ -1038,6 +1057,7 @@ async function syncManagerSheetsIntoAdmin() {
       spreadsheetId: ADMIN_SPREADSHEET_ID,
       requestBody: { valueInputOption: 'RAW', data: updateData },
     });
+    invalidateCache(ADMIN_SPREADSHEET_ID);
   }
 
   if (newRows.length > 0) {
@@ -1114,6 +1134,9 @@ async function updateMemberRecord({ phone, updates }) {
     admin.columnMap,
     updates
   );
+
+  // 관리자 시트에 쓴 시각을 기록해두어 다음 역방향 싱크에서 이 행을 덮어쓰지 않도록 합니다.
+  appRecentlyUpdated.set(targetPhone, Date.now());
 
   const managerName = updates.manager || adminRow.values.manager;
   if (!managerName) {
