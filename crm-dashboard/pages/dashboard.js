@@ -185,6 +185,11 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [sortDir, setSortDir] = useState('desc');
   const [colWidths, setColWidths] = useState(DEFAULT_COL_WIDTHS);
 
+  const [selectedPhones, setSelectedPhones] = useState(() => new Set());
+  const [bulkManagerModal, setBulkManagerModal] = useState(false);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkResult, setBulkResult] = useState(null);
+
   // silent=true면 화면에 "불러오는 중..." 스피너를 띄우지 않고 조용히 최신 데이터로 교체합니다.
   // 구글 시트에서 직접 수정한 내용도 이 폴링을 통해 자동으로 화면에 반영됩니다.
   // ETag를 보내 데이터가 바뀌지 않았으면(304) 상태 업데이트를 건너뜁니다.
@@ -309,6 +314,11 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   useEffect(() => {
     setPage(1);
   }, [search, managerFilter, contactedFilter, preRegFilter, appJoinFilter, pageSize]);
+
+  useEffect(() => {
+    setSelectedPhones(new Set());
+    setBulkResult(null);
+  }, [search, managerFilter, contactedFilter, preRegFilter, appJoinFilter]);
 
   function resetFilters() {
     setSearch('');
@@ -445,6 +455,44 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     }
   }
 
+  async function handleBulkManagerChange(newManager) {
+    setBulkSaving(true);
+    setBulkResult(null);
+    try {
+      const phones = Array.from(selectedPhones);
+      const res = await fetch('/api/members/bulk-manager', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phones, manager: newManager }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setBulkResult({ type: 'err', text: data.error || '일괄 변경에 실패했습니다.' });
+        setBulkSaving(false);
+        return;
+      }
+      const updatedSet = new Set(data.updated || []);
+      updateRowsLocal((prev) =>
+        prev.map((r) =>
+          updatedSet.has(r.phone) ? { ...r, manager: newManager, lastModifiedBy: '관리자' } : r
+        )
+      );
+      setBulkManagerModal(false);
+      setSelectedPhones(new Set());
+      const failedCount = data.failed?.length || 0;
+      const successText = `${updatedSet.size}명의 담당매니저가 '${newManager}'(으)로 변경되었습니다.`;
+      setBulkResult({
+        type: failedCount > 0 ? 'warn' : 'ok',
+        text: failedCount > 0 ? `${successText} (${failedCount}명 실패)` : successText,
+      });
+    } catch (e) {
+      setBulkResult({ type: 'err', text: '네트워크 오류가 발생했습니다.' });
+      setBulkSaving(false);
+    } finally {
+      setBulkSaving(false);
+    }
+  }
+
   const visibleColumns = DISPLAY_COLUMNS.filter((c) => isAdmin || !c.adminOnly);
 
   return (
@@ -547,8 +595,29 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
             <button className="btn btn-primary" onClick={() => { setAddMsg(null); setAddingDealer(true); }}>
               딜러 추가
             </button>
+            {isAdmin && (
+              <button
+                className="btn btn-primary"
+                disabled={selectedPhones.size === 0}
+                onClick={() => setBulkManagerModal(true)}
+              >
+                매니저 일괄 변경{selectedPhones.size > 0 ? ` (${selectedPhones.size}명)` : ''}
+              </button>
+            )}
           </div>
         </div>
+
+        {bulkResult && (
+          <div className={`modal-message ${bulkResult.type}`} style={{ margin: '8px 0' }}>
+            {bulkResult.text}
+            <button
+              style={{ marginLeft: 12, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
+              onClick={() => setBulkResult(null)}
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {loading ? (
           <div className="loading-state">불러오는 중...</div>
@@ -559,6 +628,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
             <div className="table-wrap">
               <table className="resizable-table">
                 <colgroup>
+                  {isAdmin && <col style={{ width: 40 }} />}
                   {visibleColumns.map((c) => (
                     <col key={c.key} style={{ width: colWidths[c.key] || DEFAULT_COL_WIDTH }} />
                   ))}
@@ -566,6 +636,22 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                 </colgroup>
                 <thead>
                   <tr>
+                    {isAdmin && (
+                      <th style={{ width: 40, textAlign: 'center', padding: '0 8px' }}>
+                        <input
+                          type="checkbox"
+                          title="전체 선택 (현재 필터 기준)"
+                          checked={filtered.length > 0 && filtered.every((r) => selectedPhones.has(r.phone))}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedPhones(new Set(filtered.map((r) => r.phone)));
+                            } else {
+                              setSelectedPhones(new Set());
+                            }
+                          }}
+                        />
+                      </th>
+                    )}
                     {visibleColumns.map((c) => (
                       <th key={c.key} onClick={() => toggleSort(c.key)} style={{ cursor: 'pointer' }}>
                         {c.label}
@@ -583,11 +669,30 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                 <tbody>
                   {paged.length === 0 ? (
                     <tr className="empty-row">
-                      <td colSpan={visibleColumns.length + 1}>검색 결과가 없습니다.</td>
+                      <td colSpan={visibleColumns.length + 1 + (isAdmin ? 1 : 0)}>검색 결과가 없습니다.</td>
                     </tr>
                   ) : (
                     paged.map((row) => (
                       <tr key={row.phone + row.rowNumber} onClick={() => openEdit(row)}>
+                        {isAdmin && (
+                          <td
+                            style={{ textAlign: 'center', padding: '0 8px' }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedPhones.has(row.phone)}
+                              onChange={(e) => {
+                                setSelectedPhones((prev) => {
+                                  const next = new Set(prev);
+                                  if (e.target.checked) next.add(row.phone);
+                                  else next.delete(row.phone);
+                                  return next;
+                                });
+                              }}
+                            />
+                          </td>
+                        )}
                         {visibleColumns.map((c) => {
                           const val = row[c.key];
                           const isBadgeField = ['contacted', 'smsSent', 'priorityDealer', 'highEfficiency', 'contactSentiment'].includes(c.key);
@@ -683,6 +788,16 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
           managerOptions={managerOptions}
           onClose={() => setAddingDealer(false)}
           onSave={handleAddDealer}
+        />
+      )}
+
+      {bulkManagerModal && (
+        <BulkManagerModal
+          count={selectedPhones.size}
+          managerOptions={managerOptions}
+          saving={bulkSaving}
+          onClose={() => setBulkManagerModal(false)}
+          onConfirm={handleBulkManagerChange}
         />
       )}
     </div>
@@ -998,6 +1113,53 @@ function AddDealerModal({ isAdmin, name, saving, message, managerOptions, onClos
               </button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BulkManagerModal({ count, managerOptions, saving, onClose, onConfirm }) {
+  const [selectedManager, setSelectedManager] = useState('');
+  useEscapeKey(onClose);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" style={{ width: 400 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h2>매니저 일괄 변경</h2>
+            <div className="sub">선택한 {count.toLocaleString()}명의 담당매니저를 변경합니다.</div>
+          </div>
+          <button className="modal-close" onClick={onClose}>&times;</button>
+        </div>
+
+        <div style={{ padding: '16px 24px 0' }}>
+          <div className="modal-field">
+            <label>변경할 매니저</label>
+            <select
+              value={selectedManager}
+              onChange={(e) => setSelectedManager(e.target.value)}
+              autoFocus
+            >
+              <option value="">-- 매니저 선택 --</option>
+              {(managerOptions || []).map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="modal-actions">
+          <button type="button" className="btn" onClick={onClose} disabled={saving}>취소</button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={!selectedManager || saving}
+            onClick={() => onConfirm(selectedManager)}
+          >
+            {saving ? '변경 중...' : '변경하기'}
+          </button>
         </div>
       </div>
     </div>
