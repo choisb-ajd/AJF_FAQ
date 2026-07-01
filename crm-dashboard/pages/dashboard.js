@@ -732,8 +732,8 @@ function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onS
               <ReadOnlyField label={FIELD_META.brand.label} value={row.brand} />
             )}
             <ReadOnlyField label="지점/대리점" value={row.branch} />
-            <ReadOnlyField label="성명" value={row.name} />
-            <ReadOnlyField label="연락처" value={row.phone} />
+            <FieldInput fieldKey="name" value={form.name} onChange={update} />
+            <FieldInput fieldKey="phone" value={form.phone} onChange={update} />
             <FieldInput fieldKey="contacted" value={form.contacted} onChange={update} />
           </div>
         </div>

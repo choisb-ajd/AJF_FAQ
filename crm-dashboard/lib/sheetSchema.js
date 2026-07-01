@@ -57,6 +57,8 @@ const DISPLAY_COLUMNS = [
 
 // 매니저 권한으로 수정할 수 있는 필드
 const MANAGER_EDITABLE = [
+  'name',
+  'phone',
   'contacted',
   'firstContactDate',
   'reContactDate',
