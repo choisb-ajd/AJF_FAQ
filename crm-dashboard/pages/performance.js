@@ -44,13 +44,13 @@ function buildChartData(rows, dateColumns, viewMode) {
   let activeCols;
   const monthlyCols = dateColumns.filter((dc) => dc.isMonthlyAgg);
   if (viewMode === 'monthly') {
-    activeCols = monthlyCols.slice(-3);
+    activeCols = monthlyCols.slice(0, 3);
   } else if (viewMode === 'weekly') {
-    const top3Months = new Set(monthlyCols.slice(-3).map((dc) => dc.month));
+    const top3Months = new Set(monthlyCols.slice(0, 3).map((dc) => dc.month));
     activeCols = dateColumns.filter((dc) => dc.isWeeklyAgg && top3Months.has(dc.month));
   } else {
     const daily = dateColumns.filter((dc) => dc.isDaily);
-    const latestMonth = daily.length ? daily[daily.length - 1].month : '';
+    const latestMonth = daily.length ? daily[0].month : '';
     activeCols = latestMonth ? daily.filter((dc) => dc.month === latestMonth) : daily.slice(-31);
   }
   if (!activeCols.length) return [];
@@ -78,20 +78,20 @@ function getSummaryRow(rows) {
 // ─── 테이블 칼럼 계산 ─────────────────────────────────────────────────────────
 function getTableCols(dateColumns, viewMode) {
   const monthlyCols = dateColumns.filter((dc) => dc.isMonthlyAgg);
-  if (viewMode === 'monthly') return monthlyCols.slice(-3);
+  if (viewMode === 'monthly') return monthlyCols.slice(0, 3);
   if (viewMode === 'weekly') {
-    const top3Months = new Set(monthlyCols.slice(-3).map((dc) => dc.month));
+    const top3Months = new Set(monthlyCols.slice(0, 3).map((dc) => dc.month));
     return dateColumns.filter((dc) => dc.isWeeklyAgg && top3Months.has(dc.month));
   }
   const daily = dateColumns.filter((dc) => dc.isDaily);
-  const latestMonth = daily.length ? daily[daily.length - 1].month : '';
+  const latestMonth = daily.length ? daily[0].month : '';
   return latestMonth ? daily.filter((dc) => dc.month === latestMonth) : daily.slice(-31);
 }
 
 // ─── 전월 합계 칼럼 (M-1 월집계) ─────────────────────────────────────────────
 function getPrevMonthCol(dateColumns) {
   const monthlyCols = dateColumns.filter((dc) => dc.isMonthlyAgg);
-  return monthlyCols.length >= 2 ? monthlyCols[monthlyCols.length - 2] : null;
+  return monthlyCols.length >= 2 ? monthlyCols[1] : null;
 }
 
 // ─── 커스텀 툴팁 ─────────────────────────────────────────────────────────────
@@ -320,8 +320,8 @@ export default function PerformancePage({ role, name }) {
                     rows.map((row, ri) => {
                       let monthlyDelta = null;
                       if (viewMode === 'monthly' && tableCols.length >= 2) {
-                        const currVal = parseNum(row.dateValues[dateColumns.indexOf(tableCols[tableCols.length - 1])] ?? '');
-                        const prevVal = parseNum(row.dateValues[dateColumns.indexOf(tableCols[tableCols.length - 2])] ?? '');
+                        const currVal = parseNum(row.dateValues[dateColumns.indexOf(tableCols[0])] ?? '');
+                        const prevVal = parseNum(row.dateValues[dateColumns.indexOf(tableCols[1])] ?? '');
                         monthlyDelta = currVal - prevVal;
                       }
                       const prevMonthRaw = prevMonthCol != null
