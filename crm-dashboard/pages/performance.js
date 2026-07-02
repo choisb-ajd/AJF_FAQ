@@ -46,6 +46,9 @@ function fmtNum(n) {
   return n.toLocaleString('ko-KR');
 }
 
+// "26-07m 계" → "26-07", "26-07m" → "26-07"
+const monthPrefix = (s) => (s || '').match(/\d{2}-\d{2}/)?.[0] ?? '';
+
 // ─── 차트 데이터 빌드 ─────────────────────────────────────────────────────────
 function buildChartData(rows, dateColumns, viewMode, monthStartIdx = 0) {
   let activeCols;
@@ -53,14 +56,14 @@ function buildChartData(rows, dateColumns, viewMode, monthStartIdx = 0) {
   if (viewMode === 'monthly') {
     activeCols = monthlyCols.slice(monthStartIdx, monthStartIdx + 3);
   } else if (viewMode === 'weekly') {
-    const show3Months = new Set(
-      monthlyCols.slice(monthStartIdx, monthStartIdx + 3).map((dc) => dc.month)
+    const show3Prefixes = new Set(
+      monthlyCols.slice(monthStartIdx, monthStartIdx + 3).map((dc) => monthPrefix(dc.month))
     );
-    activeCols = dateColumns.filter((dc) => dc.isWeeklyAgg && show3Months.has(dc.month));
+    activeCols = dateColumns.filter((dc) => dc.isWeeklyAgg && show3Prefixes.has(monthPrefix(dc.month)));
   } else {
-    const targetMonth = monthlyCols[monthStartIdx]?.month;
+    const targetPrefix = monthPrefix(monthlyCols[monthStartIdx]?.month);
     const daily = dateColumns.filter((dc) => dc.isDaily);
-    activeCols = targetMonth ? daily.filter((dc) => dc.month === targetMonth) : daily.slice(0, 31);
+    activeCols = targetPrefix ? daily.filter((dc) => monthPrefix(dc.month) === targetPrefix) : daily.slice(0, 31);
   }
   if (!activeCols.length) return [];
 
@@ -88,15 +91,15 @@ function getSummaryRow(rows) {
 function getTableCols(dateColumns, viewMode, monthStartIdx = 0) {
   const monthlyCols = dateColumns.filter((dc) => dc.isMonthlyAgg);
   if (viewMode === 'monthly') return monthlyCols.slice(monthStartIdx, monthStartIdx + 3);
-  const show3Months = new Set(
-    monthlyCols.slice(monthStartIdx, monthStartIdx + 3).map((dc) => dc.month)
+  const show3Prefixes = new Set(
+    monthlyCols.slice(monthStartIdx, monthStartIdx + 3).map((dc) => monthPrefix(dc.month))
   );
   if (viewMode === 'weekly') {
-    return dateColumns.filter((dc) => dc.isWeeklyAgg && show3Months.has(dc.month));
+    return dateColumns.filter((dc) => dc.isWeeklyAgg && show3Prefixes.has(monthPrefix(dc.month)));
   }
-  const targetMonth = monthlyCols[monthStartIdx]?.month;
+  const targetPrefix = monthPrefix(monthlyCols[monthStartIdx]?.month);
   const daily = dateColumns.filter((dc) => dc.isDaily);
-  return targetMonth ? daily.filter((dc) => dc.month === targetMonth) : daily.slice(0, 31);
+  return targetPrefix ? daily.filter((dc) => monthPrefix(dc.month) === targetPrefix) : daily.slice(0, 31);
 }
 
 // ─── 전월 합계 칼럼 (선택월 기준 M-1 월집계) ────────────────────────────────
@@ -133,6 +136,7 @@ export default function PerformancePage({ role, name }) {
   const [error, setError]                 = useState('');
   const [viewMode, setViewMode]           = useState('weekly'); // monthly | weekly | daily
   const [selectedMonth, setSelectedMonth] = useState(null);    // null = 최신월
+  const [pendingMonth, setPendingMonth]   = useState(null);    // 이동 버튼 누르기 전 임시값
   const [changingPassword, setChangingPassword] = useState(false);
 
   async function fetchData(force = false) {
@@ -245,8 +249,8 @@ export default function PerformancePage({ role, name }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <span style={{ fontSize: 13, color: 'var(--gray)', fontWeight: 500 }}>실적월</span>
                 <select
-                  value={selectedMonth || ''}
-                  onChange={(e) => setSelectedMonth(e.target.value || null)}
+                  value={pendingMonth ?? selectedMonth ?? ''}
+                  onChange={(e) => setPendingMonth(e.target.value || null)}
                   style={{ fontSize: 13, padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--navy)', background: '#fff', cursor: 'pointer' }}
                 >
                   <option value="">최근 3개월 ({allMonths[0]})</option>
@@ -254,6 +258,13 @@ export default function PerformancePage({ role, name }) {
                     <option key={m} value={m}>{m}</option>
                   ))}
                 </select>
+                <button
+                  className="btn btn-primary"
+                  style={{ padding: '4px 12px', fontSize: 13 }}
+                  onClick={() => { setSelectedMonth(pendingMonth); setPendingMonth(null); }}
+                >
+                  이동
+                </button>
               </div>
             )}
 
@@ -378,7 +389,7 @@ export default function PerformancePage({ role, name }) {
                             const raw = row.dateValues[globalIdx] ?? '';
                             return (
                               <td key={ci} style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                                {raw === '' || raw === '-' ? '-' : raw}
+                                {fmtNum(parseNum(raw))}
                               </td>
                             );
                           })}
@@ -397,7 +408,7 @@ export default function PerformancePage({ role, name }) {
                               textAlign: 'right', fontVariantNumeric: 'tabular-nums',
                               borderLeft: '2px solid var(--border)', background: '#f5f5f3', color: 'var(--gray)',
                             }}>
-                              {prevMonthRaw === '' || prevMonthRaw === '-' ? '-' : prevMonthRaw}
+                              {fmtNum(parseNum(prevMonthRaw))}
                             </td>
                           )}
                         </tr>
