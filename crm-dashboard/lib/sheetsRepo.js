@@ -52,6 +52,9 @@ const linkHubCache = new Map(); // refSheet key -> { expires, data }
 let renewalCache = null; // { expires, data }
 let accountsCache = null; // { expires, accounts }
 let announcementCache = null; // { expires, text }
+let performanceCache = null; // { expires, data }
+
+const PERFORMANCE_SHEET_TITLE = '관리_컨택 대시보드';
 
 function quoteSheetTitle(title) {
   return `'${String(title).replace(/'/g, "''")}'`;
@@ -1171,6 +1174,23 @@ async function updateMemberRecord({ phone, updates }) {
   return { ok: true, syncedToManagerSheet: true };
 }
 
+async function readPerformanceDashboard({ useCache = true } = {}) {
+  if (useCache && performanceCache && performanceCache.expires > Date.now()) {
+    return performanceCache.data;
+  }
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range: quoteSheetTitle(PERFORMANCE_SHEET_TITLE),
+  });
+  const values = res.data.values || [];
+  const headers = values[0] || [];
+  const rows = values.slice(1);
+  const data = { headers, rows };
+  performanceCache = { expires: Date.now() + CACHE_TTL_MS, data };
+  return data;
+}
+
 module.exports = {
   ADMIN_SPREADSHEET_ID,
   MAX_FAILED_ATTEMPTS,
@@ -1212,4 +1232,5 @@ module.exports = {
   deleteInsurerLink,
   readAnnouncement,
   saveAnnouncement,
+  readPerformanceDashboard,
 };

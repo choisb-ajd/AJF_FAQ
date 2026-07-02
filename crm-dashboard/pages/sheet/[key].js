@@ -158,6 +158,7 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
                 {s.label}
               </Link>
             ))}
+            {!isAdmin && <Link className="topbar-nav-link" href="/performance">실적현황</Link>}
             {isAdmin && <Link className="topbar-nav-link" href="/accounts">계정관리</Link>}
           </nav>
         </div>
