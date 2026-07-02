@@ -320,7 +320,7 @@ export default function PerformancePage({ role, name }) {
                         {/* contrast WARN 슬롯(aqua, yellow)에 직접 라벨 표시 */}
                         {(metric === '체결건수' || metric === '원수보험료') && (
                           <LabelList dataKey={metric} position="top" style={{ fontSize: 10, fill: '#52514e' }}
-                            formatter={(v) => v === 0 ? '' : v} />
+                            formatter={(v) => v === 0 ? '' : v.toLocaleString('ko-KR')} />
                         )}
                       </Bar>
                     ))}
