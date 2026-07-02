@@ -43,7 +43,7 @@ function fmtNum(n) {
 function buildChartData(rows, dateColumns, viewMode) {
   let activeCols;
   if (viewMode === 'monthly') {
-    activeCols = dateColumns.filter((dc) => dc.isMonthlyAgg);
+    activeCols = dateColumns.filter((dc) => dc.isMonthlyAgg).slice(0, 3);
   } else if (viewMode === 'weekly') {
     activeCols = dateColumns.filter((dc) => dc.isWeeklyAgg);
   } else {
@@ -75,7 +75,7 @@ function getSummaryRow(rows) {
 
 // ─── 테이블 칼럼 계산 ─────────────────────────────────────────────────────────
 function getTableCols(dateColumns, viewMode) {
-  if (viewMode === 'monthly') return dateColumns.filter((dc) => dc.isMonthlyAgg).slice(0, 6);
+  if (viewMode === 'monthly') return dateColumns.filter((dc) => dc.isMonthlyAgg).slice(0, 3);
   if (viewMode === 'weekly')  return dateColumns.filter((dc) => dc.isWeeklyAgg).slice(0, 8);
   return dateColumns.filter((dc) => dc.isDaily).slice(0, 14);
 }
@@ -160,15 +160,14 @@ export default function PerformancePage({ role, name }) {
         </div>
       </div>
 
-      <div className="page-content">
-        {/* ── 타이틀 바 ─────────────────────────────────────────────────── */}
-        <div className="filter-bar" style={{ marginBottom: 16 }}>
-          <div className="filter-actions" style={{ justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>컨택 실적현황</span>
-            <button className="btn" onClick={() => fetchData(true)} disabled={loading}>
-              {loading ? '불러오는 중…' : '새로고침'}
-            </button>
+      <div className="page-body">
+        <div className="page-heading">
+          <div>
+            <h1>컨택 실적현황</h1>
           </div>
+          <button className="btn" onClick={() => fetchData(true)} disabled={loading}>
+            {loading ? '불러오는 중…' : '새로고침'}
+          </button>
         </div>
 
         {error && (
