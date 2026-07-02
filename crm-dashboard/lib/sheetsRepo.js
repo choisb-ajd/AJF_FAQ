@@ -1209,9 +1209,12 @@ async function readPerformanceDashboard({ useCache = true } = {}) {
   };
 
   // 날짜 칼럼 구성 (구분 칼럼 이후, 병합셀 fill-forward 처리)
+  // mainRow는 일별 날짜 라벨만 있어 월집계 전용 칼럼이 범위 밖으로 밀릴 수 있으므로
+  // 세 헤더 행 중 가장 긴 것을 기준으로 스캔합니다.
+  const scanLen = Math.max(monthRow.length, weekRow.length, mainRow.length);
   const dateColumns = [];
   let fillMonth = '', fillWeek = '';
-  for (let ci = catColIdx + 1; ci < mainRow.length; ci++) {
+  for (let ci = catColIdx + 1; ci < scanLen; ci++) {
     const rawMonth = (monthRow[ci] || '').trim();
     const rawWeek  = (weekRow[ci]  || '').trim();
     const day      = (mainRow[ci]  || '').trim();

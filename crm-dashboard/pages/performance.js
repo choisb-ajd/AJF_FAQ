@@ -317,7 +317,6 @@ export default function PerformancePage({ role, name }) {
                     />
                     {CHART_METRICS.map((metric) => (
                       <Bar key={metric} dataKey={metric} fill={CHART_COLORS[metric]} radius={[3, 3, 0, 0]} maxBarSize={40}>
-                        {/* contrast WARN 슬롯(aqua, yellow)에 직접 라벨 표시 */}
                         {(metric === '체결건수' || metric === '원수보험료') && (
                           <LabelList dataKey={metric} position="top" style={{ fontSize: 10, fill: '#52514e' }}
                             formatter={(v) => v === 0 ? '' : v.toLocaleString('ko-KR')} />
@@ -331,9 +330,22 @@ export default function PerformancePage({ role, name }) {
               <div style={{
                 background: '#fcfcfb', border: '1px solid #e1e0d9',
                 borderRadius: 8, padding: 40, textAlign: 'center',
-                color: 'var(--gray)', marginBottom: 20,
+                marginBottom: 20,
               }}>
-                {viewMode === 'monthly' ? '월별' : viewMode === 'weekly' ? '주별' : '일별'} 집계 데이터가 없습니다.
+                <div style={{ color: 'var(--gray)', marginBottom: viewMode !== 'monthly' ? 12 : 0 }}>
+                  {viewMode === 'monthly'
+                    ? '월별 집계 데이터가 없습니다.'
+                    : `선택한 기간에 ${viewMode === 'weekly' ? '주별' : '일별'} 데이터가 없습니다.`}
+                </div>
+                {viewMode !== 'monthly' && (
+                  <button
+                    className="btn"
+                    style={{ fontSize: 13, padding: '5px 14px' }}
+                    onClick={() => setViewMode('monthly')}
+                  >
+                    월별로 보기
+                  </button>
+                )}
               </div>
             )}
 
