@@ -19,14 +19,21 @@ export async function getServerSideProps({ req }) {
   return { props: { role: session.role, name: session.name } };
 }
 
-// ─── 색상 (검증된 참조 팔레트 슬롯 1-4) ────────────────────────────────────
+// ─── 색상 ────────────────────────────────────────────────────────────────────
 const METRIC_COLORS = {
-  'DB배정수':   '#2a78d6', // slot 1 — blue
-  '최초컨택수': '#1baf7a', // slot 2 — aqua  (contrast WARN → 라벨 필수)
-  'App가입':    '#eda100', // slot 3 — yellow (contrast WARN → 라벨 필수)
-  '채결건수':   '#008300', // slot 4 — green
+  'DB배정수':   '#2a78d6',
+  '최초컨택수': '#1baf7a',
+  'App가입':    '#eda100',
+  '체결건수':   '#008300',
+  '원수보험료': '#4a3aa7',
 };
-const CHART_METRICS = ['DB배정수', '최초컨택수', 'App가입', '채결건수'];
+// 차트: App가입·체결건수·원수보험료 (팔레트 슬롯 1-3)
+const CHART_METRICS = ['App가입', '체결건수', '원수보험료'];
+const CHART_COLORS  = {
+  'App가입':    '#2a78d6', // slot 1 — blue
+  '체결건수':   '#1baf7a', // slot 2 — aqua  (contrast WARN → 라벨 필수)
+  '원수보험료': '#eda100', // slot 3 — yellow (contrast WARN → 라벨 필수)
+};
 
 // ─── 숫자 파싱 ────────────────────────────────────────────────────────────────
 function parseNum(str) {
@@ -40,18 +47,20 @@ function fmtNum(n) {
 }
 
 // ─── 차트 데이터 빌드 ─────────────────────────────────────────────────────────
-function buildChartData(rows, dateColumns, viewMode) {
+function buildChartData(rows, dateColumns, viewMode, monthStartIdx = 0) {
   let activeCols;
   const monthlyCols = dateColumns.filter((dc) => dc.isMonthlyAgg);
   if (viewMode === 'monthly') {
-    activeCols = monthlyCols.slice(0, 3);
+    activeCols = monthlyCols.slice(monthStartIdx, monthStartIdx + 3);
   } else if (viewMode === 'weekly') {
-    const top3Months = new Set(monthlyCols.slice(0, 3).map((dc) => dc.month));
-    activeCols = dateColumns.filter((dc) => dc.isWeeklyAgg && top3Months.has(dc.month));
+    const show3Months = new Set(
+      monthlyCols.slice(monthStartIdx, monthStartIdx + 3).map((dc) => dc.month)
+    );
+    activeCols = dateColumns.filter((dc) => dc.isWeeklyAgg && show3Months.has(dc.month));
   } else {
+    const targetMonth = monthlyCols[monthStartIdx]?.month;
     const daily = dateColumns.filter((dc) => dc.isDaily);
-    const latestMonth = daily.length ? daily[0].month : '';
-    activeCols = latestMonth ? daily.filter((dc) => dc.month === latestMonth) : daily.slice(-31);
+    activeCols = targetMonth ? daily.filter((dc) => dc.month === targetMonth) : daily.slice(0, 31);
   }
   if (!activeCols.length) return [];
 
@@ -76,22 +85,24 @@ function getSummaryRow(rows) {
 }
 
 // ─── 테이블 칼럼 계산 ─────────────────────────────────────────────────────────
-function getTableCols(dateColumns, viewMode) {
+function getTableCols(dateColumns, viewMode, monthStartIdx = 0) {
   const monthlyCols = dateColumns.filter((dc) => dc.isMonthlyAgg);
-  if (viewMode === 'monthly') return monthlyCols.slice(0, 3);
+  if (viewMode === 'monthly') return monthlyCols.slice(monthStartIdx, monthStartIdx + 3);
+  const show3Months = new Set(
+    monthlyCols.slice(monthStartIdx, monthStartIdx + 3).map((dc) => dc.month)
+  );
   if (viewMode === 'weekly') {
-    const top3Months = new Set(monthlyCols.slice(0, 3).map((dc) => dc.month));
-    return dateColumns.filter((dc) => dc.isWeeklyAgg && top3Months.has(dc.month));
+    return dateColumns.filter((dc) => dc.isWeeklyAgg && show3Months.has(dc.month));
   }
+  const targetMonth = monthlyCols[monthStartIdx]?.month;
   const daily = dateColumns.filter((dc) => dc.isDaily);
-  const latestMonth = daily.length ? daily[0].month : '';
-  return latestMonth ? daily.filter((dc) => dc.month === latestMonth) : daily.slice(-31);
+  return targetMonth ? daily.filter((dc) => dc.month === targetMonth) : daily.slice(0, 31);
 }
 
-// ─── 전월 합계 칼럼 (M-1 월집계) ─────────────────────────────────────────────
-function getPrevMonthCol(dateColumns) {
+// ─── 전월 합계 칼럼 (선택월 기준 M-1 월집계) ────────────────────────────────
+function getPrevMonthCol(dateColumns, monthStartIdx = 0) {
   const monthlyCols = dateColumns.filter((dc) => dc.isMonthlyAgg);
-  return monthlyCols.length >= 2 ? monthlyCols[1] : null;
+  return monthlyCols[monthStartIdx + 1] || null;
 }
 
 // ─── 커스텀 툴팁 ─────────────────────────────────────────────────────────────
@@ -121,6 +132,7 @@ export default function PerformancePage({ role, name }) {
   const [loading, setLoading]             = useState(true);
   const [error, setError]                 = useState('');
   const [viewMode, setViewMode]           = useState('weekly'); // monthly | weekly | daily
+  const [selectedMonth, setSelectedMonth] = useState(null);    // null = 최신월
   const [changingPassword, setChangingPassword] = useState(false);
 
   async function fetchData(force = false) {
@@ -146,10 +158,21 @@ export default function PerformancePage({ role, name }) {
   }
 
   const { rows, dateColumns } = rawData || { rows: [], dateColumns: [] };
+
+  const allMonths = useMemo(
+    () => dateColumns.filter((dc) => dc.isMonthlyAgg).map((dc) => dc.month),
+    [dateColumns]
+  );
+  const monthStartIdx = useMemo(() => {
+    if (!selectedMonth) return 0;
+    const idx = dateColumns.filter((dc) => dc.isMonthlyAgg).findIndex((dc) => dc.month === selectedMonth);
+    return idx >= 0 ? idx : 0;
+  }, [dateColumns, selectedMonth]);
+
   const summary      = useMemo(() => getSummaryRow(rows), [rows]);
-  const chartData    = useMemo(() => buildChartData(rows, dateColumns, viewMode), [rows, dateColumns, viewMode]);
-  const tableCols    = useMemo(() => getTableCols(dateColumns, viewMode), [dateColumns, viewMode]);
-  const prevMonthCol = useMemo(() => getPrevMonthCol(dateColumns), [dateColumns]);
+  const chartData    = useMemo(() => buildChartData(rows, dateColumns, viewMode, monthStartIdx), [rows, dateColumns, viewMode, monthStartIdx]);
+  const tableCols    = useMemo(() => getTableCols(dateColumns, viewMode, monthStartIdx), [dateColumns, viewMode, monthStartIdx]);
+  const prevMonthCol = useMemo(() => getPrevMonthCol(dateColumns, monthStartIdx), [dateColumns, monthStartIdx]);
 
   return (
     <div className="app-shell">
@@ -217,6 +240,23 @@ export default function PerformancePage({ role, name }) {
               </div>
             )}
 
+            {/* ── 실적월 필터 ────────────────────────────────────────────── */}
+            {allMonths.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <span style={{ fontSize: 13, color: 'var(--gray)', fontWeight: 500 }}>실적월</span>
+                <select
+                  value={selectedMonth || ''}
+                  onChange={(e) => setSelectedMonth(e.target.value || null)}
+                  style={{ fontSize: 13, padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--navy)', background: '#fff', cursor: 'pointer' }}
+                >
+                  <option value="">최근 3개월 ({allMonths[0]})</option>
+                  {allMonths.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* ── 뷰 토글 ────────────────────────────────────────────────── */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               {['monthly', 'weekly', 'daily'].map((m) => (
@@ -265,9 +305,9 @@ export default function PerformancePage({ role, name }) {
                       wrapperStyle={{ fontSize: 12, paddingTop: 12 }}
                     />
                     {CHART_METRICS.map((metric) => (
-                      <Bar key={metric} dataKey={metric} fill={METRIC_COLORS[metric]} radius={[3, 3, 0, 0]} maxBarSize={40}>
-                        {/* 대비 경고 슬롯(aqua, yellow)에 직접 라벨 표시 */}
-                        {(metric === '최초컨택수' || metric === 'App가입') && (
+                      <Bar key={metric} dataKey={metric} fill={CHART_COLORS[metric]} radius={[3, 3, 0, 0]} maxBarSize={40}>
+                        {/* contrast WARN 슬롯(aqua, yellow)에 직접 라벨 표시 */}
+                        {(metric === '체결건수' || metric === '원수보험료') && (
                           <LabelList dataKey={metric} position="top" style={{ fontSize: 10, fill: '#52514e' }}
                             formatter={(v) => v === 0 ? '' : v} />
                         )}
