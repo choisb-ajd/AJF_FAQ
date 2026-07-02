@@ -42,14 +42,16 @@ function fmtNum(n) {
 // ─── 차트 데이터 빌드 ─────────────────────────────────────────────────────────
 function buildChartData(rows, dateColumns, viewMode) {
   let activeCols;
+  const monthlyCols = dateColumns.filter((dc) => dc.isMonthlyAgg);
   if (viewMode === 'monthly') {
-    activeCols = dateColumns.filter((dc) => dc.isMonthlyAgg).slice(0, 3);
+    activeCols = monthlyCols.slice(-3);
   } else if (viewMode === 'weekly') {
-    activeCols = dateColumns.filter((dc) => dc.isWeeklyAgg);
+    const top3Months = new Set(monthlyCols.slice(-3).map((dc) => dc.month));
+    activeCols = dateColumns.filter((dc) => dc.isWeeklyAgg && top3Months.has(dc.month));
   } else {
-    // 일별: 최근 14일
     const daily = dateColumns.filter((dc) => dc.isDaily);
-    activeCols = daily.slice(0, 14);
+    const latestMonth = daily.length ? daily[daily.length - 1].month : '';
+    activeCols = latestMonth ? daily.filter((dc) => dc.month === latestMonth) : daily.slice(-31);
   }
   if (!activeCols.length) return [];
 
@@ -75,9 +77,21 @@ function getSummaryRow(rows) {
 
 // ─── 테이블 칼럼 계산 ─────────────────────────────────────────────────────────
 function getTableCols(dateColumns, viewMode) {
-  if (viewMode === 'monthly') return dateColumns.filter((dc) => dc.isMonthlyAgg).slice(0, 3);
-  if (viewMode === 'weekly')  return dateColumns.filter((dc) => dc.isWeeklyAgg).slice(0, 8);
-  return dateColumns.filter((dc) => dc.isDaily).slice(0, 14);
+  const monthlyCols = dateColumns.filter((dc) => dc.isMonthlyAgg);
+  if (viewMode === 'monthly') return monthlyCols.slice(-3);
+  if (viewMode === 'weekly') {
+    const top3Months = new Set(monthlyCols.slice(-3).map((dc) => dc.month));
+    return dateColumns.filter((dc) => dc.isWeeklyAgg && top3Months.has(dc.month));
+  }
+  const daily = dateColumns.filter((dc) => dc.isDaily);
+  const latestMonth = daily.length ? daily[daily.length - 1].month : '';
+  return latestMonth ? daily.filter((dc) => dc.month === latestMonth) : daily.slice(-31);
+}
+
+// ─── 전월 합계 칼럼 (M-1 월집계) ─────────────────────────────────────────────
+function getPrevMonthCol(dateColumns) {
+  const monthlyCols = dateColumns.filter((dc) => dc.isMonthlyAgg);
+  return monthlyCols.length >= 2 ? monthlyCols[monthlyCols.length - 2] : null;
 }
 
 // ─── 커스텀 툴팁 ─────────────────────────────────────────────────────────────
@@ -132,9 +146,10 @@ export default function PerformancePage({ role, name }) {
   }
 
   const { rows, dateColumns } = rawData || { rows: [], dateColumns: [] };
-  const summary    = useMemo(() => getSummaryRow(rows), [rows]);
-  const chartData  = useMemo(() => buildChartData(rows, dateColumns, viewMode), [rows, dateColumns, viewMode]);
-  const tableCols  = useMemo(() => getTableCols(dateColumns, viewMode), [dateColumns, viewMode]);
+  const summary      = useMemo(() => getSummaryRow(rows), [rows]);
+  const chartData    = useMemo(() => buildChartData(rows, dateColumns, viewMode), [rows, dateColumns, viewMode]);
+  const tableCols    = useMemo(() => getTableCols(dateColumns, viewMode), [dateColumns, viewMode]);
+  const prevMonthCol = useMemo(() => getPrevMonthCol(dateColumns), [dateColumns]);
 
   return (
     <div className="app-shell">
@@ -284,31 +299,70 @@ export default function PerformancePage({ role, name }) {
                          viewMode === 'weekly'  ? dc.week  : dc.day}
                       </th>
                     ))}
+                    {viewMode === 'monthly' && tableCols.length >= 2 && (
+                      <th style={{ textAlign: 'right', minWidth: 76, borderLeft: '2px solid var(--border)', background: '#f5f5f3', color: 'var(--gray)', fontSize: 11 }}>
+                        전월대비
+                      </th>
+                    )}
+                    {viewMode !== 'monthly' && prevMonthCol && (
+                      <th style={{ textAlign: 'right', minWidth: 76, borderLeft: '2px solid var(--border)', background: '#f5f5f3', color: 'var(--gray)', fontSize: 11 }}>
+                        전월합계<br /><span style={{ fontSize: 10 }}>{prevMonthCol.month}</span>
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {rows.length === 0 ? (
                     <tr className="empty-row">
-                      <td colSpan={2 + tableCols.length}>실적 데이터가 없습니다.</td>
+                      <td colSpan={99}>실적 데이터가 없습니다.</td>
                     </tr>
                   ) : (
-                    rows.map((row, ri) => (
-                      <tr key={ri}>
-                        <td>{row.group}</td>
-                        <td style={{ color: METRIC_COLORS[row.metric] || 'var(--navy)', fontWeight: 600 }}>
-                          {row.metric}
-                        </td>
-                        {tableCols.map((dc, ci) => {
-                          const globalIdx = dateColumns.indexOf(dc);
-                          const raw = row.dateValues[globalIdx] ?? '';
-                          return (
-                            <td key={ci} style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                              {raw === '' || raw === '-' ? '-' : raw}
+                    rows.map((row, ri) => {
+                      let monthlyDelta = null;
+                      if (viewMode === 'monthly' && tableCols.length >= 2) {
+                        const currVal = parseNum(row.dateValues[dateColumns.indexOf(tableCols[tableCols.length - 1])] ?? '');
+                        const prevVal = parseNum(row.dateValues[dateColumns.indexOf(tableCols[tableCols.length - 2])] ?? '');
+                        monthlyDelta = currVal - prevVal;
+                      }
+                      const prevMonthRaw = prevMonthCol != null
+                        ? (row.dateValues[dateColumns.indexOf(prevMonthCol)] ?? '')
+                        : '';
+                      return (
+                        <tr key={ri}>
+                          <td>{row.group}</td>
+                          <td style={{ color: METRIC_COLORS[row.metric] || 'var(--navy)', fontWeight: 600 }}>
+                            {row.metric}
+                          </td>
+                          {tableCols.map((dc, ci) => {
+                            const globalIdx = dateColumns.indexOf(dc);
+                            const raw = row.dateValues[globalIdx] ?? '';
+                            return (
+                              <td key={ci} style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                                {raw === '' || raw === '-' ? '-' : raw}
+                              </td>
+                            );
+                          })}
+                          {viewMode === 'monthly' && tableCols.length >= 2 && (
+                            <td style={{
+                              textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums',
+                              borderLeft: '2px solid var(--border)', background: '#f5f5f3',
+                              color: monthlyDelta > 0 ? '#008300' : monthlyDelta < 0 ? 'var(--red)' : 'var(--gray)',
+                            }}>
+                              {monthlyDelta === 0 ? '-'
+                                : (monthlyDelta > 0 ? '▲' : '▼') + Math.abs(monthlyDelta).toLocaleString('ko-KR')}
                             </td>
-                          );
-                        })}
-                      </tr>
-                    ))
+                          )}
+                          {viewMode !== 'monthly' && prevMonthCol && (
+                            <td style={{
+                              textAlign: 'right', fontVariantNumeric: 'tabular-nums',
+                              borderLeft: '2px solid var(--border)', background: '#f5f5f3', color: 'var(--gray)',
+                            }}>
+                              {prevMonthRaw === '' || prevMonthRaw === '-' ? '-' : prevMonthRaw}
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
