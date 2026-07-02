@@ -72,7 +72,7 @@ function buildChartData(rows, dateColumns, viewMode, monthStartIdx = 0) {
     const entry = {
       period:
         viewMode === 'monthly' ? dc.month :
-        viewMode === 'weekly'  ? dc.week  : dc.day,
+        viewMode === 'weekly'  ? dc.week.replace(' 소계', '') : dc.day,
     };
     for (const metric of CHART_METRICS) {
       const row = rows.find((r) => r.metric === metric);
@@ -359,7 +359,7 @@ export default function PerformancePage({ role, name }) {
                     {tableCols.map((dc, i) => (
                       <th key={i} style={{ textAlign: 'right', minWidth: 70 }}>
                         {viewMode === 'monthly' ? dc.month :
-                         viewMode === 'weekly'  ? dc.week  : dc.day}
+                         viewMode === 'weekly'  ? dc.week.replace(' 소계', '') : dc.day}
                       </th>
                     ))}
                     {viewMode === 'monthly' && tableCols.length >= 2 && (

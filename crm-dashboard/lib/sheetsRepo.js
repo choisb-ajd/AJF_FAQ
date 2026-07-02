@@ -1218,14 +1218,16 @@ async function readPerformanceDashboard({ useCache = true } = {}) {
     const rawMonth = (monthRow[ci] || '').trim();
     const rawWeek  = (weekRow[ci]  || '').trim();
     const day      = (mainRow[ci]  || '').trim();
-    if (rawMonth) fillMonth = rawMonth;
+    // monthRow에는 "26-07m 계" 같은 월 라벨 외에 "07-27-07-31" 같은 주간 날짜 범위도
+    // 들어올 수 있어 YY-MMm 패턴인 경우에만 fillMonth를 갱신합니다.
+    if (rawMonth && /\d{2}-\d{2}m/.test(rawMonth)) fillMonth = rawMonth;
     if (rawWeek)  fillWeek  = rawWeek;
     if (!rawMonth && !rawWeek && !day) continue;
 
-    // 칼럼 유형: 월계/주소계/일별
+    // 칼럼 유형: 주소계를 일별보다 우선 판별(주소계 칼럼 mainRow에 날짜 범위가 있어도 올바르게 분류)
     const isMonthlyAgg = rawMonth.includes('계') && !rawWeek && !day;
-    const isWeeklyAgg  = rawWeek.includes('소계') && !day;
-    const isDaily      = !!day;
+    const isWeeklyAgg  = rawWeek.includes('소계');
+    const isDaily      = !!day && !isWeeklyAgg && !isMonthlyAgg;
     dateColumns.push({
       ci,
       month:        fillMonth,
