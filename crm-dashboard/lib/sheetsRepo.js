@@ -1183,10 +1183,73 @@ async function readPerformanceDashboard({ useCache = true } = {}) {
     spreadsheetId: ADMIN_SPREADSHEET_ID,
     range: quoteSheetTitle(PERFORMANCE_SHEET_TITLE),
   });
-  const values = res.data.values || [];
-  const headers = values[0] || [];
-  const rows = values.slice(1);
-  const data = { headers, rows };
+  const allValues = res.data.values || [];
+
+  // 행 14 B열에 "매니저" 헤더가 있습니다 (0-indexed: 13번째 행)
+  const hIdx = allValues.findIndex((row) => (row[1] || '').trim() === '매니저');
+  if (hIdx < 2) throw new Error('"매니저" 헤더를 찾을 수 없습니다. (B열에 "매니저" 텍스트 필요)');
+
+  const monthRow = allValues[hIdx - 2] || []; // 월 단위 라벨 행
+  const weekRow  = allValues[hIdx - 1] || []; // 주 단위 라벨 행
+  const mainRow  = allValues[hIdx];           // 고정 칼럼명 + 일별 날짜
+
+  // "구분" 칼럼: 고정 칼럼들의 마지막 칼럼 (이후는 날짜 칼럼)
+  const catColIdx = mainRow.findIndex((h) => (h || '').trim() === '구분');
+  if (catColIdx < 0) throw new Error('"구분" 칼럼을 찾을 수 없습니다.');
+
+  // 고정 칼럼 인덱스 (헤더에서 이름으로 탐색)
+  const CI = {
+    manager:  1, // B열 고정
+    group:    mainRow.findIndex((h, i) => i > 1 && (h || '').trim() === '그룹'),
+    totalDB:  mainRow.findIndex((h) => (h || '').trim().includes('총DB')),
+    appJoin:  mainRow.findIndex((h) => (h || '').trim() === 'App가입'),
+    prev60:   mainRow.findIndex((h) => (h || '').trim().includes('60')),
+    prev90:   mainRow.findIndex((h) => (h || '').trim().includes('90')),
+    category: catColIdx,
+  };
+
+  // 날짜 칼럼 구성 (구분 칼럼 이후, 병합셀 fill-forward 처리)
+  const dateColumns = [];
+  let fillMonth = '', fillWeek = '';
+  for (let ci = catColIdx + 1; ci < mainRow.length; ci++) {
+    const rawMonth = (monthRow[ci] || '').trim();
+    const rawWeek  = (weekRow[ci]  || '').trim();
+    const day      = (mainRow[ci]  || '').trim();
+    if (rawMonth) fillMonth = rawMonth;
+    if (rawWeek)  fillWeek  = rawWeek;
+    if (!rawMonth && !rawWeek && !day) continue;
+
+    // 칼럼 유형: 월계/주소계/일별
+    const isMonthlyAgg = rawMonth.includes('계') && !rawWeek && !day;
+    const isWeeklyAgg  = rawWeek.includes('소계') && !day;
+    const isDaily      = !!day;
+    dateColumns.push({
+      ci,
+      month:        fillMonth,
+      week:         fillWeek,
+      day,
+      isMonthlyAgg,
+      isWeeklyAgg,
+      isDaily,
+    });
+  }
+
+  // 데이터 행: 헤더 행 +2 부터 (필터 행 1개 skip)
+  const dataRows = allValues
+    .slice(hIdx + 2)
+    .map((row) => ({
+      manager: (row[CI.manager]  || '').trim(),
+      group:   (CI.group >= 0 ? row[CI.group]    : row[2]) && (CI.group >= 0 ? row[CI.group] : row[2]).trim() || '',
+      totalDB: (CI.totalDB >= 0 ? row[CI.totalDB] : row[3]) && String(CI.totalDB >= 0 ? row[CI.totalDB] : row[3]).trim() || '',
+      appJoin: (CI.appJoin >= 0 ? row[CI.appJoin] : row[4]) && String(CI.appJoin >= 0 ? row[CI.appJoin] : row[4]).trim() || '',
+      prev60:  (CI.prev60 >= 0 ? row[CI.prev60]  : row[5]) && String(CI.prev60 >= 0 ? row[CI.prev60] : row[5]).trim() || '',
+      prev90:  (CI.prev90 >= 0 ? row[CI.prev90]  : row[6]) && String(CI.prev90 >= 0 ? row[CI.prev90] : row[6]).trim() || '',
+      metric:  (row[CI.category] || '').trim(),
+      dateValues: dateColumns.map((dc) => (row[dc.ci] || '').trim()),
+    }))
+    .filter((r) => r.manager);
+
+  const data = { dateColumns, dataRows };
   performanceCache = { expires: Date.now() + CACHE_TTL_MS, data };
   return data;
 }
