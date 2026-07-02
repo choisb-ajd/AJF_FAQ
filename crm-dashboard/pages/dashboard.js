@@ -836,17 +836,9 @@ function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onS
           {message && <div className={`modal-message ${message.type}`}>{message.text}</div>}
 
           <div className="modal-header-grid">
-            {isAdmin ? (
-              <FieldInput fieldKey="group" value={form.group} onChange={update} />
-            ) : (
-              <ReadOnlyField label={FIELD_META.group.label} value={row.group} />
-            )}
-            {isAdmin ? (
-              <FieldInput fieldKey="brand" value={form.brand} onChange={update} />
-            ) : (
-              <ReadOnlyField label={FIELD_META.brand.label} value={row.brand} />
-            )}
-            <ReadOnlyField label="지점/대리점" value={row.branch} />
+            <FieldInput fieldKey="group" value={form.group} onChange={update} />
+            <FieldInput fieldKey="brand" value={form.brand} onChange={update} />
+            <FieldInput fieldKey="branch" value={form.branch} onChange={update} />
             <FieldInput fieldKey="name" value={form.name} onChange={update} />
             <FieldInput fieldKey="phone" value={form.phone} onChange={update} />
             <FieldInput fieldKey="contacted" value={form.contacted} onChange={update} />

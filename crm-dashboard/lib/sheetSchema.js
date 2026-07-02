@@ -59,6 +59,9 @@ const DISPLAY_COLUMNS = [
 const MANAGER_EDITABLE = [
   'name',
   'phone',
+  'group',
+  'brand',
+  'branch',
   'contacted',
   'firstContactDate',
   'reContactDate',
@@ -70,11 +73,8 @@ const MANAGER_EDITABLE = [
 
 // 관리자 권한에서만 추가로 수정 가능한 필드 (매니저 수정 가능 필드 + 아래 항목)
 const ADMIN_ONLY_EDITABLE = [
-  'group',
-  'brand',
   'wideInsta',
   'region',
-  'branch',
   'manager',
   'assignedDate',
   'priorityDealer',
