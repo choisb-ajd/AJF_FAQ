@@ -49,6 +49,13 @@ function fmtNum(n) {
 // "26-07m 계" → "26-07", "26-07m" → "26-07"
 const monthPrefix = (s) => (s || '').match(/\d{2}-\d{2}/)?.[0] ?? '';
 
+// "07-27-07-31" → "07/27~07/31"
+function fmtWeekRange(wr) {
+  if (!wr) return '';
+  const m = wr.match(/^(\d{2})-(\d{2})-(\d{2})-(\d{2})$/);
+  return m ? `${m[1]}/${m[2]}~${m[3]}/${m[4]}` : wr;
+}
+
 // ─── 차트 데이터 빌드 ─────────────────────────────────────────────────────────
 function buildChartData(rows, dateColumns, viewMode, monthStartIdx = 0) {
   let activeCols;
@@ -72,7 +79,8 @@ function buildChartData(rows, dateColumns, viewMode, monthStartIdx = 0) {
     const entry = {
       period:
         viewMode === 'monthly' ? dc.month :
-        viewMode === 'weekly'  ? dc.week.replace(' 소계', '') : dc.day,
+        viewMode === 'weekly'  ? (fmtWeekRange(dc.weekRange) || dc.week.replace(' 소계', ''))
+        : dc.day,
     };
     for (const metric of CHART_METRICS) {
       const row = rows.find((r) => r.metric === metric);
@@ -298,9 +306,13 @@ export default function PerformancePage({ role, name }) {
                     <CartesianGrid strokeDasharray="3 3" stroke="#e1e0d9" vertical={false} />
                     <XAxis
                       dataKey="period"
-                      tick={{ fontSize: 11, fill: '#898781' }}
+                      tick={{ fontSize: viewMode === 'weekly' ? 10 : 11, fill: '#898781' }}
                       axisLine={{ stroke: '#c3c2b7' }}
                       tickLine={false}
+                      angle={viewMode === 'weekly' ? -40 : 0}
+                      textAnchor={viewMode === 'weekly' ? 'end' : 'middle'}
+                      height={viewMode === 'weekly' ? 56 : 30}
+                      interval={0}
                     />
                     <YAxis
                       tick={{ fontSize: 11, fill: '#898781' }}
@@ -357,9 +369,18 @@ export default function PerformancePage({ role, name }) {
                     <th style={{ minWidth: 72 }}>그룹</th>
                     <th style={{ minWidth: 88 }}>구분</th>
                     {tableCols.map((dc, i) => (
-                      <th key={i} style={{ textAlign: 'right', minWidth: 70 }}>
+                      <th key={i} style={{ textAlign: 'right', minWidth: viewMode === 'weekly' ? 90 : 70 }}>
                         {viewMode === 'monthly' ? dc.month :
-                         viewMode === 'weekly'  ? dc.week.replace(' 소계', '') : dc.day}
+                         viewMode === 'weekly' ? (
+                           <>
+                             {dc.week.replace(' 소계', '')}
+                             {fmtWeekRange(dc.weekRange) && (
+                               <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--gray)', whiteSpace: 'nowrap' }}>
+                                 {fmtWeekRange(dc.weekRange)}
+                               </div>
+                             )}
+                           </>
+                         ) : dc.day}
                       </th>
                     ))}
                     {viewMode === 'monthly' && tableCols.length >= 2 && (

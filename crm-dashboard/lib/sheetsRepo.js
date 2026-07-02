@@ -1228,11 +1228,14 @@ async function readPerformanceDashboard({ useCache = true } = {}) {
     const isMonthlyAgg = rawMonth.includes('계') && !rawWeek && !day;
     const isWeeklyAgg  = rawWeek.includes('소계');
     const isDaily      = !!day && !isWeeklyAgg && !isMonthlyAgg;
+    // 주소계 칼럼의 monthRow에 있는 날짜 범위(예: "07-27-07-31")를 보관합니다.
+    const weekRange = isWeeklyAgg && rawMonth && !/\d{2}-\d{2}m/.test(rawMonth) ? rawMonth : '';
     dateColumns.push({
       ci,
       month:        fillMonth,
       week:         fillWeek,
       day,
+      weekRange,
       isMonthlyAgg,
       isWeeklyAgg,
       isDaily,
