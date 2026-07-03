@@ -13,6 +13,40 @@ const FIELD_META = Object.fromEntries(RENEWAL_FIELDS.map((f) => [f.key, f]));
 const DATE_KEYS = ['assignedDate', 'expiryDate', 'dealerLastContractDate'];
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
 
+// 갱신배정 표: 주민번호까지 열고정
+const FROZEN_RENEWAL_KEY_SET = new Set(['renewalMonth', 'assignedDate', 'assignOrder', 'manager', 'customerName', 'residentNumber']);
+
+const RENEWAL_COL_WIDTHS = {
+  renewalMonth: 80,
+  assignedDate: 100,
+  assignOrder: 80,
+  manager: 120,
+  customerName: 100,
+  residentNumber: 120,
+  phone: 130,
+  carNumber: 110,
+  expiryDate: 110,
+  insurer: 120,
+  dealerContact: 120,
+  dealerName: 110,
+  dealerType: 90,
+  dealerRecent60d: 130,
+  dealerLastContractDate: 130,
+};
+
+function maskPhone(phone) {
+  if (!phone) return '-';
+  return String(phone).replace(/(\d{4})$/, '****');
+}
+
+function maskResidentNumber(num) {
+  if (!num) return '-';
+  const clean = String(num).replace(/[\s-]/g, '');
+  const front = clean.slice(0, 6);
+  if (!front) return '-';
+  return `${front}-*`;
+}
+
 function buildPageList(current, total) {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
   if (current <= 4) return [1, 2, 3, 4, 5, '...', total];
@@ -225,6 +259,17 @@ export default function RenewalRegistry({ isAdmin, name }) {
 
   const visibleColumns = RENEWAL_FIELDS.filter((f) => (isAdmin || !f.adminOnly) && f.key !== 'callHistory');
 
+  const frozenLefts = useMemo(() => {
+    const result = {};
+    let acc = 0;
+    for (const c of visibleColumns) {
+      if (!FROZEN_RENEWAL_KEY_SET.has(c.key)) break;
+      result[c.key] = acc;
+      acc += RENEWAL_COL_WIDTHS[c.key] || 100;
+    }
+    return result;
+  }, [visibleColumns]);
+
   return (
     <>
       <div className="filters-card">
@@ -275,14 +320,29 @@ export default function RenewalRegistry({ isAdmin, name }) {
           <div className="count">검색된 건수: {filtered.length.toLocaleString()}건</div>
           <div className="table-wrap">
             <table className="resizable-table">
+              <colgroup>
+                {visibleColumns.map((c) => (
+                  <col key={c.key} style={{ width: RENEWAL_COL_WIDTHS[c.key] || 100 }} />
+                ))}
+              </colgroup>
               <thead>
                 <tr>
-                  {visibleColumns.map((c) => (
-                    <th key={c.key} onClick={() => toggleSort(c.key)} style={{ cursor: 'pointer' }}>
-                      {c.label}
-                      {sortKey === c.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
-                    </th>
-                  ))}
+                  {visibleColumns.map((c) => {
+                    const isFrozen = FROZEN_RENEWAL_KEY_SET.has(c.key);
+                    return (
+                      <th
+                        key={c.key}
+                        onClick={() => toggleSort(c.key)}
+                        style={{
+                          cursor: 'pointer',
+                          ...(isFrozen ? { position: 'sticky', left: frozenLefts[c.key], zIndex: 6, background: '#FAFBFD' } : {}),
+                        }}
+                      >
+                        {c.label}
+                        {sortKey === c.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -295,9 +355,18 @@ export default function RenewalRegistry({ isAdmin, name }) {
                     <tr key={row.rowNumber} onClick={() => openEdit(row)}>
                       {visibleColumns.map((c) => {
                         const val = row.values[c.key];
-                        const display = DATE_KEYS.includes(c.key) ? formatDateDisplay(val) : val;
+                        const rawDisplay = DATE_KEYS.includes(c.key) ? formatDateDisplay(val) : val;
+                        let display = rawDisplay;
+                        if (c.key === 'residentNumber') display = maskResidentNumber(val);
+                        else if (c.key === 'phone' || c.key === 'dealerContact') display = maskPhone(val);
+                        const isFrozen = FROZEN_RENEWAL_KEY_SET.has(c.key);
                         return (
-                          <td key={c.key} title={display}>
+                          <td
+                            key={c.key}
+                            title={rawDisplay}
+                            className={isFrozen ? 'frozen-cell' : undefined}
+                            style={isFrozen ? { position: 'sticky', left: frozenLefts[c.key], zIndex: 1 } : undefined}
+                          >
                             {c.key === 'dealerRecent60d' ? <Badge value={val} /> : (display || '-')}
                           </td>
                         );

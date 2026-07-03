@@ -60,23 +60,25 @@ export default function AccountsPage({ role, name }) {
     <div className="app-shell">
       <FaqWidget isAdmin={role === '관리자'} />
       <div className="topbar">
-        <div className="topbar-left">
-          <span className="topbar-title">My Dealer</span>
-          <span className="topbar-badge">{role}</span>
-          <nav className="topbar-nav">
-            <Link className="topbar-nav-link" href="/dashboard">회원관리</Link>
-            {REF_SHEETS.filter((s) => !s.hiddenFromNav).map((s) => (
-              <Link key={s.key} className="topbar-nav-link" href={`/sheet/${s.key}`}>{s.label}</Link>
-            ))}
-            <Link className="topbar-nav-link active" href="/accounts">계정관리</Link>
-          </nav>
+        <div className="topbar-main">
+          <div className="topbar-left">
+            <span className="topbar-title">My Dealer</span>
+            <span className="topbar-badge">{role}</span>
+            <nav className="topbar-nav">
+              <Link className="topbar-nav-link" href="/dashboard">회원관리</Link>
+              {REF_SHEETS.filter((s) => !s.hiddenFromNav).map((s) => (
+                <Link key={s.key} className="topbar-nav-link" href={`/sheet/${s.key}`}>{s.label}</Link>
+              ))}
+              <Link className="topbar-nav-link active" href="/accounts">계정관리</Link>
+            </nav>
+          </div>
+          <div className="topbar-right">
+            <span className="topbar-user">{name}님</span>
+            <button className="logout-btn" onClick={() => setChangingPassword(true)}>비밀번호 변경</button>
+            <button className="logout-btn" onClick={handleLogout}>로그아웃</button>
+          </div>
         </div>
         <Announcement isAdmin={role === '관리자'} />
-        <div className="topbar-right">
-          <span className="topbar-user">{name}님</span>
-          <button className="logout-btn" onClick={() => setChangingPassword(true)}>비밀번호 변경</button>
-          <button className="logout-btn" onClick={handleLogout}>로그아웃</button>
-        </div>
       </div>
 
       <div className="page-body">

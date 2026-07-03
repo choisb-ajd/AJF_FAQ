@@ -79,6 +79,8 @@ export default function Announcement({ isAdmin }) {
     );
   }
 
+  if (!text && !isAdmin) return null;
+
   return (
     <div className={`topbar-announcement${isAdmin ? ' admin' : ''}`} onClick={isAdmin ? startEdit : undefined}>
       <span className="topbar-announcement-icon">📢</span>

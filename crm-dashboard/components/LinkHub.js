@@ -1,7 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { getEntry, fetchAndCache, mergeEntry } from '../lib/dataCache';
 
 const LINKHUB_KEY = 'link-hub';
+
+function CopyButton({ url }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = useCallback(() => {
+    if (!url) return;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }).catch(() => {});
+  }, [url]);
+  return (
+    <button type="button" className="linkhub-copy-btn" onClick={handleCopy} disabled={copied || !url}>
+      {copied ? '복사됨 ✓' : '링크 복사'}
+    </button>
+  );
+}
 
 const SECTIONS = [
   { id: 'internal', title: '사내 업무 링크' },
@@ -429,24 +445,34 @@ function InsurerLinksPanel({ isAdmin, entries, setEntries, showToast }) {
 
   function renderUrlCell(entry) {
     return (
-      <>
-        <div className="linkhub-url-row">
-          <span className="linkhub-url-label">PC</span>
-          {entry.cmUrlPc ? (
-            <a href={entry.cmUrlPc} target="_blank" rel="noreferrer">링크 바로가기</a>
-          ) : (
-            <span className="notepad-empty">미등록</span>
-          )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '6px 8px', background: '#F4F8FF', borderRadius: 6, border: '1px solid #D6E6FF' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#2a5ab7', marginBottom: 2 }}>🖥 PC</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {entry.cmUrlPc ? (
+              <>
+                <a href={entry.cmUrlPc} target="_blank" rel="noreferrer" className="linkhub-url-row" style={{ margin: 0 }}>바로가기</a>
+                <CopyButton url={entry.cmUrlPc} />
+              </>
+            ) : (
+              <span className="notepad-empty">미등록</span>
+            )}
+          </div>
         </div>
-        <div className="linkhub-url-row">
-          <span className="linkhub-url-label">모바일</span>
-          {entry.cmUrlMobile ? (
-            <a href={entry.cmUrlMobile} target="_blank" rel="noreferrer">링크 바로가기</a>
-          ) : (
-            <span className="notepad-empty">미등록</span>
-          )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '6px 8px', background: '#F3FBF6', borderRadius: 6, border: '1px solid #C3EDD5' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#1a7f4a', marginBottom: 2 }}>📱 모바일</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {entry.cmUrlMobile ? (
+              <>
+                <a href={entry.cmUrlMobile} target="_blank" rel="noreferrer" className="linkhub-url-row" style={{ margin: 0 }}>바로가기</a>
+                <CopyButton url={entry.cmUrlMobile} />
+              </>
+            ) : (
+              <span className="notepad-empty">미등록</span>
+            )}
+          </div>
         </div>
-      </>
+      </div>
     );
   }
 
