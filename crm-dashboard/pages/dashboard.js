@@ -77,6 +77,15 @@ const FIELD_META = {
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
 
+// 회원관리 표: 지점/대리점까지 열고정 (첫 6칼럼)
+const FROZEN_KEYS = ['name', 'phone', 'manager', 'group', 'brand', 'branch'];
+const FROZEN_KEY_SET = new Set(FROZEN_KEYS);
+
+function maskPhone(phone) {
+  if (!phone) return '-';
+  return String(phone).replace(/(\d{4})$/, '****');
+}
+
 // 현재 페이지를 기준으로 "1 2 3 4 5 ... 85" 같은 페이지 번호 목록을 만듭니다.
 // 페이지 수가 적으면 전부 보여주고, 많으면 앞/뒤 또는 현재 위치 주변만 보여주고 가운데는 '...'로 줄입니다.
 function buildPageList(current, total) {
@@ -495,33 +504,46 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
 
   const visibleColumns = DISPLAY_COLUMNS.filter((c) => isAdmin || !c.adminOnly);
 
+  // 각 열고정 칼럼의 left 위치를 누적 너비로 계산합니다.
+  const frozenLefts = useMemo(() => {
+    const result = {};
+    let acc = isAdmin ? 40 : 0; // 관리자는 체크박스 칼럼(40px) 선행
+    for (const key of FROZEN_KEYS) {
+      result[key] = acc;
+      acc += colWidths[key] || DEFAULT_COL_WIDTHS[key] || DEFAULT_COL_WIDTH;
+    }
+    return result;
+  }, [isAdmin, colWidths]);
+
   return (
     <div className="app-shell">
       <FaqWidget isAdmin={isAdmin} />
       <div className="topbar">
-        <div className="topbar-left">
-          <span className="topbar-title">My Dealer</span>
-          <span className="topbar-badge">{role}</span>
-          <nav className="topbar-nav">
-            <Link className="topbar-nav-link active" href="/dashboard">회원관리</Link>
-            {REF_SHEETS.filter((s) => !s.hiddenFromNav).map((s) => (
-              <Link key={s.key} className="topbar-nav-link" href={`/sheet/${s.key}`}>{s.label}</Link>
-            ))}
-            {!isAdmin && <Link className="topbar-nav-link" href="/performance">실적현황</Link>}
-            {isAdmin && <Link className="topbar-nav-link" href="/accounts">계정관리</Link>}
-          </nav>
+        <div className="topbar-main">
+          <div className="topbar-left">
+            <span className="topbar-title">My Dealer</span>
+            <span className="topbar-badge">{role}</span>
+            <nav className="topbar-nav">
+              <Link className="topbar-nav-link active" href="/dashboard">회원관리</Link>
+              {REF_SHEETS.filter((s) => !s.hiddenFromNav).map((s) => (
+                <Link key={s.key} className="topbar-nav-link" href={`/sheet/${s.key}`}>{s.label}</Link>
+              ))}
+              {!isAdmin && <Link className="topbar-nav-link" href="/performance">실적현황</Link>}
+              {isAdmin && <Link className="topbar-nav-link" href="/accounts">계정관리</Link>}
+            </nav>
+          </div>
+          <div className="topbar-right">
+            {adminSheetUrl && (
+              <a className="logout-btn" href={adminSheetUrl} target="_blank" rel="noreferrer">
+                구글 시트 원본 열기
+              </a>
+            )}
+            <span className="topbar-user">{name}님</span>
+            <button className="logout-btn" onClick={() => setChangingPassword(true)}>비밀번호 변경</button>
+            <button className="logout-btn" onClick={handleLogout}>로그아웃</button>
+          </div>
         </div>
         <Announcement isAdmin={isAdmin} />
-        <div className="topbar-right">
-          {adminSheetUrl && (
-            <a className="logout-btn" href={adminSheetUrl} target="_blank" rel="noreferrer">
-              구글 시트 원본 열기
-            </a>
-          )}
-          <span className="topbar-user">{name}님</span>
-          <button className="logout-btn" onClick={() => setChangingPassword(true)}>비밀번호 변경</button>
-          <button className="logout-btn" onClick={handleLogout}>로그아웃</button>
-        </div>
       </div>
 
       <div className="page-body">
@@ -638,7 +660,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                 <thead>
                   <tr>
                     {isAdmin && (
-                      <th style={{ width: 40, textAlign: 'center', padding: '0 8px' }}>
+                      <th style={{ width: 40, textAlign: 'center', padding: '0 8px', position: 'sticky', left: 0, zIndex: 6, background: '#FAFBFD' }}>
                         <input
                           type="checkbox"
                           title="전체 선택 (현재 필터 기준)"
@@ -653,17 +675,27 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                         />
                       </th>
                     )}
-                    {visibleColumns.map((c) => (
-                      <th key={c.key} onClick={() => toggleSort(c.key)} style={{ cursor: 'pointer' }}>
-                        {c.label}
-                        {sortKey === c.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
-                        <span
-                          className="col-resize-handle"
-                          onMouseDown={(e) => startColumnResize(e, c.key)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </th>
-                    ))}
+                    {visibleColumns.map((c) => {
+                      const isFrozen = FROZEN_KEY_SET.has(c.key);
+                      return (
+                        <th
+                          key={c.key}
+                          onClick={() => toggleSort(c.key)}
+                          style={{
+                            cursor: 'pointer',
+                            ...(isFrozen ? { position: 'sticky', left: frozenLefts[c.key], zIndex: 6, background: '#FAFBFD' } : {}),
+                          }}
+                        >
+                          {c.label}
+                          {sortKey === c.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+                          <span
+                            className="col-resize-handle"
+                            onMouseDown={(e) => startColumnResize(e, c.key)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </th>
+                      );
+                    })}
                     <th></th>
                   </tr>
                 </thead>
@@ -677,7 +709,8 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                       <tr key={row.phone + row.rowNumber} onClick={() => openEdit(row)}>
                         {isAdmin && (
                           <td
-                            style={{ textAlign: 'center', padding: '0 8px' }}
+                            className="frozen-cell"
+                            style={{ textAlign: 'center', padding: '0 8px', position: 'sticky', left: 0, zIndex: 1 }}
                             onClick={(e) => e.stopPropagation()}
                           >
                             <input
@@ -697,9 +730,16 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                         {visibleColumns.map((c) => {
                           const val = row[c.key];
                           const isBadgeField = ['contacted', 'smsSent', 'priorityDealer', 'highEfficiency', 'contactSentiment'].includes(c.key);
-                          const display = DATE_DISPLAY_KEYS.includes(c.key) ? formatDateDisplay(val) : val;
+                          const rawDisplay = DATE_DISPLAY_KEYS.includes(c.key) ? formatDateDisplay(val) : val;
+                          const display = c.key === 'phone' ? maskPhone(val) : rawDisplay;
+                          const isFrozen = FROZEN_KEY_SET.has(c.key);
                           return (
-                            <td key={c.key} title={display}>
+                            <td
+                              key={c.key}
+                              title={rawDisplay}
+                              className={isFrozen ? 'frozen-cell' : undefined}
+                              style={isFrozen ? { position: 'sticky', left: frozenLefts[c.key], zIndex: 1 } : undefined}
+                            >
                               {isBadgeField ? <Badge value={val} /> : (display || '-')}
                             </td>
                           );

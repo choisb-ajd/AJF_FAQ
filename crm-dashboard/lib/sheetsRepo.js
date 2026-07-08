@@ -1,4 +1,5 @@
 const { getSheetsClient } = require('./googleAuth');
+const crypto = require('crypto');
 const {
   buildColumnMap,
   rowArrayToValues,
@@ -53,6 +54,9 @@ let renewalCache = null; // { expires, data }
 let accountsCache = null; // { expires, accounts }
 let announcementCache = null; // { expires, text }
 let performanceCache = null; // { expires, data }
+// 병합·정렬·ETag까지 마친 최종 결과 캐시. 캐시 HIT 시 이 세 연산을 전부 건너뜁니다.
+let adminResultCache = null;     // { expires, sheetTitle, columnMap, rows, etag }
+let adminRebuildInFlight = null; // 동시 재빌드 중복 방지용 Promise
 
 const PERFORMANCE_SHEET_TITLE = '관리_컨택 대시보드';
 
@@ -112,6 +116,11 @@ async function readSheetRows(spreadsheetId, { useCache = true } = {}) {
 
 function invalidateCache(spreadsheetId) {
   sheetDataCache.delete(spreadsheetId);
+  if (spreadsheetId === ADMIN_SPREADSHEET_ID) {
+    adminResultCache = null;
+    // 쓰기 직후 백그라운드에서 미리 정렬+해싱까지 끝내둠 → 다음 읽기는 즉시 HIT
+    rebuildAdminResultCache().catch((e) => console.error('admin result cache 재빌드 실패:', e));
+  }
 }
 
 // 시트를 그대로 웹페이지에 심는 화면(REF_SHEETS)용: 의미별 컬럼 매핑 없이 셀 위치 그대로 읽고/씁니다.
@@ -771,9 +780,42 @@ function ensureManagerSync() {
   return managerSyncInFlight;
 }
 
+// 최종 결과(병합 완료 rows + ETag)를 adminResultCache에 채웁니다.
+// 동시에 여러 요청이 이 함수를 호출해도 Google API는 한 번만 호출됩니다.
+async function rebuildAdminResultCache() {
+  if (adminRebuildInFlight) return adminRebuildInFlight;
+  adminRebuildInFlight = (async () => {
+    const data = await readSheetRows(ADMIN_SPREADSHEET_ID, { useCache: false });
+    const rows = data.rows.slice().sort((a, b) => a.rowNumber - b.rowNumber);
+    const payload = rows.map((r) => ({ ...r.values, rowNumber: r.rowNumber }));
+    const etag = '"' + crypto.createHash('md5').update(JSON.stringify(payload)).digest('hex') + '"';
+    adminResultCache = { expires: Date.now() + CACHE_TTL_MS, sheetTitle: data.sheetTitle, columnMap: data.columnMap, rows, etag };
+  })().catch((e) => {
+    console.error('admin result cache 재빌드 실패:', e);
+    adminResultCache = null;
+  }).finally(() => {
+    adminRebuildInFlight = null;
+  });
+  return adminRebuildInFlight;
+}
+
 async function getAdminRows({ useCache = true } = {}) {
+  // HIT: 정렬·병합·해싱 전부 건너뜀
+  if (useCache && adminResultCache && adminResultCache.expires > Date.now()) {
+    return adminResultCache;
+  }
+  // stale-while-revalidate: 만료된 캐시가 있으면 즉시 반환하고 백그라운드에서 갱신
+  // → 관리자는 최대 1 TTL(2분) 낡은 데이터를 보지만 로딩은 항상 즉시 완료됨
+  if (useCache && adminResultCache) {
+    ensureManagerSync().catch((e) => console.error('백그라운드 sync 실패:', e));
+    return adminResultCache;
+  }
+  // 캐시 없음(첫 로드 또는 force): 동기 대기 — 병렬화로 최소화
   await ensureManagerSync();
-  return readSheetRows(ADMIN_SPREADSHEET_ID, { useCache });
+  if (!adminResultCache || adminResultCache.expires <= Date.now()) {
+    await rebuildAdminResultCache();
+  }
+  return adminResultCache;
 }
 
 // "계정관리" 탭: 아이디 | 비밀번호 | 이름 | 권한 | 개인시트URL | 비고 | 실패횟수 | 잠김여부
@@ -994,8 +1036,11 @@ async function syncManagerSheetsIntoAdmin() {
     if (now - ts > MANAGER_SYNC_INTERVAL_MS * 2) appRecentlyUpdated.delete(p);
   }
 
-  const admin = await readSheetRows(ADMIN_SPREADSHEET_ID, { useCache: false });
-  const accounts = await getAccountsConfig({ useCache: false });
+  // 관리자 시트와 계정 목록을 병렬로 읽음 (순서 의존 없음)
+  const [admin, accounts] = await Promise.all([
+    readSheetRows(ADMIN_SPREADSHEET_ID, { useCache: false }),
+    getAccountsConfig({ useCache: false }),
+  ]);
   const managers = accounts.filter((a) => a.role === '매니저' && a.sheetUrl);
 
   const adminByPhone = new Map();
@@ -1008,17 +1053,23 @@ async function syncManagerSheetsIntoAdmin() {
   const updateData = [];
   const newRows = [];
 
-  for (const manager of managers) {
-    const spreadsheetId = extractSpreadsheetId(manager.sheetUrl);
-    if (!spreadsheetId) continue;
+  // 모든 매니저 시트를 병렬로 읽음 — 직렬 대비 N배 단축 (12명이면 ~10s→~10s/N)
+  const sheetResults = await Promise.allSettled(
+    managers.map(async (manager) => {
+      const spreadsheetId = extractSpreadsheetId(manager.sheetUrl);
+      if (!spreadsheetId) return null;
+      const mgrSheet = await readSheetRows(spreadsheetId, { useCache: false });
+      return { manager, mgrSheet };
+    })
+  );
 
-    let mgrSheet;
-    try {
-      mgrSheet = await readSheetRows(spreadsheetId, { useCache: false });
-    } catch (e) {
-      console.error(`매니저 '${manager.name}' 개별 시트를 읽지 못했습니다:`, e.message);
+  for (const result of sheetResults) {
+    if (result.status === 'rejected') {
+      console.error('매니저 시트를 읽지 못했습니다:', result.reason?.message);
       continue;
     }
+    if (!result.value) continue;
+    const { manager, mgrSheet } = result.value;
 
     for (const mgrRow of mgrSheet.rows) {
       const phone = normalizePhone(mgrRow.values.phone);
@@ -1082,8 +1133,11 @@ async function syncManagerSheetsIntoAdmin() {
   }
 
   if (updateData.length > 0 || newRows.length > 0) {
-    invalidateCache(ADMIN_SPREADSHEET_ID);
+    sheetDataCache.delete(ADMIN_SPREADSHEET_ID);
+    adminResultCache = null;
   }
+  // 동기화 완료 시점에 정렬+ETag까지 미리 계산해 캐시에 넣음 → 다음 읽기는 즉시 HIT
+  await rebuildAdminResultCache();
 
   return { updatedFields: updateData.length, appendedRows: newRows.length };
 }

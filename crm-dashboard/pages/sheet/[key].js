@@ -144,35 +144,37 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
     <div className="app-shell">
       {!isNotepad && <FaqWidget isAdmin={isAdmin} />}
       <div className="topbar">
-        <div className="topbar-left">
-          <span className="topbar-title">My Dealer</span>
-          <span className="topbar-badge">{role}</span>
-          <nav className="topbar-nav">
-            <Link className="topbar-nav-link" href="/dashboard">회원관리</Link>
-            {REF_SHEETS.filter((s) => !s.hiddenFromNav).map((s) => (
-              <Link
-                key={s.key}
-                className={`topbar-nav-link${s.key === sheetKey ? ' active' : ''}`}
-                href={`/sheet/${s.key}`}
-              >
-                {s.label}
-              </Link>
-            ))}
-            {!isAdmin && <Link className="topbar-nav-link" href="/performance">실적현황</Link>}
-            {isAdmin && <Link className="topbar-nav-link" href="/accounts">계정관리</Link>}
-          </nav>
+        <div className="topbar-main">
+          <div className="topbar-left">
+            <span className="topbar-title">My Dealer</span>
+            <span className="topbar-badge">{role}</span>
+            <nav className="topbar-nav">
+              <Link className="topbar-nav-link" href="/dashboard">회원관리</Link>
+              {REF_SHEETS.filter((s) => !s.hiddenFromNav).map((s) => (
+                <Link
+                  key={s.key}
+                  className={`topbar-nav-link${s.key === sheetKey ? ' active' : ''}`}
+                  href={`/sheet/${s.key}`}
+                >
+                  {s.label}
+                </Link>
+              ))}
+              {!isAdmin && <Link className="topbar-nav-link" href="/performance">실적현황</Link>}
+              {isAdmin && <Link className="topbar-nav-link" href="/accounts">계정관리</Link>}
+            </nav>
+          </div>
+          <div className="topbar-right">
+            {sheetUrl && (
+              <a className="logout-btn" href={sheetUrl} target="_blank" rel="noreferrer">
+                구글 시트 원본 열기
+              </a>
+            )}
+            <span className="topbar-user">{name}님</span>
+            <button className="logout-btn" onClick={() => setChangingPassword(true)}>비밀번호 변경</button>
+            <button className="logout-btn" onClick={handleLogout}>로그아웃</button>
+          </div>
         </div>
         <Announcement isAdmin={isAdmin} />
-        <div className="topbar-right">
-          {sheetUrl && (
-            <a className="logout-btn" href={sheetUrl} target="_blank" rel="noreferrer">
-              구글 시트 원본 열기
-            </a>
-          )}
-          <span className="topbar-user">{name}님</span>
-          <button className="logout-btn" onClick={() => setChangingPassword(true)}>비밀번호 변경</button>
-          <button className="logout-btn" onClick={handleLogout}>로그아웃</button>
-        </div>
       </div>
 
       <div className="page-body">
