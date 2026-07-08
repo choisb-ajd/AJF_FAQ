@@ -800,21 +800,19 @@ async function rebuildAdminResultCache() {
 }
 
 async function getAdminRows({ useCache = true } = {}) {
-  // HIT: 정렬·병합·해싱 전부 건너뜀
+  // 캐시 유효 → 즉시 반환
   if (useCache && adminResultCache && adminResultCache.expires > Date.now()) {
     return adminResultCache;
   }
-  // stale-while-revalidate: 만료된 캐시가 있으면 즉시 반환하고 백그라운드에서 갱신
-  // → 관리자는 최대 1 TTL(2분) 낡은 데이터를 보지만 로딩은 항상 즉시 완료됨
+  // 만료된 캐시 있음 → 즉시 반환 + 백그라운드 sync (stale-while-revalidate)
   if (useCache && adminResultCache) {
     ensureManagerSync().catch((e) => console.error('백그라운드 sync 실패:', e));
     return adminResultCache;
   }
-  // 캐시 없음(첫 로드 또는 force): 동기 대기 — 병렬화로 최소화
-  await ensureManagerSync();
-  if (!adminResultCache || adminResultCache.expires <= Date.now()) {
-    await rebuildAdminResultCache();
-  }
+  // 캐시 없음(cold start / force): 관리자 시트만 빠르게 읽고 즉시 반환
+  // sync는 절대 읽기 경로를 막지 않음 — 항상 백그라운드에서만 실행
+  await rebuildAdminResultCache();
+  ensureManagerSync().catch((e) => console.error('백그라운드 sync 실패:', e));
   return adminResultCache;
 }
 
