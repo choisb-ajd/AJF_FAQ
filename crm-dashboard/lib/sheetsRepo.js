@@ -76,15 +76,21 @@ async function findDataSheetTitle(spreadsheetId) {
     fields: 'sheets.properties.title',
   });
   const titles = (meta.data.sheets || []).map((s) => s.properties.title);
+  if (titles.length === 0) {
+    throw new Error(`스프레드시트(${spreadsheetId})에서 회원 데이터 탭을 찾지 못했습니다.`);
+  }
 
-  for (const title of titles) {
-    const range = `${quoteSheetTitle(title)}!A1:Z1`;
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId, range });
-    const headerRow = (res.data.values && res.data.values[0]) || [];
+  // 모든 탭 헤더를 한 번의 batchGet으로 읽음 (이전: 탭마다 순서대로 API 호출 → N회 → 6초+)
+  const ranges = titles.map((t) => `${quoteSheetTitle(t)}!A1:Z1`);
+  const batchRes = await sheets.spreadsheets.values.batchGet({ spreadsheetId, ranges });
+  const valueRanges = batchRes.data.valueRanges || [];
+
+  for (let i = 0; i < titles.length; i++) {
+    const headerRow = (valueRanges[i]?.values?.[0]) || [];
     const map = buildColumnMap(headerRow);
     if (map.phone !== undefined && map.manager !== undefined) {
-      dataSheetTitleCache.set(spreadsheetId, title);
-      return title;
+      dataSheetTitleCache.set(spreadsheetId, titles[i]);
+      return titles[i];
     }
   }
   throw new Error(`스프레드시트(${spreadsheetId})에서 회원 데이터 탭을 찾지 못했습니다.`);
