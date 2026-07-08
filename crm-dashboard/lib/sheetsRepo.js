@@ -804,8 +804,14 @@ async function getAdminRows({ useCache = true } = {}) {
   if (useCache && adminResultCache && adminResultCache.expires > Date.now()) {
     return adminResultCache;
   }
+  // stale-while-revalidate: 만료된 캐시가 있으면 즉시 반환하고 백그라운드에서 갱신
+  // → 관리자는 최대 1 TTL(2분) 낡은 데이터를 보지만 로딩은 항상 즉시 완료됨
+  if (useCache && adminResultCache) {
+    ensureManagerSync().catch((e) => console.error('백그라운드 sync 실패:', e));
+    return adminResultCache;
+  }
+  // 캐시 없음(첫 로드 또는 force): 동기 대기 — 병렬화로 최소화
   await ensureManagerSync();
-  // 동기화 후 캐시가 아직 없거나 만료됐으면 직접 빌드
   if (!adminResultCache || adminResultCache.expires <= Date.now()) {
     await rebuildAdminResultCache();
   }
@@ -1030,8 +1036,11 @@ async function syncManagerSheetsIntoAdmin() {
     if (now - ts > MANAGER_SYNC_INTERVAL_MS * 2) appRecentlyUpdated.delete(p);
   }
 
-  const admin = await readSheetRows(ADMIN_SPREADSHEET_ID, { useCache: false });
-  const accounts = await getAccountsConfig({ useCache: false });
+  // 관리자 시트와 계정 목록을 병렬로 읽음 (순서 의존 없음)
+  const [admin, accounts] = await Promise.all([
+    readSheetRows(ADMIN_SPREADSHEET_ID, { useCache: false }),
+    getAccountsConfig({ useCache: false }),
+  ]);
   const managers = accounts.filter((a) => a.role === '매니저' && a.sheetUrl);
 
   const adminByPhone = new Map();
@@ -1044,17 +1053,23 @@ async function syncManagerSheetsIntoAdmin() {
   const updateData = [];
   const newRows = [];
 
-  for (const manager of managers) {
-    const spreadsheetId = extractSpreadsheetId(manager.sheetUrl);
-    if (!spreadsheetId) continue;
+  // 모든 매니저 시트를 병렬로 읽음 — 직렬 대비 N배 단축 (12명이면 ~10s→~10s/N)
+  const sheetResults = await Promise.allSettled(
+    managers.map(async (manager) => {
+      const spreadsheetId = extractSpreadsheetId(manager.sheetUrl);
+      if (!spreadsheetId) return null;
+      const mgrSheet = await readSheetRows(spreadsheetId, { useCache: false });
+      return { manager, mgrSheet };
+    })
+  );
 
-    let mgrSheet;
-    try {
-      mgrSheet = await readSheetRows(spreadsheetId, { useCache: false });
-    } catch (e) {
-      console.error(`매니저 '${manager.name}' 개별 시트를 읽지 못했습니다:`, e.message);
+  for (const result of sheetResults) {
+    if (result.status === 'rejected') {
+      console.error('매니저 시트를 읽지 못했습니다:', result.reason?.message);
       continue;
     }
+    if (!result.value) continue;
+    const { manager, mgrSheet } = result.value;
 
     for (const mgrRow of mgrSheet.rows) {
       const phone = normalizePhone(mgrRow.values.phone);
