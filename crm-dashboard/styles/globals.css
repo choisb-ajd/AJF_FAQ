@@ -845,6 +845,23 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
 .badge-c { background: #FDECEC; color: var(--red); }
 .badge-lock { background: #FDECEC; color: var(--red); }
 .badge-unlock { background: #E6F6ED; color: var(--green); }
+.badge-bad { background: #FDECEC; color: var(--red); }
+.badge-pending { background: #F1F2F4; color: var(--gray); }
+.badge-progress { background: var(--blue-lt); color: var(--blue-dk); }
+
+/* ── 보험접수 현황 KPI 요약 ── */
+.kpi-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.kpi-tile {
+  flex: 1 1 140px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 18px;
+}
+.kpi-value { font-size: 24px; font-weight: 800; color: var(--navy); }
+.kpi-value.kpi-warn { color: #C58C00; }
+.kpi-value.kpi-good { color: var(--green); }
+.kpi-label { font-size: 12px; color: var(--gray); margin-top: 4px; }
 
 .pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding: 16px 0; font-size: 13px; color: var(--gray); }
 .pagination-summary { margin-right: 8px; }

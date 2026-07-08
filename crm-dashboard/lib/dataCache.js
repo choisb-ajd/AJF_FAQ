@@ -65,6 +65,7 @@ const PREFETCH_ENDPOINTS = [
   { key: 'lms-templates', url: '/api/lms-templates' },
   { key: 'lease-registry', url: '/api/lease-registry' },
   { key: 'link-hub', url: '/api/link-hub' },
+  { key: 'intake', url: '/api/intake' },
 ];
 
 let prefetched = false;
