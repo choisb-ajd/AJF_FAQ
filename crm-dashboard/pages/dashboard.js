@@ -525,7 +525,6 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
             <span className="topbar-badge">{role}</span>
             <nav className="topbar-nav">
               <Link className="topbar-nav-link active" href="/dashboard">회원관리</Link>
-              <Link className="topbar-nav-link" href="/intake">보험접수 현황</Link>
               {REF_SHEETS.filter((s) => !s.hiddenFromNav).map((s) => (
                 <Link key={s.key} className="topbar-nav-link" href={`/sheet/${s.key}`}>{s.label}</Link>
               ))}

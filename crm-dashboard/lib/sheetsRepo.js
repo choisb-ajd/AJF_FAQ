@@ -15,16 +15,10 @@ const {
   LMS_TEMPLATE_CATEGORIES,
   LEASE_PLEDGE_DEFAULTS,
   formatRegisteredAt,
-  INTAKE_ADMIN_FIELDS,
-  INTAKE_STORE_SHEET,
 } = require('./sheetSchema');
 const { sanitizeNotepadHtml, escapeHtml } = require('./sanitizeHtml');
 
 const ADMIN_SPREADSHEET_ID = process.env.ADMIN_SPREADSHEET_ID;
-// 오프라인 매장 보험접수 현황: 이미 운영중인 두 개의 별도 스프레드시트(회원관리와는 무관)를 사용합니다.
-const INTAKE_ADMIN_SPREADSHEET_ID = process.env.INTAKE_ADMIN_SPREADSHEET_ID;
-const INTAKE_STORE_SPREADSHEET_ID = process.env.INTAKE_STORE_SPREADSHEET_ID;
-const INTAKE_ADMIN_SHEET_TITLE = '오프매장 전환DB_replit';
 const ACCOUNTS_SHEET_TITLE = '계정관리';
 const MAX_FAILED_ATTEMPTS = 5;
 // 관리자 계정은 잠기면 아무도 풀어줄 수 없으므로(잠금 해제는 관리자만 가능),
@@ -57,8 +51,6 @@ const templatesCache = new Map(); // refSheet key -> { expires, data }
 const registryCache = new Map(); // refSheet key -> { expires, data }
 const linkHubCache = new Map(); // refSheet key -> { expires, data }
 let renewalCache = null; // { expires, data }
-let intakeAdminCache = null; // { expires, rows }
-let intakeStoreCache = null; // { expires, rows }
 let accountsCache = null; // { expires, accounts }
 let announcementCache = null; // { expires, text }
 let performanceCache = null; // { expires, data }
@@ -295,134 +287,6 @@ async function addRenewalCallNote(rowNumber, currentHistory, text, author) {
   });
   invalidateRenewalCache();
   return newHistory;
-}
-
-// ── 오프라인 매장 보험접수 현황 ───────────────────────────────────────────────
-// "오프매장 전환DB_replit" 탭: 고객 설문 페이지가 A~P열에 직접 기록하고, 보험사업부가 Q열부터
-// 상담 진행상황을 기록합니다. 칼럼 위치가 고정돼 있어(INTAKE_ADMIN_FIELDS) 갱신배정 탭과 같은
-// 방식으로 칼럼 위치 그대로 매핑합니다(헤더 문구로 찾지 않음 — AJP 작성) 상담결과처럼 헤더에
-// 괄호가 섞여있는 등 문구가 일정하지 않은 칼럼이 있어 위치 매핑이 더 안전합니다).
-function invalidateIntakeAdminCache() {
-  intakeAdminCache = null;
-}
-
-async function readIntakeAdminRows({ useCache = true } = {}) {
-  if (!INTAKE_ADMIN_SPREADSHEET_ID) {
-    throw new Error('INTAKE_ADMIN_SPREADSHEET_ID 환경변수가 설정되지 않았습니다.');
-  }
-  if (useCache && intakeAdminCache && intakeAdminCache.expires > Date.now()) {
-    return intakeAdminCache.rows;
-  }
-
-  const sheets = getSheetsClient();
-  const lastCol = INTAKE_ADMIN_FIELDS[INTAKE_ADMIN_FIELDS.length - 1].col;
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: INTAKE_ADMIN_SPREADSHEET_ID,
-    range: `${quoteSheetTitle(INTAKE_ADMIN_SHEET_TITLE)}!A2:${lastCol}`,
-  });
-  const values = res.data.values || [];
-
-  const rows = values
-    .map((rowArray, i) => {
-      const v = {};
-      for (const f of INTAKE_ADMIN_FIELDS) {
-        v[f.key] = (rowArray[letterToColumnIndex(f.col)] || '').toString();
-      }
-      return { rowNumber: i + 2, values: v };
-    })
-    .filter((r) => r.values.name || r.values.phone);
-
-  intakeAdminCache = { expires: Date.now() + CACHE_TTL_MS, rows };
-  return rows;
-}
-
-// 보험사업부(관리자)가 진행상황 칼럼(Q열 이후)을 수정합니다. updates에 담긴 키는 호출 전
-// (API 라우트에서) INTAKE_ADMIN_EDITABLE로 이미 걸러져 있다고 가정합니다.
-async function updateIntakeAdminRecord({ rowNumber, updates }) {
-  const colOf = Object.fromEntries(INTAKE_ADMIN_FIELDS.map((f) => [f.key, f.col]));
-  const data = [];
-  for (const [key, value] of Object.entries(updates)) {
-    const col = colOf[key];
-    if (!col) continue;
-    data.push({
-      range: `${quoteSheetTitle(INTAKE_ADMIN_SHEET_TITLE)}!${col}${rowNumber}`,
-      values: [[value == null ? '' : String(value)]],
-    });
-  }
-  if (data.length === 0) return { ok: true };
-
-  const sheets = getSheetsClient();
-  await sheets.spreadsheets.values.batchUpdate({
-    spreadsheetId: INTAKE_ADMIN_SPREADSHEET_ID,
-    requestBody: { valueInputOption: 'RAW', data },
-  });
-  invalidateIntakeAdminCache();
-  return { ok: true };
-}
-
-// "신청인원 현황" 탭(매장 시트): B~L열은 관리자 시트를 IMPORTRANGE로 그대로 가져온 값이라 읽지 않고,
-// timestamp(B열)만 관리자 시트 행과 짝을 맞추는 키로 읽습니다. M~O열(매장 직원 직접입력)만 다룹니다.
-async function readIntakeStoreRows({ useCache = true } = {}) {
-  if (!INTAKE_STORE_SPREADSHEET_ID) {
-    throw new Error('INTAKE_STORE_SPREADSHEET_ID 환경변수가 설정되지 않았습니다.');
-  }
-  if (useCache && intakeStoreCache && intakeStoreCache.expires > Date.now()) {
-    return intakeStoreCache.rows;
-  }
-
-  const sheets = getSheetsClient();
-  const lastCol = INTAKE_STORE_SHEET.editable[INTAKE_STORE_SHEET.editable.length - 1].col;
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: INTAKE_STORE_SPREADSHEET_ID,
-    range: `${quoteSheetTitle(INTAKE_STORE_SHEET.title)}!${INTAKE_STORE_SHEET.timestampCol}${INTAKE_STORE_SHEET.dataStartRow}:${lastCol}`,
-  });
-  const values = res.data.values || [];
-  const baseIndex = letterToColumnIndex(INTAKE_STORE_SHEET.timestampCol);
-
-  const rows = values.map((rowArray, i) => {
-    const get = (col) => (rowArray[letterToColumnIndex(col) - baseIndex] || '').toString().trim();
-    return {
-      rowNumber: i + INTAKE_STORE_SHEET.dataStartRow,
-      timestamp: get(INTAKE_STORE_SHEET.timestampCol),
-      name: get(INTAKE_STORE_SHEET.nameCol),
-    };
-  });
-
-  intakeStoreCache = { expires: Date.now() + CACHE_TTL_MS, rows };
-  return rows;
-}
-
-// 매장 직원이 고객 선물 지급일자/키트 불출인원/특이사항을 입력합니다. timestamp(관리자 시트의
-// "일시" 값 그대로)로 매장 시트에서 같은 신청 건의 행을 찾아 그 행에만 씁니다.
-async function updateIntakeStoreRecord({ timestamp, name, updates }) {
-  const storeRows = await readIntakeStoreRows({ useCache: false });
-  const target = storeRows.find((r) => r.timestamp === timestamp && (!name || r.name === name));
-  if (!target) {
-    throw new Error('매장 시트에서 아직 이 신청 건을 찾지 못했습니다. 잠시 후 다시 시도해주세요.');
-  }
-
-  const colOf = Object.fromEntries(INTAKE_STORE_SHEET.editable.map((f) => [f.key, f.col]));
-  const data = [];
-  for (const [key, value] of Object.entries(updates)) {
-    const col = colOf[key];
-    if (!col) continue;
-    data.push({
-      range: `${quoteSheetTitle(INTAKE_STORE_SHEET.title)}!${col}${target.rowNumber}`,
-      values: [[value == null ? '' : String(value)]],
-    });
-  }
-  if (data.length === 0) return { ok: true };
-
-  const sheets = getSheetsClient();
-  await sheets.spreadsheets.values.batchUpdate({
-    spreadsheetId: INTAKE_STORE_SPREADSHEET_ID,
-    requestBody: { valueInputOption: 'RAW', data },
-  });
-  intakeStoreCache = null;
-  // 관리자 시트 AG~AI열은 이 값을 IMPORTRANGE로 가져오므로 몇 초 내 자동 반영되지만,
-  // 캐시된 관리자 목록에는 이전 값이 남아있을 수 있어 함께 무효화합니다.
-  invalidateIntakeAdminCache();
-  return { ok: true };
 }
 
 // 메모장 형태(REF_SHEETS의 notepad:true)의 시트는 한 개의 셀(noteCell)에 리치텍스트(HTML)를
@@ -1498,7 +1362,4 @@ module.exports = {
   readAnnouncement,
   saveAnnouncement,
   readPerformanceDashboard,
-  readIntakeAdminRows,
-  updateIntakeAdminRecord,
-  updateIntakeStoreRecord,
 };
