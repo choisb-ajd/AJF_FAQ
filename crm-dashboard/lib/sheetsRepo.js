@@ -1232,6 +1232,27 @@ async function updateMemberRecord({ phone, updates }) {
   return { ok: true, syncedToManagerSheet: true };
 }
 
+const ERROR_LOG_SHEET_TITLE = '오류로그';
+
+// API 핸들러의 catch 블록에서 호출합니다. 실패해도 조용히 넘어가고 응답 속도에 영향 없습니다.
+async function logErrorToSheet({ path, statusCode, message, userName }) {
+  try {
+    const sheets = getSheetsClient();
+    const timestamp = formatRegisteredAt();
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: ADMIN_SPREADSHEET_ID,
+      range: quoteSheetTitle(ERROR_LOG_SHEET_TITLE),
+      valueInputOption: 'RAW',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: {
+        values: [[timestamp, path || '', String(statusCode ?? ''), (message || '').slice(0, 500), userName || '']],
+      },
+    });
+  } catch (e) {
+    console.error('오류 로그 기록 실패:', e.message);
+  }
+}
+
 async function readPerformanceDashboard({ useCache = true } = {}) {
   if (useCache && performanceCache && performanceCache.expires > Date.now()) {
     return performanceCache.data;
@@ -1323,6 +1344,7 @@ async function readPerformanceDashboard({ useCache = true } = {}) {
 module.exports = {
   ADMIN_SPREADSHEET_ID,
   MAX_FAILED_ATTEMPTS,
+  logErrorToSheet,
   getAdminRows,
   getAccountsConfig,
   findAccountByLoginId,

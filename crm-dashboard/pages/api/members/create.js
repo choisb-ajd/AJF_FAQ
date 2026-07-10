@@ -1,5 +1,5 @@
 const { getSessionFromReq } = require('../../../lib/auth');
-const { createMemberRecord } = require('../../../lib/sheetsRepo');
+const { createMemberRecord, logErrorToSheet } = require('../../../lib/sheetsRepo');
 const { MANAGER_EDITABLE, ADMIN_ONLY_EDITABLE, normalizePhone, formatRegisteredAt } = require('../../../lib/sheetSchema');
 
 export default async function handler(req, res) {
@@ -44,6 +44,7 @@ export default async function handler(req, res) {
     return res.status(200).json(result);
   } catch (e) {
     console.error(e);
+    logErrorToSheet({ path: '/api/members/create', statusCode: 500, message: e.message, userName: session?.name });
     return res.status(500).json({ error: e.message || '딜러 추가 중 오류가 발생했습니다.' });
   }
 }

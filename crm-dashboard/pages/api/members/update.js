@@ -1,5 +1,5 @@
 const { getSessionFromReq } = require('../../../lib/auth');
-const { updateMemberRecord, getAdminRows } = require('../../../lib/sheetsRepo');
+const { updateMemberRecord, getAdminRows, logErrorToSheet } = require('../../../lib/sheetsRepo');
 const {
   MANAGER_EDITABLE,
   ADMIN_ONLY_EDITABLE,
@@ -57,6 +57,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ ...result, updates: cleaned });
   } catch (e) {
     console.error(e);
+    logErrorToSheet({ path: '/api/members/update', statusCode: 500, message: e.message, userName: session?.name });
     return res.status(500).json({ error: e.message || '저장 중 오류가 발생했습니다.' });
   }
 }

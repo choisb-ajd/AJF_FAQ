@@ -1,5 +1,5 @@
 const { getSessionFromReq } = require('../../../lib/auth');
-const { readRenewalRows, updateRenewalRecord } = require('../../../lib/sheetsRepo');
+const { readRenewalRows, updateRenewalRecord, logErrorToSheet } = require('../../../lib/sheetsRepo');
 const { RENEWAL_MANAGER_EDITABLE, RENEWAL_ADMIN_ONLY_EDITABLE } = require('../../../lib/sheetSchema');
 
 export default async function handler(req, res) {
@@ -43,6 +43,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ ...result, updates: cleaned });
   } catch (e) {
     console.error(e);
+    logErrorToSheet({ path: '/api/renewal/update', statusCode: 500, message: e.message, userName: session?.name });
     return res.status(500).json({ error: e.message || '저장 중 오류가 발생했습니다.' });
   }
 }

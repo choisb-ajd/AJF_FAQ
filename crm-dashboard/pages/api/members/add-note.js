@@ -1,5 +1,5 @@
 const { getSessionFromReq } = require('../../../lib/auth');
-const { updateMemberRecord, getAdminRows } = require('../../../lib/sheetsRepo');
+const { updateMemberRecord, getAdminRows, logErrorToSheet } = require('../../../lib/sheetsRepo');
 const { normalizePhone, appendContactHistoryNote, formatRegisteredAt } = require('../../../lib/sheetSchema');
 
 // 딜러 상세 화면의 "컨택 히스토리" 패널에서 메모를 추가할 때 사용하는 전용 API입니다.
@@ -49,6 +49,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ ...result, updates });
   } catch (e) {
     console.error(e);
+    logErrorToSheet({ path: '/api/members/add-note', statusCode: 500, message: e.message, userName: session?.name });
     return res.status(500).json({ error: e.message || '메모 저장 중 오류가 발생했습니다.' });
   }
 }
