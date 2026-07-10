@@ -951,12 +951,12 @@ function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onS
             </CollapsibleSection>
 
             <div className="modal-actions">
-              {isAdmin && !confirmDelete && (
+              {!confirmDelete && (
                 <button className="btn btn-danger" disabled={saving} onClick={() => setConfirmDelete(true)}>
                   삭제
                 </button>
               )}
-              {isAdmin && confirmDelete && (
+              {confirmDelete && (
                 <>
                   <span className="delete-confirm-text">'{row.name}' 딜러를 삭제하시겠습니까?</span>
                   <button className="btn" onClick={() => setConfirmDelete(false)}>취소</button>
