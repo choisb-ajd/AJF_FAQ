@@ -395,6 +395,31 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     setSaveMsg(null);
   }
 
+  async function handleDelete(phone) {
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      const res = await fetch('/api/members/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSaveMsg({ type: 'err', text: data.error || '삭제에 실패했습니다.' });
+        setSaving(false);
+        return;
+      }
+      updateRowsLocal((prev) => prev.filter((r) => r.phone !== phone));
+      setEditing(null);
+    } catch (e) {
+      setSaveMsg({ type: 'err', text: '네트워크 오류가 발생했습니다.' });
+      setSaving(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleSave(formValues) {
     setSaving(true);
     setSaveMsg(null);
@@ -812,6 +837,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
           managerOptions={managerOptions}
           onClose={() => setEditing(null)}
           onSave={handleSave}
+          onDelete={handleDelete}
           onRowUpdated={handleRowFieldsUpdated}
         />
       )}
@@ -848,7 +874,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
 // 컨택여부 등 본문 저장 폼에서 다루는 필드 목록입니다. 컨택 히스토리/최초컨택일자는
 // 옆의 히스토리 패널이 전용으로 관리하므로(메모 추가 시 즉시 서버에 저장) 본문 저장 폼에서는
 // 제외합니다. 같은 값을 두 곳에서 동시에 들고 있다가 저장 시점이 엇갈리면 서로 덮어쓸 수 있기 때문입니다.
-function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onSave, onRowUpdated }) {
+function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onSave, onDelete, onRowUpdated }) {
   const editableKeys = (isAdmin ? [...MANAGER_EDITABLE, ...ADMIN_ONLY_EDITABLE] : MANAGER_EDITABLE).filter(
     (k) => k !== 'contactHistory' && k !== 'firstContactDate'
   );
@@ -857,6 +883,7 @@ function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onS
     for (const key of editableKeys) init[key] = row[key] || '';
     return init;
   });
+  const [confirmDelete, setConfirmDelete] = useState(false);
   useEscapeKey(onClose);
 
   function update(key, value) {
@@ -924,10 +951,28 @@ function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onS
             </CollapsibleSection>
 
             <div className="modal-actions">
-              <button className="btn" onClick={onClose}>취소</button>
-              <button className="btn btn-primary" disabled={saving} onClick={() => onSave(form)}>
-                {saving ? '저장 중...' : '저장'}
-              </button>
+              {isAdmin && !confirmDelete && (
+                <button className="btn btn-danger" disabled={saving} onClick={() => setConfirmDelete(true)}>
+                  삭제
+                </button>
+              )}
+              {isAdmin && confirmDelete && (
+                <>
+                  <span className="delete-confirm-text">'{row.name}' 딜러를 삭제하시겠습니까?</span>
+                  <button className="btn" onClick={() => setConfirmDelete(false)}>취소</button>
+                  <button className="btn btn-danger" disabled={saving} onClick={() => onDelete(row.phone)}>
+                    {saving ? '삭제 중...' : '확인'}
+                  </button>
+                </>
+              )}
+              {!confirmDelete && (
+                <>
+                  <button className="btn" onClick={onClose}>닫기</button>
+                  <button className="btn btn-primary" disabled={saving} onClick={() => onSave(form)}>
+                    {saving ? '저장 중...' : '저장'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
 

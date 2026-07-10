@@ -902,7 +902,8 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
 .modal-field textarea { resize: vertical; min-height: 80px; }
 .modal-readonly-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin-bottom: 18px; padding: 14px; background: var(--bg); border-radius: 10px; font-size: 13px; }
 .modal-readonly-grid .k { color: var(--gray); }
-.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; align-items: center; flex-wrap: wrap; }
+.delete-confirm-text { font-size: 13px; color: var(--red); margin-right: auto; }
 .modal-message { font-size: 13px; border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; }
 .modal-message.ok { background: #E6F6ED; color: var(--green); }
 .modal-message.warn { background: #FFF6E0; color: #946200; }

@@ -1146,6 +1146,81 @@ async function syncManagerSheetsIntoAdmin() {
   return { updatedFields: updateData.length, appendedRows: newRows.length };
 }
 
+// 딜러 삭제: 관리자(종합) 시트에서 해당 행을 완전히 제거하고,
+// 담당매니저의 개별 시트에서도 같은 연락처 행을 삭제합니다.
+async function deleteMemberRecord({ phone }) {
+  const admin = await getAdminRows({ useCache: false });
+  const targetPhone = normalizePhone(phone);
+  const adminRow = admin.rows.find((r) => normalizePhone(r.values.phone) === targetPhone);
+  if (!adminRow) throw new Error('관리자 시트에서 해당 연락처의 회원을 찾지 못했습니다.');
+
+  const sheets = getSheetsClient();
+  const meta = await sheets.spreadsheets.get({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    fields: 'sheets.properties',
+  });
+  const sheetMeta = (meta.data.sheets || []).find((s) => s.properties.title === admin.sheetTitle);
+  if (!sheetMeta) throw new Error('시트 정보를 찾을 수 없습니다.');
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    requestBody: {
+      requests: [{
+        deleteDimension: {
+          range: {
+            sheetId: sheetMeta.properties.sheetId,
+            dimension: 'ROWS',
+            startIndex: adminRow.rowNumber - 1, // 0-indexed
+            endIndex: adminRow.rowNumber,
+          },
+        },
+      }],
+    },
+  });
+  invalidateCache(ADMIN_SPREADSHEET_ID);
+
+  // 매니저 시트에서도 삭제 — 실패해도 관리자 시트 삭제는 유지
+  const managerName = adminRow.values.manager;
+  if (managerName) {
+    const managerSpreadsheetId = await getManagerSpreadsheetId(managerName);
+    if (managerSpreadsheetId) {
+      try {
+        const mgr = await readSheetRows(managerSpreadsheetId, { useCache: false });
+        const mgrRow = mgr.rows.find((r) => normalizePhone(r.values.phone) === targetPhone);
+        if (mgrRow) {
+          const mgrMeta = await sheets.spreadsheets.get({
+            spreadsheetId: managerSpreadsheetId,
+            fields: 'sheets.properties',
+          });
+          const mgrSheetMeta = (mgrMeta.data.sheets || []).find((s) => s.properties.title === mgr.sheetTitle);
+          if (mgrSheetMeta) {
+            await sheets.spreadsheets.batchUpdate({
+              spreadsheetId: managerSpreadsheetId,
+              requestBody: {
+                requests: [{
+                  deleteDimension: {
+                    range: {
+                      sheetId: mgrSheetMeta.properties.sheetId,
+                      dimension: 'ROWS',
+                      startIndex: mgrRow.rowNumber - 1,
+                      endIndex: mgrRow.rowNumber,
+                    },
+                  },
+                }],
+              },
+            });
+            invalidateCache(managerSpreadsheetId);
+          }
+        }
+      } catch (e) {
+        console.error('매니저 시트에서 삭제 실패:', e.message);
+      }
+    }
+  }
+
+  return { ok: true };
+}
+
 // 신규 딜러 추가: 관리자(종합) 시트에 새 행을 추가하고, 담당매니저가 지정되어 있으면
 // 그 매니저의 개별 시트에도 같은 내용을 추가합니다.
 async function createMemberRecord(fields) {
@@ -1346,6 +1421,7 @@ module.exports = {
   MAX_FAILED_ATTEMPTS,
   logErrorToSheet,
   getAdminRows,
+  deleteMemberRecord,
   getAccountsConfig,
   findAccountByLoginId,
   getManagerSpreadsheetId,
