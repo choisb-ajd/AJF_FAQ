@@ -4,6 +4,7 @@ const {
   buildColumnMap,
   rowArrayToValues,
   normalizePhone,
+  normalizeGroup,
   columnIndexToLetter,
   letterToColumnIndex,
   MANAGER_EDITABLE,
@@ -110,10 +111,11 @@ async function readSheetRows(spreadsheetId, { useCache = true } = {}) {
   const headerRow = values[0] || [];
   const columnMap = buildColumnMap(headerRow);
 
-  const rows = values.slice(1).map((rowArray, i) => ({
-    rowNumber: i + 2, // 시트 상의 실제 행 번호 (1행은 헤더)
-    values: rowArrayToValues(rowArray, columnMap),
-  })).filter((r) => r.values.phone || r.values.name);
+  const rows = values.slice(1).map((rowArray, i) => {
+    const vals = rowArrayToValues(rowArray, columnMap);
+    if (vals.group) vals.group = normalizeGroup(vals.group);
+    return { rowNumber: i + 2, values: vals };
+  }).filter((r) => r.values.phone || r.values.name);
 
   const data = { sheetTitle, columnMap, rows };
   sheetDataCache.set(spreadsheetId, { expires: Date.now() + CACHE_TTL_MS, data });

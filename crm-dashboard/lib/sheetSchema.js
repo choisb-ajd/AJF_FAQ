@@ -135,6 +135,19 @@ function normalizePhone(value) {
   return (value || '').toString().replace(/\D/g, '');
 }
 
+const GROUP_MAP = {
+  G1: 'G1(수입)',
+  G2: 'G2(국산)',
+  G3: 'G3(중고차)',
+  G4: 'G4(보험설계)',
+  G5: 'G5(에이전시)',
+};
+
+function normalizeGroup(value) {
+  const v = (value || '').toString().trim();
+  return GROUP_MAP[v] || v;
+}
+
 // 딜러가 등록된 시각을 "YYYY-MM-DD HH:mm:ss" (한국시간) 형태로 만듭니다.
 // 문자열로 그대로 정렬해도 시간 순서가 맞도록 고정폭으로 만든 형식입니다.
 function formatRegisteredAt(date = new Date()) {
@@ -365,6 +378,7 @@ module.exports = {
   buildColumnMap,
   rowArrayToValues,
   normalizePhone,
+  normalizeGroup,
   columnIndexToLetter,
   letterToColumnIndex,
   formatRegisteredAt,
