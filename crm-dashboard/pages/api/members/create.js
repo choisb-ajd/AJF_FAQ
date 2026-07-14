@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       ? [...MANAGER_EDITABLE, ...ADMIN_ONLY_EDITABLE]
       : [...MANAGER_EDITABLE, ...ADMIN_ONLY_EDITABLE].filter((k) => k !== 'manager' && k !== 'adminNote')
   );
-  const fields = { name: name.trim(), phone: phone.trim() };
+  const fields = { name: name.trim(), phone: normalizePhone(phone) };
   for (const [key, value] of Object.entries(rest)) {
     if (allowedKeys.has(key) && value !== undefined) fields[key] = value;
   }

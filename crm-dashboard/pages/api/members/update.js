@@ -39,6 +39,7 @@ export default async function handler(req, res) {
   for (const [key, value] of Object.entries(updates)) {
     if (allowedKeys.has(key)) cleaned[key] = value;
   }
+  if (cleaned.phone) cleaned.phone = normalizePhone(cleaned.phone);
   if (Object.keys(cleaned).length === 0) {
     return res.status(403).json({ error: '수정 권한이 없는 항목입니다.' });
   }
