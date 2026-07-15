@@ -1025,7 +1025,7 @@ async function appendRowToSheet(spreadsheetId, sheetTitle, columnMap, fieldsObje
     spreadsheetId,
     range: quoteSheetTitle(sheetTitle),
     valueInputOption: 'RAW',
-    insertDataOption: 'INSERT_ROWS',
+    insertDataOption: 'OVERWRITE',
     requestBody: { values: [rowArray] },
   });
   invalidateCache(spreadsheetId);
@@ -1134,7 +1134,7 @@ async function syncManagerSheetsIntoAdmin() {
       spreadsheetId: ADMIN_SPREADSHEET_ID,
       range: quoteSheetTitle(admin.sheetTitle),
       valueInputOption: 'RAW',
-      insertDataOption: 'INSERT_ROWS',
+      insertDataOption: 'OVERWRITE',
       requestBody: { values: rowArrays },
     });
   }
@@ -1235,7 +1235,7 @@ async function syncAdminIntoManagerSheets() {
             spreadsheetId,
             range: quoteSheetTitle(mgr.sheetTitle),
             valueInputOption: 'RAW',
-            insertDataOption: 'INSERT_ROWS',
+            insertDataOption: 'OVERWRITE',
             requestBody: { values: rowArrays },
           });
           invalidateCache(spreadsheetId);
@@ -1422,7 +1422,7 @@ async function logErrorToSheet({ path, statusCode, message, userName }) {
       spreadsheetId: ADMIN_SPREADSHEET_ID,
       range: quoteSheetTitle(ERROR_LOG_SHEET_TITLE),
       valueInputOption: 'RAW',
-      insertDataOption: 'INSERT_ROWS',
+      insertDataOption: 'OVERWRITE',
       requestBody: {
         values: [[timestamp, path || '', String(statusCode ?? ''), (message || '').slice(0, 500), userName || '']],
       },
