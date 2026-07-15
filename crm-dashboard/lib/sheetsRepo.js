@@ -1150,8 +1150,10 @@ async function syncManagerSheetsIntoAdmin() {
 }
 
 // 관리자(종합) 시트 → 매니저 개별 시트 순방향 동기화.
-// 관리자가 앱이나 구글 시트에서 직접 입력한 내용을 각 매니저의 개별 시트에 반영합니다.
-// 전화번호가 매니저 시트에 이미 있으면 업데이트, 없으면 새 행으로 추가합니다.
+// 담당매니저 기준으로 각 매니저 시트를 정리합니다:
+//   - 이 매니저 소속이 아닌 행(다른 담당 또는 관리자 시트에 없는 행) → 삭제
+//   - 이 매니저 소속이지만 시트에 없는 행 → 추가
+//   - 이미 있는 행 → 값이 다른 컬럼만 업데이트
 async function syncAdminIntoManagerSheets() {
   const [admin, accounts] = await Promise.all([
     readSheetRows(ADMIN_SPREADSHEET_ID, { useCache: false }),
@@ -1159,15 +1161,22 @@ async function syncAdminIntoManagerSheets() {
   ]);
   const managers = accounts.filter((a) => a.role === '매니저' && a.sheetUrl);
 
-  // 담당매니저별로 관리자 시트 행을 묶습니다
+  // 담당매니저별로 관리자 시트 행을 묶고, 전화번호 set도 만들어 둡니다
   const rowsByManager = new Map();
+  const phonesByManager = new Map();
   for (const row of admin.rows) {
     const managerName = (row.values.manager || '').trim();
     if (!managerName) continue;
-    if (!rowsByManager.has(managerName)) rowsByManager.set(managerName, []);
+    if (!rowsByManager.has(managerName)) {
+      rowsByManager.set(managerName, []);
+      phonesByManager.set(managerName, new Set());
+    }
     rowsByManager.get(managerName).push(row);
+    const p = normalizePhone(row.values.phone);
+    if (p) phonesByManager.get(managerName).add(p);
   }
 
+  let totalDeleted = 0;
   let totalUpdated = 0;
   let totalAppended = 0;
 
@@ -1176,13 +1185,55 @@ async function syncAdminIntoManagerSheets() {
       const spreadsheetId = extractSpreadsheetId(manager.sheetUrl);
       if (!spreadsheetId) return;
 
+      // 이 매니저에게 배정된 관리자 시트 행 + 전화번호 set
       const managerRows = rowsByManager.get(manager.name) || [];
-      if (managerRows.length === 0) return;
+      const validPhones = phonesByManager.get(manager.name) || new Set();
 
       try {
         const mgr = await readSheetRows(spreadsheetId, { useCache: false });
+
+        // ── 1단계: 이 매니저 소속이 아닌 행 삭제 ──────────────────
+        // 전화번호 기준으로 이 매니저 담당이 아닌 행을 찾아 아래에서부터 삭제합니다.
+        const wrongRows = mgr.rows
+          .filter((r) => {
+            const p = normalizePhone(r.values.phone);
+            return p && !validPhones.has(p);
+          })
+          .sort((a, b) => b.rowNumber - a.rowNumber); // 내림차순: 아래부터 삭제해야 행 번호 안 밀림
+
+        let currentMgr = mgr;
+        if (wrongRows.length > 0) {
+          const sheets = getSheetsClient();
+          const meta = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties' });
+          const sheetMeta = (meta.data.sheets || []).find((s) => s.properties.title === mgr.sheetTitle);
+          if (sheetMeta) {
+            await sheets.spreadsheets.batchUpdate({
+              spreadsheetId,
+              requestBody: {
+                requests: wrongRows.map((r) => ({
+                  deleteDimension: {
+                    range: {
+                      sheetId: sheetMeta.properties.sheetId,
+                      dimension: 'ROWS',
+                      startIndex: r.rowNumber - 1,
+                      endIndex: r.rowNumber,
+                    },
+                  },
+                })),
+              },
+            });
+            invalidateCache(spreadsheetId);
+            totalDeleted += wrongRows.length;
+            // 행이 삭제되었으므로 시트 다시 읽기
+            currentMgr = await readSheetRows(spreadsheetId, { useCache: false });
+          }
+        }
+
+        // ── 2단계: 올바른 행 업데이트 + 누락된 행 추가 ───────────────
+        if (managerRows.length === 0) return;
+
         const mgrByPhone = new Map();
-        for (const r of mgr.rows) {
+        for (const r of currentMgr.rows) {
           const p = normalizePhone(r.values.phone);
           if (p) mgrByPhone.set(p, r);
         }
@@ -1196,19 +1247,17 @@ async function syncAdminIntoManagerSheets() {
 
           const mgrRow = mgrByPhone.get(phone);
           if (mgrRow) {
-            // 매니저 시트에 있는 행 → 매니저 시트 컬럼 기준으로 다른 값만 업데이트
             const diff = {};
-            for (const key of Object.keys(mgr.columnMap)) {
+            for (const key of Object.keys(currentMgr.columnMap)) {
               if (key === 'phone') continue;
               const adminVal = (adminRow.values[key] || '').toString();
               const mgrVal = (mgrRow.values[key] || '').toString();
               if (adminVal !== mgrVal) diff[key] = adminVal;
             }
             if (Object.keys(diff).length > 0) {
-              updateData.push(...buildRowUpdateData(mgr.sheetTitle, mgrRow.rowNumber, mgr.columnMap, diff));
+              updateData.push(...buildRowUpdateData(currentMgr.sheetTitle, mgrRow.rowNumber, currentMgr.columnMap, diff));
             }
           } else {
-            // 매니저 시트에 없는 행 → 새로 추가
             toAppend.push(adminRow.values);
           }
         }
@@ -1223,17 +1272,17 @@ async function syncAdminIntoManagerSheets() {
           totalUpdated += updateData.length;
         }
         if (toAppend.length > 0) {
-          const width = Math.max(...Object.values(mgr.columnMap)) + 1;
+          const width = Math.max(...Object.values(currentMgr.columnMap)) + 1;
           const rowArrays = toAppend.map((fields) => {
             const rowArray = new Array(width).fill('');
-            for (const [key, idx] of Object.entries(mgr.columnMap)) {
+            for (const [key, idx] of Object.entries(currentMgr.columnMap)) {
               if (fields[key] !== undefined) rowArray[idx] = fields[key];
             }
             return rowArray;
           });
           await sheets.spreadsheets.values.append({
             spreadsheetId,
-            range: quoteSheetTitle(mgr.sheetTitle),
+            range: quoteSheetTitle(currentMgr.sheetTitle),
             valueInputOption: 'RAW',
             insertDataOption: 'OVERWRITE',
             requestBody: { values: rowArrays },
@@ -1247,7 +1296,7 @@ async function syncAdminIntoManagerSheets() {
     })
   );
 
-  return { updatedFields: totalUpdated, appendedRows: totalAppended };
+  return { deletedRows: totalDeleted, updatedFields: totalUpdated, appendedRows: totalAppended };
 }
 
 // 딜러 삭제: 관리자(종합) 시트에서 해당 행을 완전히 제거하고,

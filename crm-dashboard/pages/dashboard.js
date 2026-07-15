@@ -379,7 +379,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
       if (!res.ok) {
         setSyncManagersMsg({ type: 'err', text: data.error || '동기화 실패' });
       } else {
-        setSyncManagersMsg({ type: 'ok', text: `동기화 완료 (업데이트 ${data.updatedFields}건, 추가 ${data.appendedRows}행)` });
+        setSyncManagersMsg({ type: 'ok', text: `동기화 완료 (삭제 ${data.deletedRows}행, 추가 ${data.appendedRows}행, 업데이트 ${data.updatedFields}건)` });
       }
     } catch (e) {
       setSyncManagersMsg({ type: 'err', text: '네트워크 오류' });
