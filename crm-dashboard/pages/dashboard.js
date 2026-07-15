@@ -200,6 +200,8 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [bulkResult, setBulkResult] = useState(null);
   const [syncingManagers, setSyncingManagers] = useState(false);
   const [syncManagersMsg, setSyncManagersMsg] = useState(null);
+  const [backfillingDates, setBackfillingDates] = useState(false);
+  const [backfillMsg, setBackfillMsg] = useState(null);
 
   // silent=true면 화면에 "불러오는 중..." 스피너를 띄우지 않고 조용히 최신 데이터로 교체합니다.
   // 구글 시트에서 직접 수정한 내용도 이 폴링을 통해 자동으로 화면에 반영됩니다.
@@ -368,6 +370,26 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     }
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
+  }
+
+  async function handleBackfillDates() {
+    if (!confirm('등록일자가 비어있는 모든 행을 배분일자(또는 오늘 날짜)로 채웁니다.\n계속하시겠습니까?')) return;
+    setBackfillingDates(true);
+    setBackfillMsg(null);
+    try {
+      const res = await fetch('/api/admin/backfill-registered-at', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        setBackfillMsg({ type: 'err', text: data.error || '보정 실패' });
+      } else {
+        setBackfillMsg({ type: 'ok', text: `보정 완료 (관리자시트 ${data.adminFixed}건, 매니저시트 ${data.managerFixed}건)` });
+        loadData(true);
+      }
+    } catch (e) {
+      setBackfillMsg({ type: 'err', text: '네트워크 오류' });
+    } finally {
+      setBackfillingDates(false);
+    }
   }
 
   async function handleSyncManagers() {
@@ -602,6 +624,14 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
           </div>
           {isAdmin && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {backfillMsg && (
+                <span style={{ fontSize: 12, color: backfillMsg.type === 'ok' ? 'var(--green)' : 'var(--red)' }}>
+                  {backfillMsg.text}
+                </span>
+              )}
+              <button className="btn-secondary" onClick={handleBackfillDates} disabled={backfillingDates}>
+                {backfillingDates ? '보정 중...' : '등록일자 일괄 보정'}
+              </button>
               {syncManagersMsg && (
                 <span style={{ fontSize: 12, color: syncManagersMsg.type === 'ok' ? 'var(--green)' : 'var(--red)' }}>
                   {syncManagersMsg.text}

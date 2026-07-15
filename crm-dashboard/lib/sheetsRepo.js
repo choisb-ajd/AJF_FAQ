@@ -1569,6 +1569,71 @@ async function readPerformanceDashboard({ useCache = true } = {}) {
   return data;
 }
 
+// 기존에 등록된 데이터 중 등록일자(registeredAt)가 비어있는 행을 일괄 보정합니다.
+// - 배분일자(assignedDate)가 있으면 → 등록일자 = 배분일자
+// - 배분일자도 없으면 → 등록일자 = 배분일자 = 오늘 날짜
+async function backfillRegisteredAt() {
+  const todayDate = formatRegisteredAt().slice(0, 10);
+
+  // 관리자 시트 보정
+  const admin = await readSheetRows(ADMIN_SPREADSHEET_ID, { useCache: false });
+  const adminUpdateData = [];
+  for (const row of admin.rows) {
+    if ((row.values.registeredAt || '').trim()) continue; // 이미 값 있음
+    const assignedDate = (row.values.assignedDate || '').trim();
+    const registeredAt = assignedDate || todayDate;
+    const update = { registeredAt };
+    if (!assignedDate) update.assignedDate = todayDate;
+    adminUpdateData.push(...buildRowUpdateData(admin.sheetTitle, row.rowNumber, admin.columnMap, update));
+  }
+  const sheets = getSheetsClient();
+  if (adminUpdateData.length > 0) {
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: ADMIN_SPREADSHEET_ID,
+      requestBody: { valueInputOption: 'RAW', data: adminUpdateData },
+    });
+    invalidateCache(ADMIN_SPREADSHEET_ID);
+  }
+  const adminFixed = adminUpdateData.length;
+
+  // 매니저 시트 보정
+  const accounts = await getAccountsConfig({ useCache: false });
+  const managers = accounts.filter((a) => a.role === '매니저' && a.sheetUrl);
+  let managerFixed = 0;
+
+  await Promise.allSettled(
+    managers.map(async (manager) => {
+      const spreadsheetId = extractSpreadsheetId(manager.sheetUrl);
+      if (!spreadsheetId) return;
+      try {
+        const mgr = await readSheetRows(spreadsheetId, { useCache: false });
+        const updateData = [];
+        for (const row of mgr.rows) {
+          if ((row.values.registeredAt || '').trim()) continue;
+          const assignedDate = (row.values.assignedDate || '').trim();
+          const registeredAt = assignedDate || todayDate;
+          const update = { registeredAt };
+          if (!assignedDate) update.assignedDate = todayDate;
+          updateData.push(...buildRowUpdateData(mgr.sheetTitle, row.rowNumber, mgr.columnMap, update));
+        }
+        if (updateData.length > 0) {
+          const s = getSheetsClient();
+          await s.spreadsheets.values.batchUpdate({
+            spreadsheetId,
+            requestBody: { valueInputOption: 'RAW', data: updateData },
+          });
+          invalidateCache(spreadsheetId);
+          managerFixed += updateData.length;
+        }
+      } catch (e) {
+        console.error(`backfill 실패 (${manager.name}):`, e.message);
+      }
+    })
+  );
+
+  return { adminFixed, managerFixed };
+}
+
 module.exports = {
   ADMIN_SPREADSHEET_ID,
   MAX_FAILED_ATTEMPTS,
@@ -1614,4 +1679,5 @@ module.exports = {
   saveAnnouncement,
   readPerformanceDashboard,
   syncAdminIntoManagerSheets,
+  backfillRegisteredAt,
 };
