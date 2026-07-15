@@ -194,9 +194,22 @@ input, select, textarea { font-family: inherit; font-size: 14px; }
 .logout-btn:hover { background: var(--bg); }
 
 .page-body { padding: 24px 28px; }
-.page-heading { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
+.page-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .page-heading h1 { font-size: 20px; font-weight: 800; }
 .page-heading .count { font-size: 13px; color: var(--gray); margin-top: 4px; }
+.btn-secondary {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-secondary:hover { background: var(--bg); }
+.btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── FILTER CARD ── */
 .filters-card {

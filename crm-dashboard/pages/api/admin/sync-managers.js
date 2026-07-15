@@ -1,0 +1,23 @@
+const { getSessionFromReq } = require('../../../lib/auth');
+const { syncAdminIntoManagerSheets, logErrorToSheet } = require('../../../lib/sheetsRepo');
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
+  const session = getSessionFromReq(req);
+  if (!session || session.role !== '관리자') {
+    return res.status(403).json({ error: '관리자만 사용할 수 있습니다.' });
+  }
+
+  try {
+    const result = await syncAdminIntoManagerSheets();
+    return res.status(200).json({ ok: true, ...result });
+  } catch (e) {
+    console.error(e);
+    logErrorToSheet({ path: '/api/admin/sync-managers', statusCode: 500, message: e.message, userName: session?.name });
+    return res.status(500).json({ error: e.message || '동기화 중 오류가 발생했습니다.' });
+  }
+}
