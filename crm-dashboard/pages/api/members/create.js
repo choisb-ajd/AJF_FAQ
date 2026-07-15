@@ -33,10 +33,9 @@ export default async function handler(req, res) {
   // 매니저가 추가한 딜러는 본인 담당으로 자동 배정됩니다.
   fields.manager = isAdmin ? fields.manager : session.name;
   fields.lastModifiedBy = isAdmin ? '관리자' : session.name;
-  fields.registeredAt = formatRegisteredAt();
-  if (!fields.assignedDate) {
-    fields.assignedDate = formatRegisteredAt().slice(0, 10);
-  }
+  const nowDate = formatRegisteredAt().slice(0, 10);
+  if (!fields.assignedDate) fields.assignedDate = nowDate;
+  fields.registeredAt = fields.assignedDate;
   // 추가 시점에 초기 메모(컨택 히스토리)를 적었다면 최초컨택일자를 자동으로 채워줍니다.
   if (fields.contactHistory && fields.contactHistory.trim() && !fields.firstContactDate) {
     fields.firstContactDate = formatRegisteredAt().slice(0, 10);
