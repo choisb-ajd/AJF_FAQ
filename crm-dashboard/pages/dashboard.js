@@ -149,7 +149,7 @@ const DEFAULT_COL_WIDTHS = {
   appJoinDate: 120,
   totalContracts: 90,
   last60dContracts: 90,
-  registeredAt: 150,
+  assignedDate: 150,
   adminNote: 200,
   lastModifiedBy: 90,
 };
@@ -190,7 +190,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [addMsg, setAddMsg] = useState(null);
   const [lastSynced, setLastSynced] = useState(null);
   const [managerOptions, setManagerOptions] = useState(null);
-  const [sortKey, setSortKey] = useState('registeredAt');
+  const [sortKey, setSortKey] = useState('assignedDate');
   const [sortDir, setSortDir] = useState('desc');
   const [colWidths, setColWidths] = useState(DEFAULT_COL_WIDTHS);
 
@@ -200,8 +200,6 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [bulkResult, setBulkResult] = useState(null);
   const [syncingManagers, setSyncingManagers] = useState(false);
   const [syncManagersMsg, setSyncManagersMsg] = useState(null);
-  const [backfillingDates, setBackfillingDates] = useState(false);
-  const [backfillMsg, setBackfillMsg] = useState(null);
 
   // silent=true면 화면에 "불러오는 중..." 스피너를 띄우지 않고 조용히 최신 데이터로 교체합니다.
   // 구글 시트에서 직접 수정한 내용도 이 폴링을 통해 자동으로 화면에 반영됩니다.
@@ -370,25 +368,6 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     }
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
-  }
-
-  async function handleBackfillDates() {
-    if (!confirm('배분일자가 있는 행의 등록일자를 채웁니다.\n(매니저 시트는 이후 자동 동기화로 반영됩니다)\n계속하시겠습니까?')) return;
-    setBackfillingDates(true);
-    setBackfillMsg(null);
-    try {
-      const res = await fetch('/api/admin/backfill-registered-at', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) {
-        setBackfillMsg({ type: 'err', text: data.error || '보정 실패' });
-      } else {
-        setBackfillMsg({ type: 'ok', text: `보정 완료 (${data.adminFixed}건) — 새로고침 버튼을 눌러 확인하세요` });
-      }
-    } catch (e) {
-      setBackfillMsg({ type: 'err', text: '네트워크 오류' });
-    } finally {
-      setBackfillingDates(false);
-    }
   }
 
   async function handleSyncManagers() {
@@ -623,14 +602,6 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
           </div>
           {isAdmin && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {backfillMsg && (
-                <span style={{ fontSize: 12, color: backfillMsg.type === 'ok' ? 'var(--green)' : 'var(--red)' }}>
-                  {backfillMsg.text}
-                </span>
-              )}
-              <button className="btn-secondary" onClick={handleBackfillDates} disabled={backfillingDates}>
-                {backfillingDates ? '보정 중...' : '등록일자 일괄 보정'}
-              </button>
               {syncManagersMsg && (
                 <span style={{ fontSize: 12, color: syncManagersMsg.type === 'ok' ? 'var(--green)' : 'var(--red)' }}>
                   {syncManagersMsg.text}
@@ -693,7 +664,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                 setSortDir(d);
               }}
             >
-              <option value="registeredAt:desc">최신 등록순</option>
+              <option value="assignedDate:desc">최신 등록순</option>
               <option value="name:asc">이름순 (가나다)</option>
             </select>
           </div>
