@@ -1060,23 +1060,18 @@ async function syncManagerSheetsIntoAdmin() {
   const updateData = [];
   const newRows = [];
 
-  // 모든 매니저 시트를 병렬로 읽음 — 직렬 대비 N배 단축 (12명이면 ~10s→~10s/N)
-  const sheetResults = await Promise.allSettled(
-    managers.map(async (manager) => {
-      const spreadsheetId = extractSpreadsheetId(manager.sheetUrl);
-      if (!spreadsheetId) return null;
-      const mgrSheet = await readSheetRows(spreadsheetId, { useCache: false });
-      return { manager, mgrSheet };
-    })
-  );
-
-  for (const result of sheetResults) {
-    if (result.status === 'rejected') {
-      console.error('매니저 시트를 읽지 못했습니다:', result.reason?.message);
+  // 쿼터 초과 방지를 위해 매니저 시트를 순차적으로 읽습니다 (병렬 → 직렬 + 200ms 간격).
+  for (const manager of managers) {
+    const spreadsheetId = extractSpreadsheetId(manager.sheetUrl);
+    if (!spreadsheetId) continue;
+    let mgrSheet;
+    try {
+      mgrSheet = await readSheetRows(spreadsheetId, { useCache: false });
+    } catch (e) {
+      console.error('매니저 시트를 읽지 못했습니다:', e?.message);
+      await new Promise((r) => setTimeout(r, 200));
       continue;
     }
-    if (!result.value) continue;
-    const { manager, mgrSheet } = result.value;
 
     for (const mgrRow of mgrSheet.rows) {
       const phone = normalizePhone(mgrRow.values.phone);
@@ -1085,7 +1080,6 @@ async function syncManagerSheetsIntoAdmin() {
       const adminRow = adminByPhone.get(phone);
       if (adminRow) {
         // 앱에서 최근에 저장된 행은 매니저 시트의 구버전 값으로 덮어쓰지 않습니다.
-        // (매니저 시트 동기화 실패 시 관리자 시트 값이 롤백되는 것을 방지)
         const appUpdate = appRecentlyUpdated.get(phone);
         if (appUpdate && Date.now() - appUpdate < MANAGER_SYNC_INTERVAL_MS) continue;
 
@@ -1109,6 +1103,7 @@ async function syncManagerSheetsIntoAdmin() {
         newRows.push(fields);
       }
     }
+    await new Promise((r) => setTimeout(r, 200));
   }
 
   const sheets = getSheetsClient();
@@ -1180,121 +1175,122 @@ async function syncAdminIntoManagerSheets() {
   let totalUpdated = 0;
   let totalAppended = 0;
 
-  await Promise.allSettled(
-    managers.map(async (manager) => {
-      const spreadsheetId = extractSpreadsheetId(manager.sheetUrl);
-      if (!spreadsheetId) return;
+  // 쿼터 초과 방지를 위해 매니저 시트를 순차적으로 처리합니다 (병렬 → 직렬 + 200ms 간격).
+  for (const manager of managers) {
+    const spreadsheetId = extractSpreadsheetId(manager.sheetUrl);
+    if (!spreadsheetId) continue;
 
-      // 이 매니저에게 배정된 관리자 시트 행 + 전화번호 set
-      const managerRows = rowsByManager.get(manager.name) || [];
-      const validPhones = phonesByManager.get(manager.name) || new Set();
+    const managerRows = rowsByManager.get(manager.name) || [];
+    const validPhones = phonesByManager.get(manager.name) || new Set();
 
-      try {
-        const mgr = await readSheetRows(spreadsheetId, { useCache: false });
+    try {
+      const mgr = await readSheetRows(spreadsheetId, { useCache: false });
 
-        // ── 1단계: 이 매니저 소속이 아닌 행 삭제 ──────────────────
-        // 전화번호 기준으로 이 매니저 담당이 아닌 행을 찾아 아래에서부터 삭제합니다.
-        const wrongRows = mgr.rows
-          .filter((r) => {
-            const p = normalizePhone(r.values.phone);
-            return p && !validPhones.has(p);
-          })
-          .sort((a, b) => b.rowNumber - a.rowNumber); // 내림차순: 아래부터 삭제해야 행 번호 안 밀림
-
-        let currentMgr = mgr;
-        if (wrongRows.length > 0) {
-          const sheets = getSheetsClient();
-          const meta = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties' });
-          const sheetMeta = (meta.data.sheets || []).find((s) => s.properties.title === mgr.sheetTitle);
-          if (sheetMeta) {
-            await sheets.spreadsheets.batchUpdate({
-              spreadsheetId,
-              requestBody: {
-                requests: wrongRows.map((r) => ({
-                  deleteDimension: {
-                    range: {
-                      sheetId: sheetMeta.properties.sheetId,
-                      dimension: 'ROWS',
-                      startIndex: r.rowNumber - 1,
-                      endIndex: r.rowNumber,
-                    },
-                  },
-                })),
-              },
-            });
-            invalidateCache(spreadsheetId);
-            totalDeleted += wrongRows.length;
-            // 행이 삭제되었으므로 시트 다시 읽기
-            currentMgr = await readSheetRows(spreadsheetId, { useCache: false });
-          }
-        }
-
-        // ── 2단계: 올바른 행 업데이트 + 누락된 행 추가 ───────────────
-        if (managerRows.length === 0) return;
-
-        const mgrByPhone = new Map();
-        for (const r of currentMgr.rows) {
+      // ── 1단계: 이 매니저 소속이 아닌 행 삭제 ──────────────────
+      const wrongRows = mgr.rows
+        .filter((r) => {
           const p = normalizePhone(r.values.phone);
-          if (p) mgrByPhone.set(p, r);
-        }
+          return p && !validPhones.has(p);
+        })
+        .sort((a, b) => b.rowNumber - a.rowNumber);
 
-        const updateData = [];
-        const toAppend = [];
-
-        for (const adminRow of managerRows) {
-          const phone = normalizePhone(adminRow.values.phone);
-          if (!phone) continue;
-
-          const mgrRow = mgrByPhone.get(phone);
-          if (mgrRow) {
-            const diff = {};
-            for (const key of Object.keys(currentMgr.columnMap)) {
-              if (key === 'phone') continue;
-              const adminVal = (adminRow.values[key] || '').toString();
-              const mgrVal = (mgrRow.values[key] || '').toString();
-              if (adminVal !== mgrVal) diff[key] = adminVal;
-            }
-            if (Object.keys(diff).length > 0) {
-              updateData.push(...buildRowUpdateData(currentMgr.sheetTitle, mgrRow.rowNumber, currentMgr.columnMap, diff));
-            }
-          } else {
-            toAppend.push(adminRow.values);
-          }
-        }
-
+      let currentMgr = mgr;
+      if (wrongRows.length > 0) {
         const sheets = getSheetsClient();
-        if (updateData.length > 0) {
-          await sheets.spreadsheets.values.batchUpdate({
+        const meta = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties' });
+        const sheetMeta = (meta.data.sheets || []).find((s) => s.properties.title === mgr.sheetTitle);
+        if (sheetMeta) {
+          await sheets.spreadsheets.batchUpdate({
             spreadsheetId,
-            requestBody: { valueInputOption: 'RAW', data: updateData },
+            requestBody: {
+              requests: wrongRows.map((r) => ({
+                deleteDimension: {
+                  range: {
+                    sheetId: sheetMeta.properties.sheetId,
+                    dimension: 'ROWS',
+                    startIndex: r.rowNumber - 1,
+                    endIndex: r.rowNumber,
+                  },
+                },
+              })),
+            },
           });
           invalidateCache(spreadsheetId);
-          totalUpdated += updateData.length;
+          totalDeleted += wrongRows.length;
+          await new Promise((r) => setTimeout(r, 200));
+          currentMgr = await readSheetRows(spreadsheetId, { useCache: false });
         }
-        if (toAppend.length > 0) {
-          const width = Math.max(...Object.values(currentMgr.columnMap)) + 1;
-          const rowArrays = toAppend.map((fields) => {
-            const rowArray = new Array(width).fill('');
-            for (const [key, idx] of Object.entries(currentMgr.columnMap)) {
-              if (fields[key] !== undefined) rowArray[idx] = fields[key];
-            }
-            return rowArray;
-          });
-          await sheets.spreadsheets.values.append({
-            spreadsheetId,
-            range: quoteSheetTitle(currentMgr.sheetTitle),
-            valueInputOption: 'RAW',
-            insertDataOption: 'OVERWRITE',
-            requestBody: { values: rowArrays },
-          });
-          invalidateCache(spreadsheetId);
-          totalAppended += toAppend.length;
-        }
-      } catch (e) {
-        console.error(`관리자→매니저 시트 동기화 실패 (${manager.name}):`, e.message);
       }
-    })
-  );
+
+      // ── 2단계: 올바른 행 업데이트 + 누락된 행 추가 ───────────────
+      if (managerRows.length === 0) {
+        await new Promise((r) => setTimeout(r, 200));
+        continue;
+      }
+
+      const mgrByPhone = new Map();
+      for (const r of currentMgr.rows) {
+        const p = normalizePhone(r.values.phone);
+        if (p) mgrByPhone.set(p, r);
+      }
+
+      const updateData = [];
+      const toAppend = [];
+
+      for (const adminRow of managerRows) {
+        const phone = normalizePhone(adminRow.values.phone);
+        if (!phone) continue;
+
+        const mgrRow = mgrByPhone.get(phone);
+        if (mgrRow) {
+          const diff = {};
+          for (const key of Object.keys(currentMgr.columnMap)) {
+            if (key === 'phone') continue;
+            const adminVal = (adminRow.values[key] || '').toString();
+            const mgrVal = (mgrRow.values[key] || '').toString();
+            if (adminVal !== mgrVal) diff[key] = adminVal;
+          }
+          if (Object.keys(diff).length > 0) {
+            updateData.push(...buildRowUpdateData(currentMgr.sheetTitle, mgrRow.rowNumber, currentMgr.columnMap, diff));
+          }
+        } else {
+          toAppend.push(adminRow.values);
+        }
+      }
+
+      const sheets = getSheetsClient();
+      if (updateData.length > 0) {
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId,
+          requestBody: { valueInputOption: 'RAW', data: updateData },
+        });
+        invalidateCache(spreadsheetId);
+        totalUpdated += updateData.length;
+      }
+      if (toAppend.length > 0) {
+        const width = Math.max(...Object.values(currentMgr.columnMap)) + 1;
+        const rowArrays = toAppend.map((fields) => {
+          const rowArray = new Array(width).fill('');
+          for (const [key, idx] of Object.entries(currentMgr.columnMap)) {
+            if (fields[key] !== undefined) rowArray[idx] = fields[key];
+          }
+          return rowArray;
+        });
+        await sheets.spreadsheets.values.append({
+          spreadsheetId,
+          range: quoteSheetTitle(currentMgr.sheetTitle),
+          valueInputOption: 'RAW',
+          insertDataOption: 'OVERWRITE',
+          requestBody: { values: rowArrays },
+        });
+        invalidateCache(spreadsheetId);
+        totalAppended += toAppend.length;
+      }
+    } catch (e) {
+      console.error(`관리자→매니저 시트 동기화 실패 (${manager.name}):`, e.message);
+    }
+    await new Promise((r) => setTimeout(r, 200));
+  }
 
   return { deletedRows: totalDeleted, updatedFields: totalUpdated, appendedRows: totalAppended };
 }
