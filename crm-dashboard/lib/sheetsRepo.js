@@ -1569,27 +1569,28 @@ async function readPerformanceDashboard({ useCache = true } = {}) {
 // - 배분일자(assignedDate)가 있으면 → 등록일자 = 배분일자
 // - 배분일자도 없으면 → 등록일자 = 배분일자 = 오늘 날짜
 async function backfillRegisteredAt() {
-  // 관리자 시트의 등록일자를 보정합니다 (배분일자가 있는 행만).
-  // Vercel 10초 제한 내에 완료하기 위해 관리자 시트만 처리하고,
-  // 매니저 시트는 기존 백그라운드 동기화(syncAdminIntoManagerSheets)가 자동 전파합니다.
-  const admin = await readSheetRows(ADMIN_SPREADSHEET_ID, { useCache: false });
-  const adminUpdateData = [];
+  // 관리자 시트에서 배분일자가 있고 등록일자가 비어있는 행만 찾아
+  // 등록일자 = 배분일자로 채워줍니다. 딱 이것만 합니다.
+  const admin = await readSheetRows(ADMIN_SPREADSHEET_ID, { useCache: true });
+  const data = [];
   for (const row of admin.rows) {
     if ((row.values.registeredAt || '').trim()) continue;
     const assignedDate = (row.values.assignedDate || '').trim();
     if (!assignedDate) continue;
-    adminUpdateData.push(...buildRowUpdateData(admin.sheetTitle, row.rowNumber, admin.columnMap, { registeredAt: assignedDate }));
+    data.push(...buildRowUpdateData(admin.sheetTitle, row.rowNumber, admin.columnMap, { registeredAt: assignedDate }));
   }
-  const sheets = getSheetsClient();
-  if (adminUpdateData.length > 0) {
-    await sheets.spreadsheets.values.batchUpdate({
-      spreadsheetId: ADMIN_SPREADSHEET_ID,
-      requestBody: { valueInputOption: 'RAW', data: adminUpdateData },
-    });
-    invalidateCache(ADMIN_SPREADSHEET_ID);
-  }
+  if (data.length === 0) return { adminFixed: 0 };
 
-  return { adminFixed: adminUpdateData.length };
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    requestBody: { valueInputOption: 'RAW', data },
+  });
+  // 캐시만 비우고 즉시 재빌드는 하지 않음 (다음 요청 때 자연스럽게 갱신)
+  sheetDataCache.delete(ADMIN_SPREADSHEET_ID);
+  adminResultCache = null;
+
+  return { adminFixed: data.length };
 }
 
 module.exports = {
