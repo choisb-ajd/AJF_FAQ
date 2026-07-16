@@ -1573,16 +1573,15 @@ async function readPerformanceDashboard({ useCache = true } = {}) {
 // - 배분일자(assignedDate)가 있으면 → 등록일자 = 배분일자
 // - 배분일자도 없으면 → 등록일자 = 배분일자 = 오늘 날짜
 async function backfillRegisteredAt() {
-  // 기존 데이터 보정: 배분일자가 있는 행만 등록일자로 복사합니다.
-  // 배분일자도 없으면 빈칸 그대로 둡니다 (오늘 날짜는 신규 딜러 추가 시에만 사용).
-
-  // 관리자 시트 보정
+  // 관리자 시트의 등록일자를 보정합니다 (배분일자가 있는 행만).
+  // Vercel 10초 제한 내에 완료하기 위해 관리자 시트만 처리하고,
+  // 매니저 시트는 기존 백그라운드 동기화(syncAdminIntoManagerSheets)가 자동 전파합니다.
   const admin = await readSheetRows(ADMIN_SPREADSHEET_ID, { useCache: false });
   const adminUpdateData = [];
   for (const row of admin.rows) {
-    if ((row.values.registeredAt || '').trim()) continue; // 이미 값 있음 → skip
+    if ((row.values.registeredAt || '').trim()) continue;
     const assignedDate = (row.values.assignedDate || '').trim();
-    if (!assignedDate) continue; // 배분일자도 없으면 빈칸 유지
+    if (!assignedDate) continue;
     adminUpdateData.push(...buildRowUpdateData(admin.sheetTitle, row.rowNumber, admin.columnMap, { registeredAt: assignedDate }));
   }
   const sheets = getSheetsClient();
@@ -1593,42 +1592,8 @@ async function backfillRegisteredAt() {
     });
     invalidateCache(ADMIN_SPREADSHEET_ID);
   }
-  const adminFixed = adminUpdateData.length;
 
-  // 매니저 시트 보정 — 쿼터 초과 방지를 위해 순차 처리
-  const accounts = await getAccountsConfig({ useCache: false });
-  const managers = accounts.filter((a) => a.role === '매니저' && a.sheetUrl);
-  let managerFixed = 0;
-
-  for (const manager of managers) {
-    const spreadsheetId = extractSpreadsheetId(manager.sheetUrl);
-    if (!spreadsheetId) continue;
-    try {
-      const mgr = await readSheetRows(spreadsheetId, { useCache: false });
-      const updateData = [];
-      for (const row of mgr.rows) {
-        if ((row.values.registeredAt || '').trim()) continue;
-        const assignedDate = (row.values.assignedDate || '').trim();
-        if (!assignedDate) continue;
-        updateData.push(...buildRowUpdateData(mgr.sheetTitle, row.rowNumber, mgr.columnMap, { registeredAt: assignedDate }));
-      }
-      if (updateData.length > 0) {
-        const s = getSheetsClient();
-        await s.spreadsheets.values.batchUpdate({
-          spreadsheetId,
-          requestBody: { valueInputOption: 'RAW', data: updateData },
-        });
-        invalidateCache(spreadsheetId);
-        managerFixed += updateData.length;
-      }
-    } catch (e) {
-      console.error(`backfill 실패 (${manager.name}):`, e.message);
-    }
-    // 매니저 시트마다 300ms 간격으로 API 호출해 분당 쿼터 초과 방지
-    await new Promise((r) => setTimeout(r, 300));
-  }
-
-  return { adminFixed, managerFixed };
+  return { adminFixed: adminUpdateData.length };
 }
 
 module.exports = {

@@ -373,7 +373,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   }
 
   async function handleBackfillDates() {
-    if (!confirm('배분일자가 있는 행에 한해 등록일자를 채웁니다.\n(배분일자가 없는 행은 빈칸 유지)\n계속하시겠습니까?')) return;
+    if (!confirm('배분일자가 있는 행의 등록일자를 채웁니다.\n(매니저 시트는 이후 자동 동기화로 반영됩니다)\n계속하시겠습니까?')) return;
     setBackfillingDates(true);
     setBackfillMsg(null);
     try {
@@ -382,7 +382,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
       if (!res.ok) {
         setBackfillMsg({ type: 'err', text: data.error || '보정 실패' });
       } else {
-        setBackfillMsg({ type: 'ok', text: `보정 완료 (관리자시트 ${data.adminFixed}건, 매니저시트 ${data.managerFixed}건)` });
+        setBackfillMsg({ type: 'ok', text: `보정 완료 (관리자시트 ${data.adminFixed}건 — 매니저시트는 자동 동기화로 반영)` });
         loadData(true);
       }
     } catch (e) {
