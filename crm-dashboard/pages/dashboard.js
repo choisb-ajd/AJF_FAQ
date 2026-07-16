@@ -382,8 +382,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
       if (!res.ok) {
         setBackfillMsg({ type: 'err', text: data.error || '보정 실패' });
       } else {
-        setBackfillMsg({ type: 'ok', text: `보정 완료 (관리자시트 ${data.adminFixed}건 — 매니저시트는 자동 동기화로 반영)` });
-        loadData(true);
+        setBackfillMsg({ type: 'ok', text: `보정 완료 (${data.adminFixed}건) — 새로고침 버튼을 눌러 확인하세요` });
       }
     } catch (e) {
       setBackfillMsg({ type: 'err', text: '네트워크 오류' });
