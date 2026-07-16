@@ -373,7 +373,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   }
 
   async function handleBackfillDates() {
-    if (!confirm('등록일자가 비어있는 모든 행을 배분일자(또는 오늘 날짜)로 채웁니다.\n계속하시겠습니까?')) return;
+    if (!confirm('배분일자가 있는 행에 한해 등록일자를 채웁니다.\n(배분일자가 없는 행은 빈칸 유지)\n계속하시겠습니까?')) return;
     setBackfillingDates(true);
     setBackfillMsg(null);
     try {

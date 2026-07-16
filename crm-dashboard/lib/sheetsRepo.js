@@ -1573,10 +1573,8 @@ async function readPerformanceDashboard({ useCache = true } = {}) {
 // - 배분일자(assignedDate)가 있으면 → 등록일자 = 배분일자
 // - 배분일자도 없으면 → 등록일자 = 배분일자 = 오늘 날짜
 async function backfillRegisteredAt() {
-  // 등록일자가 비어있는 모든 행을 보정합니다:
-  // - 배분일자가 있으면 → 등록일자 = 배분일자
-  // - 배분일자도 없으면 → 등록일자 = 오늘 날짜
-  const todayDate = formatRegisteredAt().slice(0, 10);
+  // 기존 데이터 보정: 배분일자가 있는 행만 등록일자로 복사합니다.
+  // 배분일자도 없으면 빈칸 그대로 둡니다 (오늘 날짜는 신규 딜러 추가 시에만 사용).
 
   // 관리자 시트 보정
   const admin = await readSheetRows(ADMIN_SPREADSHEET_ID, { useCache: false });
@@ -1584,8 +1582,8 @@ async function backfillRegisteredAt() {
   for (const row of admin.rows) {
     if ((row.values.registeredAt || '').trim()) continue; // 이미 값 있음 → skip
     const assignedDate = (row.values.assignedDate || '').trim();
-    const registeredAt = assignedDate || todayDate;
-    adminUpdateData.push(...buildRowUpdateData(admin.sheetTitle, row.rowNumber, admin.columnMap, { registeredAt }));
+    if (!assignedDate) continue; // 배분일자도 없으면 빈칸 유지
+    adminUpdateData.push(...buildRowUpdateData(admin.sheetTitle, row.rowNumber, admin.columnMap, { registeredAt: assignedDate }));
   }
   const sheets = getSheetsClient();
   if (adminUpdateData.length > 0) {
@@ -1612,8 +1610,8 @@ async function backfillRegisteredAt() {
         for (const row of mgr.rows) {
           if ((row.values.registeredAt || '').trim()) continue;
           const assignedDate = (row.values.assignedDate || '').trim();
-          const registeredAt = assignedDate || todayDate;
-          updateData.push(...buildRowUpdateData(mgr.sheetTitle, row.rowNumber, mgr.columnMap, { registeredAt }));
+          if (!assignedDate) continue; // 배분일자도 없으면 빈칸 유지
+          updateData.push(...buildRowUpdateData(mgr.sheetTitle, row.rowNumber, mgr.columnMap, { registeredAt: assignedDate }));
         }
         if (updateData.length > 0) {
           const s = getSheetsClient();
