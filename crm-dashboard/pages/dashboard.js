@@ -192,6 +192,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [managerOptions, setManagerOptions] = useState(null);
   const [showSearchPopup, setShowSearchPopup] = useState(false);
   const searchPopupTimerRef = useRef(null);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [sortKey, setSortKey] = useState('assignedDate');
   const [sortDir, setSortDir] = useState('desc');
   const [colWidths, setColWidths] = useState(DEFAULT_COL_WIDTHS);
@@ -738,6 +739,9 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
             <button className="btn btn-primary" onClick={() => { setAddMsg(null); setAddingDealer(true); }}>
               딜러 추가
             </button>
+            <button className="btn" style={{ background: 'var(--card-bg)', border: '1.5px solid var(--border)' }} onClick={() => setShowGlobalSearch(true)}>
+              딜러 검색
+            </button>
             {isAdmin && (
               <button
                 className="btn btn-primary"
@@ -948,7 +952,6 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
           saving={addSaving}
           message={addMsg}
           managerOptions={managerOptions}
-          allMembers={rows}
           onClose={() => setAddingDealer(false)}
           onSave={handleAddDealer}
         />
@@ -962,6 +965,10 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
           onClose={() => setBulkManagerModal(false)}
           onConfirm={handleBulkManagerChange}
         />
+      )}
+
+      {showGlobalSearch && (
+        <GlobalSearchModal onClose={() => setShowGlobalSearch(false)} />
       )}
     </div>
   );
@@ -1200,7 +1207,7 @@ function ContactHistoryPanel({ row, onUpdated }) {
 
 // 딜러 추가 모달도 상세 모달과 같은 3단계 순서(상시노출/접어두기)를 따릅니다. 다만 최초컨택일자는
 // 등록 시점엔 항상 비어있어(컨택 히스토리를 적어야 자동으로 채워지므로) 입력칸으로 보여줄 필요가 없어 제외합니다.
-function AddDealerModal({ isAdmin, name, saving, message, managerOptions, allMembers, onClose, onSave }) {
+function AddDealerModal({ isAdmin, name, saving, message, managerOptions, onClose, onSave }) {
   // 매니저는 다른 매니저에게 배분(manager)하거나 본인이 볼 수 없는 관리자 특이사항(adminNote)은 입력할 수 없습니다.
   const collapsibleKeys = MODAL_COMMON_COLLAPSIBLE.filter((k) => k !== 'firstContactDate');
   const baseKeys = ['group', 'brand', 'branch', 'name', 'phone', 'contacted', 'contactHistory', ...collapsibleKeys];
@@ -1213,6 +1220,7 @@ function AddDealerModal({ isAdmin, name, saving, message, managerOptions, allMem
   });
   const [validationError, setValidationError] = useState('');
   const [dupMatch, setDupMatch] = useState(null);
+  const [checking, setChecking] = useState(false);
   useEscapeKey(onClose);
 
   function update(key, value) {
@@ -1220,7 +1228,7 @@ function AddDealerModal({ isAdmin, name, saving, message, managerOptions, allMem
     if (dupMatch) setDupMatch(null);
   }
 
-  function submit(force = false) {
+  async function submit(force = false) {
     if (!form.name.trim() || !form.phone.trim()) {
       setValidationError('이름과 연락처는 필수 입력 항목입니다.');
       return;
@@ -1228,13 +1236,22 @@ function AddDealerModal({ isAdmin, name, saving, message, managerOptions, allMem
     setValidationError('');
     if (!force) {
       const normalizedPhone = form.phone.replace(/\D/g, '');
-      const existing = (allMembers || []).find(
-        (m) => m.phone && m.phone.replace(/\D/g, '') === normalizedPhone
-      );
-      if (existing) {
-        setDupMatch(existing);
-        return;
+      setChecking(true);
+      try {
+        const res = await fetch(`/api/members/search?q=${encodeURIComponent(normalizedPhone)}`);
+        const data = await res.json();
+        const existing = (data.rows || []).find(
+          (m) => m.phone && m.phone.replace(/\D/g, '') === normalizedPhone
+        );
+        if (existing) {
+          setDupMatch(existing);
+          setChecking(false);
+          return;
+        }
+      } catch (e) {
+        // 검색 실패 시 그냥 진행
       }
+      setChecking(false);
     }
     setDupMatch(null);
     onSave(form);
@@ -1306,8 +1323,8 @@ function AddDealerModal({ isAdmin, name, saving, message, managerOptions, allMem
 
             <div className="modal-actions">
               <button className="btn" onClick={onClose}>닫기</button>
-              <button className="btn btn-primary" disabled={saving} onClick={submit}>
-                {saving ? '추가 중...' : '추가'}
+              <button className="btn btn-primary" disabled={saving || checking} onClick={submit}>
+                {checking ? '확인 중...' : saving ? '추가 중...' : '추가'}
               </button>
             </div>
           </div>
@@ -1358,6 +1375,97 @@ function BulkManagerModal({ count, managerOptions, saving, onClose, onConfirm })
           >
             {saving ? '변경 중...' : '변경하기'}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GlobalSearchModal({ onClose }) {
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const timerRef = useRef(null);
+  useEscapeKey(onClose);
+
+  function handleInput(e) {
+    const val = e.target.value;
+    setQ(val);
+    clearTimeout(timerRef.current);
+    if (val.trim().length < 2) { setResults([]); return; }
+    timerRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/members/search?q=${encodeURIComponent(val.trim())}`);
+        const data = await res.json();
+        setResults(data.rows || []);
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 350);
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" style={{ width: 580, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h2>전체 딜러 검색</h2>
+            <div className="sub">이름 또는 연락처로 전체 매니저 담당 딜러를 검색합니다.</div>
+          </div>
+          <button className="modal-close" onClick={onClose}>&times;</button>
+        </div>
+        <div style={{ padding: '16px 24px', flex: 1, overflowY: 'auto' }}>
+          <input
+            autoFocus
+            value={q}
+            onChange={handleInput}
+            placeholder="이름 또는 연락처 입력 (2자 이상)"
+            style={{
+              width: '100%', padding: '9px 13px', fontSize: 14,
+              border: '1.5px solid var(--border)', borderRadius: 6,
+              background: 'var(--input-bg)', color: 'var(--text)',
+              boxSizing: 'border-box',
+            }}
+          />
+          {searching && (
+            <div style={{ padding: '14px 0', color: 'var(--muted)', fontSize: 13 }}>검색 중...</div>
+          )}
+          {!searching && q.trim().length >= 2 && results.length === 0 && (
+            <div style={{ padding: '14px 0', color: 'var(--muted)', fontSize: 13 }}>검색 결과가 없습니다.</div>
+          )}
+          {results.length > 0 && (
+            <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse', marginTop: 14, color: 'var(--text)' }}>
+              <thead>
+                <tr style={{ background: 'var(--table-head-bg)' }}>
+                  <th style={{ padding: '7px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--text)' }}>이름</th>
+                  <th style={{ padding: '7px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--text)' }}>연락처</th>
+                  <th style={{ padding: '7px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--text)' }}>담당매니저</th>
+                  <th style={{ padding: '7px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--text)' }}>배분일자</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((r, i) => (
+                  <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
+                    <td style={{ padding: '9px 14px', fontWeight: 600, color: 'var(--text)' }}>{r.name}</td>
+                    <td style={{ padding: '9px 14px', color: 'var(--text)' }}>{r.phone}</td>
+                    <td style={{ padding: '9px 14px', color: 'var(--text)' }}>
+                      <span style={{
+                        display: 'inline-block', padding: '2px 8px', borderRadius: 4, fontSize: 12,
+                        background: 'var(--hover-bg)', fontWeight: 600,
+                      }}>{r.manager || '-'}</span>
+                    </td>
+                    <td style={{ padding: '9px 14px', color: 'var(--muted)' }}>{formatDateDisplay(r.assignedDate) || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <div className="modal-actions">
+          <button className="btn" onClick={onClose}>닫기</button>
         </div>
       </div>
     </div>
