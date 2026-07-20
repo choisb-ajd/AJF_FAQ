@@ -1448,7 +1448,7 @@ function GlobalSearchModal({ onClose }) {
               onKeyDown={handleKeyDown}
               placeholder="이름 (2자 이상)"
               style={{
-                flex: 1, padding: '9px 13px', fontSize: 14,
+                flex: '1 1 0', minWidth: 0, padding: '9px 13px', fontSize: 14,
                 border: '1.5px solid var(--border)', borderRadius: 6,
                 background: 'var(--input-bg)', color: 'var(--text)',
                 boxSizing: 'border-box',
@@ -1460,7 +1460,7 @@ function GlobalSearchModal({ onClose }) {
               onKeyDown={handleKeyDown}
               placeholder="연락처 (8자리 이상)"
               style={{
-                flex: 1, padding: '9px 13px', fontSize: 14,
+                flex: '1 1 0', minWidth: 0, padding: '9px 13px', fontSize: 14,
                 border: '1.5px solid var(--border)', borderRadius: 6,
                 background: 'var(--input-bg)', color: 'var(--text)',
                 boxSizing: 'border-box',
@@ -1470,8 +1470,9 @@ function GlobalSearchModal({ onClose }) {
               onClick={doSearch}
               disabled={searching || !canSearch}
               style={{
-                padding: '0 16px', fontSize: 18, border: '1.5px solid var(--border)',
-                borderRadius: 6, background: 'var(--btn-bg, #f1f3f5)', cursor: canSearch ? 'pointer' : 'default',
+                flexShrink: 0, width: 44, height: 40, fontSize: 18,
+                border: '1.5px solid var(--border)', borderRadius: 6,
+                background: 'var(--btn-bg, #f1f3f5)', cursor: canSearch ? 'pointer' : 'default',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 opacity: canSearch ? 1 : 0.4,
               }}
