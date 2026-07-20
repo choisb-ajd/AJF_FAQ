@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import cookie from 'cookie';
@@ -190,6 +190,8 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [addMsg, setAddMsg] = useState(null);
   const [lastSynced, setLastSynced] = useState(null);
   const [managerOptions, setManagerOptions] = useState(null);
+  const [showSearchPopup, setShowSearchPopup] = useState(false);
+  const searchPopupTimerRef = useRef(null);
   const [sortKey, setSortKey] = useState('assignedDate');
   const [sortDir, setSortDir] = useState('desc');
   const [colWidths, setColWidths] = useState(DEFAULT_COL_WIDTHS);
@@ -308,6 +310,18 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     });
     return list;
   }, [filtered, sortKey, sortDir]);
+
+  const searchPopupMatches = useMemo(() => {
+    const q = search.trim();
+    if (q.length < 2) return [];
+    const qLower = q.toLowerCase();
+    const qPhone = q.replace(/\D/g, '');
+    return rows.filter((r) => {
+      const rName = (r.name || '').toLowerCase();
+      const rPhone = (r.phone || '').replace(/\D/g, '');
+      return rName.includes(qLower) || (qPhone.length >= 3 && rPhone.includes(qPhone));
+    }).slice(0, 15);
+  }, [rows, search]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const paged = sorted.slice((page - 1) * pageSize, page * pageSize);
@@ -615,9 +629,58 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
         </div>
 
         <div className="filters-card">
-          <div className="filter-field" style={{ minWidth: 240 }}>
+          <div className="filter-field" style={{ minWidth: 240, position: 'relative' }}>
             <label>통합검색 (이름/연락처/지점/매니저)</label>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="검색어 입력" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="검색어 입력"
+              onFocus={() => {
+                clearTimeout(searchPopupTimerRef.current);
+                setShowSearchPopup(true);
+              }}
+              onBlur={() => {
+                searchPopupTimerRef.current = setTimeout(() => setShowSearchPopup(false), 200);
+              }}
+            />
+            {showSearchPopup && searchPopupMatches.length > 0 && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, zIndex: 300, minWidth: 520,
+                background: 'var(--card-bg)', border: '1px solid var(--border)',
+                borderRadius: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.18)', marginTop: 4,
+                maxHeight: 340, overflowY: 'auto',
+              }}>
+                <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
+                  이름·연락처 매칭 결과 {searchPopupMatches.length}건 (클릭 시 상세 보기)
+                </div>
+                <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--table-head-bg)' }}>
+                      <th style={{ padding: '6px 12px', textAlign: 'left', fontWeight: 600 }}>이름</th>
+                      <th style={{ padding: '6px 12px', textAlign: 'left', fontWeight: 600 }}>연락처</th>
+                      <th style={{ padding: '6px 12px', textAlign: 'left', fontWeight: 600 }}>담당매니저</th>
+                      <th style={{ padding: '6px 12px', textAlign: 'left', fontWeight: 600 }}>배분일자</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {searchPopupMatches.map((r, i) => (
+                      <tr
+                        key={i}
+                        style={{ cursor: 'pointer', borderTop: '1px solid var(--border)' }}
+                        onMouseDown={() => { clearTimeout(searchPopupTimerRef.current); setShowSearchPopup(false); openEdit(r); }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = ''}
+                      >
+                        <td style={{ padding: '7px 12px' }}>{r.name}</td>
+                        <td style={{ padding: '7px 12px' }}>{r.phone}</td>
+                        <td style={{ padding: '7px 12px' }}>{r.manager || '-'}</td>
+                        <td style={{ padding: '7px 12px' }}>{formatDateDisplay(r.assignedDate) || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
           {isAdmin && (
             <div className="filter-field">
@@ -885,6 +948,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
           saving={addSaving}
           message={addMsg}
           managerOptions={managerOptions}
+          allMembers={rows}
           onClose={() => setAddingDealer(false)}
           onSave={handleAddDealer}
         />
@@ -1136,7 +1200,7 @@ function ContactHistoryPanel({ row, onUpdated }) {
 
 // 딜러 추가 모달도 상세 모달과 같은 3단계 순서(상시노출/접어두기)를 따릅니다. 다만 최초컨택일자는
 // 등록 시점엔 항상 비어있어(컨택 히스토리를 적어야 자동으로 채워지므로) 입력칸으로 보여줄 필요가 없어 제외합니다.
-function AddDealerModal({ isAdmin, name, saving, message, managerOptions, onClose, onSave }) {
+function AddDealerModal({ isAdmin, name, saving, message, managerOptions, allMembers, onClose, onSave }) {
   // 매니저는 다른 매니저에게 배분(manager)하거나 본인이 볼 수 없는 관리자 특이사항(adminNote)은 입력할 수 없습니다.
   const collapsibleKeys = MODAL_COMMON_COLLAPSIBLE.filter((k) => k !== 'firstContactDate');
   const baseKeys = ['group', 'brand', 'branch', 'name', 'phone', 'contacted', 'contactHistory', ...collapsibleKeys];
@@ -1148,18 +1212,31 @@ function AddDealerModal({ isAdmin, name, saving, message, managerOptions, onClos
     return init;
   });
   const [validationError, setValidationError] = useState('');
+  const [dupMatch, setDupMatch] = useState(null);
   useEscapeKey(onClose);
 
   function update(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
+    if (dupMatch) setDupMatch(null);
   }
 
-  function submit() {
+  function submit(force = false) {
     if (!form.name.trim() || !form.phone.trim()) {
       setValidationError('이름과 연락처는 필수 입력 항목입니다.');
       return;
     }
     setValidationError('');
+    if (!force) {
+      const normalizedPhone = form.phone.replace(/\D/g, '');
+      const existing = (allMembers || []).find(
+        (m) => m.phone && m.phone.replace(/\D/g, '') === normalizedPhone
+      );
+      if (existing) {
+        setDupMatch(existing);
+        return;
+      }
+    }
+    setDupMatch(null);
     onSave(form);
   }
 
@@ -1180,6 +1257,17 @@ function AddDealerModal({ isAdmin, name, saving, message, managerOptions, onClos
 
           {message && <div className={`modal-message ${message.type}`}>{message.text}</div>}
           {validationError && <div className="modal-message err">{validationError}</div>}
+          {dupMatch && (
+            <div className="modal-message warn" style={{ lineHeight: 1.8 }}>
+              <strong>동일한 연락처로 이미 등록된 딜러가 있습니다.</strong><br />
+              이름: <strong>{dupMatch.name}</strong> &nbsp;·&nbsp; 연락처: <strong>{dupMatch.phone}</strong><br />
+              담당매니저: <strong>{dupMatch.manager || '-'}</strong> &nbsp;·&nbsp; 배분일자: <strong>{formatDateDisplay(dupMatch.assignedDate) || '-'}</strong><br />
+              <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                <button className="btn" onClick={() => setDupMatch(null)}>취소</button>
+                <button className="btn btn-primary" onClick={() => submit(true)}>확인 후 등록</button>
+              </div>
+            </div>
+          )}
 
           <div className="modal-header-grid">
             <FieldInput fieldKey="group" value={form.group} onChange={update} />
