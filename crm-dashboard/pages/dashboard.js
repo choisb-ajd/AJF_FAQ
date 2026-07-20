@@ -1431,7 +1431,7 @@ function GlobalSearchModal({ onClose }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" style={{ width: 580, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal-card" style={{ width: 560, maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div>
             <h2>전체 딜러 검색</h2>
@@ -1439,7 +1439,7 @@ function GlobalSearchModal({ onClose }) {
           </div>
           <button className="modal-close" onClick={onClose}>&times;</button>
         </div>
-        <div style={{ padding: '16px 24px', flex: 1, overflowY: 'auto' }}>
+        <div style={{ padding: '16px 24px', flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
             <input
               autoFocus
