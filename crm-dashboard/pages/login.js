@@ -64,6 +64,7 @@ export default function LoginPage() {
       <div className="login-card">
         <div className="login-logo">AJF DEALER CRM</div>
         <div className="login-title">My Dealer</div>
+        <div style={{ fontSize: 13, color: '#6b7280', marginTop: -8, marginBottom: 4 }}>가망 딜러 관리</div>
         <form onSubmit={handleSubmit}>
           <div className="login-field">
             <label htmlFor="loginId">아이디</label>
