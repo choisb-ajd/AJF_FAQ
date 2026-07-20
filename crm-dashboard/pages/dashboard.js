@@ -632,22 +632,28 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
         <div className="filters-card">
           <div className="filter-field" style={{ minWidth: 240, position: 'relative' }}>
             <label>통합검색 (이름/연락처/지점/매니저)</label>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="검색어 입력"
-              onFocus={() => {
-                clearTimeout(searchPopupTimerRef.current);
-                setShowSearchPopup(true);
-              }}
-              onBlur={() => {
-                searchPopupTimerRef.current = setTimeout(() => setShowSearchPopup(false), 200);
-              }}
-            />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                style={{ flex: 1, minWidth: 0 }}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="검색어 입력"
+                onFocus={() => {
+                  clearTimeout(searchPopupTimerRef.current);
+                  setShowSearchPopup(true);
+                }}
+                onBlur={() => {
+                  searchPopupTimerRef.current = setTimeout(() => setShowSearchPopup(false), 200);
+                }}
+              />
+              <button className="btn" style={{ whiteSpace: 'nowrap' }} onClick={() => setShowGlobalSearch(true)}>
+                딜러 검색
+              </button>
+            </div>
             {showSearchPopup && searchPopupMatches.length > 0 && (
               <div style={{
                 position: 'absolute', top: '100%', left: 0, zIndex: 300, minWidth: 540,
-                background: 'var(--card-bg)', border: '1.5px solid var(--border)',
+                background: '#f8f9fa', border: '1.5px solid var(--border)',
                 borderRadius: 8, boxShadow: '0 6px 24px rgba(0,0,0,0.22)', marginTop: 4,
                 maxHeight: 340, overflowY: 'auto', color: 'var(--text)',
               }}>
@@ -734,13 +740,10 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
           </div>
           <div className="filter-actions">
             <button className="btn" onClick={resetFilters}>초기화</button>
-            <button className="btn" onClick={handleManualRefresh}>새로고침</button>
-            <button className="btn btn-primary" onClick={exportCsv}>엑셀(CSV) 다운로드</button>
+            {isAdmin && <button className="btn" onClick={handleManualRefresh}>새로고침</button>}
+            {isAdmin && <button className="btn btn-primary" onClick={exportCsv}>엑셀(CSV) 다운로드</button>}
             <button className="btn btn-primary" onClick={() => { setAddMsg(null); setAddingDealer(true); }}>
               딜러 추가
-            </button>
-            <button className="btn" style={{ background: 'var(--card-bg)', border: '1.5px solid var(--border)' }} onClick={() => setShowGlobalSearch(true)}>
-              딜러 검색
             </button>
             {isAdmin && (
               <button
