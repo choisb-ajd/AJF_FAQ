@@ -231,9 +231,8 @@ const REF_SHEETS = [
   { key: 'cm-tm', title: '원수사별 CM/TM', label: '원수사별 CM/TM', linkHub: true, linkHubCell: 'A1' },
 ];
 
-// 갱신배정 탭: 헤더는 2행, 데이터는 3행부터 시작합니다. 헤더 문구로 찾지 않고 칼럼 위치(B~P)를 고정 매핑합니다.
-// "딜러연락처"와 "딜러이름"은 시트에는 L열 한 칸("딜러연락처&이름")에 같이 들어있어서,
-// "연락처 / 이름" 형식으로 합쳐 저장하고 화면에서는 입력칸 2개로 나눠 보여줍니다.
+// 갱신배정 탭: 헤더는 2행, 데이터는 3행부터 시작합니다. 헤더 문구로 찾지 않고 칼럼 위치(B~Q)를 고정 매핑합니다.
+// 딜러연락처(L열)와 딜러이름(M열)은 각각 별도 칼럼에 저장됩니다.
 const RENEWAL_FIELDS = [
   { key: 'renewalMonth', label: '갱신월', col: 'B' },
   { key: 'assignedDate', label: '배정일', col: 'C' },
@@ -246,11 +245,11 @@ const RENEWAL_FIELDS = [
   { key: 'expiryDate', label: '만기일자', col: 'J' },
   { key: 'insurer', label: '가입보험사', col: 'K' },
   { key: 'dealerContact', label: '딜러연락처', col: 'L' },
-  { key: 'dealerName', label: '딜러이름', col: 'L' },
-  { key: 'dealerType', label: '딜러유형', col: 'M' },
-  { key: 'dealerRecent60d', label: '딜러 직전 60일 계약여부', col: 'N', type: 'select', options: ['', 'Y', 'N'] },
-  { key: 'dealerLastContractDate', label: '딜러 최종 계약일자', col: 'O' },
-  { key: 'callHistory', label: '통화이력', col: 'P' },
+  { key: 'dealerName', label: '딜러이름', col: 'M' },
+  { key: 'dealerType', label: '딜러유형', col: 'N' },
+  { key: 'dealerRecent60d', label: '딜러 직전 60일 계약여부', col: 'O', type: 'select', options: ['', 'Y', 'N'] },
+  { key: 'dealerLastContractDate', label: '딜러 최종 계약일자', col: 'P' },
+  { key: 'callHistory', label: '통화이력', col: 'Q' },
 ];
 
 function splitDealerContactName(raw) {
