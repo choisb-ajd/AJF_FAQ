@@ -645,21 +645,21 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
             />
             {showSearchPopup && searchPopupMatches.length > 0 && (
               <div style={{
-                position: 'absolute', top: '100%', left: 0, zIndex: 300, minWidth: 520,
-                background: 'var(--card-bg)', border: '1px solid var(--border)',
-                borderRadius: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.18)', marginTop: 4,
-                maxHeight: 340, overflowY: 'auto',
+                position: 'absolute', top: '100%', left: 0, zIndex: 300, minWidth: 540,
+                background: 'var(--card-bg)', border: '1.5px solid var(--border)',
+                borderRadius: 8, boxShadow: '0 6px 24px rgba(0,0,0,0.22)', marginTop: 4,
+                maxHeight: 340, overflowY: 'auto', color: 'var(--text)',
               }}>
-                <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ padding: '8px 14px', fontSize: 12, color: 'var(--muted)', borderBottom: '1px solid var(--border)', fontWeight: 500 }}>
                   이름·연락처 매칭 결과 {searchPopupMatches.length}건 (클릭 시 상세 보기)
                 </div>
-                <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+                <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse', color: 'var(--text)' }}>
                   <thead>
                     <tr style={{ background: 'var(--table-head-bg)' }}>
-                      <th style={{ padding: '6px 12px', textAlign: 'left', fontWeight: 600 }}>이름</th>
-                      <th style={{ padding: '6px 12px', textAlign: 'left', fontWeight: 600 }}>연락처</th>
-                      <th style={{ padding: '6px 12px', textAlign: 'left', fontWeight: 600 }}>담당매니저</th>
-                      <th style={{ padding: '6px 12px', textAlign: 'left', fontWeight: 600 }}>배분일자</th>
+                      <th style={{ padding: '7px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap' }}>이름</th>
+                      <th style={{ padding: '7px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap' }}>연락처</th>
+                      <th style={{ padding: '7px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap' }}>담당매니저</th>
+                      <th style={{ padding: '7px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap' }}>배분일자</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -671,10 +671,10 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                         onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
                         onMouseLeave={(e) => e.currentTarget.style.background = ''}
                       >
-                        <td style={{ padding: '7px 12px' }}>{r.name}</td>
-                        <td style={{ padding: '7px 12px' }}>{r.phone}</td>
-                        <td style={{ padding: '7px 12px' }}>{r.manager || '-'}</td>
-                        <td style={{ padding: '7px 12px' }}>{formatDateDisplay(r.assignedDate) || '-'}</td>
+                        <td style={{ padding: '8px 14px', color: 'var(--text)', fontWeight: 600 }}>{r.name}</td>
+                        <td style={{ padding: '8px 14px', color: 'var(--text)' }}>{r.phone}</td>
+                        <td style={{ padding: '8px 14px', color: 'var(--text)' }}>{r.manager || '-'}</td>
+                        <td style={{ padding: '8px 14px', color: 'var(--muted)' }}>{formatDateDisplay(r.assignedDate) || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
