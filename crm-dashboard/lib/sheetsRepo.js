@@ -10,8 +10,6 @@ const {
   MANAGER_EDITABLE,
   REF_SHEETS,
   RENEWAL_FIELDS,
-  splitDealerContactName,
-  joinDealerContactName,
   appendContactHistoryNote,
   LMS_TEMPLATE_CATEGORIES,
   LEASE_PLEDGE_DEFAULTS,
@@ -194,8 +192,7 @@ async function updateRefSheetCell(key, rowIndex, colIndex, value) {
 
 // 갱신배정 탭: 헤더는 2행, 데이터는 3행부터 시작합니다(REF_SHEETS의 renewalTable:true).
 // 다른 참고용 시트들과 달리 칼럼별 의미(RENEWAL_FIELDS)를 그대로 사용해 회원관리와 같은
-// 표/모달 UI로 보여줍니다. L열은 시트에 "딜러연락처&이름"이 한 칸에 같이 들어있어
-// 읽을 때 두 필드로 나누고, 저장할 때 다시 합쳐서 같은 칸에 씁니다.
+// 표/모달 UI로 보여줍니다. 딜러연락처(L열)와 딜러이름(M열)은 각각 별도 칼럼에 저장됩니다.
 function invalidateRenewalCache() {
   renewalCache = null;
 }
@@ -209,7 +206,7 @@ async function readRenewalRows({ useCache = true } = {}) {
   const sheets = getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: ADMIN_SPREADSHEET_ID,
-    range: `${quoteSheetTitle(config.title)}!B3:P`,
+    range: `${quoteSheetTitle(config.title)}!B3:Q`,
   });
   const values = res.data.values || [];
   const baseIndex = letterToColumnIndex('B');
@@ -217,7 +214,6 @@ async function readRenewalRows({ useCache = true } = {}) {
   const rows = values
     .map((rowArray, i) => {
       const get = (col) => (rowArray[letterToColumnIndex(col) - baseIndex] || '').toString().trim();
-      const { dealerContact, dealerName } = splitDealerContactName(get('L'));
       return {
         rowNumber: i + 3, // 시트 상의 실제 행 번호 (1~2행은 빈줄/헤더)
         values: {
@@ -231,12 +227,12 @@ async function readRenewalRows({ useCache = true } = {}) {
           carNumber: get('I'),
           expiryDate: get('J'),
           insurer: get('K'),
-          dealerContact,
-          dealerName,
-          dealerType: get('M'),
-          dealerRecent60d: get('N'),
-          dealerLastContractDate: get('O'),
-          callHistory: get('P'),
+          dealerContact: get('L'),
+          dealerName: get('M'),
+          dealerType: get('N'),
+          dealerRecent60d: get('O'),
+          dealerLastContractDate: get('P'),
+          callHistory: get('Q'),
         },
       };
     })
@@ -249,16 +245,9 @@ async function readRenewalRows({ useCache = true } = {}) {
 
 async function updateRenewalRecord({ rowNumber, updates }) {
   const config = getRefSheetConfig('renewal');
-  const cleaned = { ...updates };
-  if (cleaned.dealerContact !== undefined || cleaned.dealerName !== undefined) {
-    cleaned.__dealerCombined = joinDealerContactName(cleaned.dealerContact, cleaned.dealerName);
-    delete cleaned.dealerContact;
-    delete cleaned.dealerName;
-  }
-
-  const colOf = { ...Object.fromEntries(RENEWAL_FIELDS.map((f) => [f.key, f.col])), __dealerCombined: 'L' };
+  const colOf = Object.fromEntries(RENEWAL_FIELDS.map((f) => [f.key, f.col]));
   const data = [];
-  for (const [key, value] of Object.entries(cleaned)) {
+  for (const [key, value] of Object.entries(updates)) {
     const col = colOf[key];
     if (!col) continue;
     data.push({
@@ -283,7 +272,7 @@ async function addRenewalCallNote(rowNumber, currentHistory, text, author) {
   const sheets = getSheetsClient();
   await sheets.spreadsheets.values.update({
     spreadsheetId: ADMIN_SPREADSHEET_ID,
-    range: `${quoteSheetTitle(config.title)}!P${rowNumber}`,
+    range: `${quoteSheetTitle(config.title)}!Q${rowNumber}`,
     valueInputOption: 'RAW',
     requestBody: { values: [[newHistory]] },
   });
