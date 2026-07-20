@@ -963,6 +963,24 @@ async function listAccountsForAdmin() {
   return accounts.map(({ password, ...rest }) => rest);
 }
 
+async function createAccount({ loginId, password, name, role, sheetUrl = '', note = '' }) {
+  const accounts = await getAccountsConfig({ useCache: false });
+  if (accounts.find((a) => a.loginId === loginId.trim())) {
+    throw new Error('이미 사용 중인 아이디입니다.');
+  }
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range: `${quoteSheetTitle(ACCOUNTS_SHEET_TITLE)}!A:H`,
+    valueInputOption: 'RAW',
+    insertDataOption: 'INSERT_ROWS',
+    requestBody: {
+      values: [[loginId.trim(), password, name.trim(), role, sheetUrl.trim(), note.trim(), '0', '']],
+    },
+  });
+  invalidateAccountsCache();
+}
+
 function extractSpreadsheetId(url) {
   const m = (url || '').match(/\/d\/([a-zA-Z0-9-_]+)/);
   return m ? m[1] : null;
@@ -1598,6 +1616,7 @@ module.exports = {
   changeOwnPassword,
   adminResetPassword,
   listAccountsForAdmin,
+  createAccount,
   readRefSheetGrid,
   updateRefSheetCell,
   readRenewalRows,

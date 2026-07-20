@@ -32,6 +32,7 @@ export default function AccountsPage({ role, name }) {
   const [error, setError] = useState('');
   const [resetTarget, setResetTarget] = useState(null);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [addingAccount, setAddingAccount] = useState(false);
 
   async function fetchAccounts({ force = false } = {}) {
     setLoading(true);
@@ -87,7 +88,10 @@ export default function AccountsPage({ role, name }) {
             <h1>계정관리</h1>
             <div className="count">등록된 계정 수: {accounts.length.toLocaleString()}개</div>
           </div>
-          <button className="btn" onClick={() => fetchAccounts({ force: true })}>새로고침</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn" onClick={() => fetchAccounts({ force: true })}>새로고침</button>
+            <button className="btn btn-primary" onClick={() => setAddingAccount(true)}>계정 추가</button>
+          </div>
         </div>
 
         {loading ? (
@@ -156,6 +160,103 @@ export default function AccountsPage({ role, name }) {
       {changingPassword && (
         <ChangePasswordModal onClose={() => setChangingPassword(false)} />
       )}
+
+      {addingAccount && (
+        <AddAccountModal
+          onClose={() => setAddingAccount(false)}
+          onDone={() => {
+            setAddingAccount(false);
+            fetchAccounts({ force: true });
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function AddAccountModal({ onClose, onDone }) {
+  const [form, setForm] = useState({ loginId: '', password: '', name: '', role: '매니저', sheetUrl: '', note: '' });
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+  useEscapeKey(onClose);
+
+  function set(key, value) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setMessage(null);
+    if (!form.loginId.trim()) { setMessage({ type: 'err', text: '아이디를 입력해주세요.' }); return; }
+    if (form.password.length < 4) { setMessage({ type: 'err', text: '비밀번호는 4자 이상이어야 합니다.' }); return; }
+    if (!form.name.trim()) { setMessage({ type: 'err', text: '이름을 입력해주세요.' }); return; }
+
+    setSaving(true);
+    try {
+      const res = await fetch('/api/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage({ type: 'err', text: data.error || '계정 생성에 실패했습니다.' });
+        setSaving(false);
+        return;
+      }
+      onDone();
+    } catch (e) {
+      setMessage({ type: 'err', text: '네트워크 오류가 발생했습니다.' });
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" style={{ width: 420 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>계정 추가</h2>
+          <button className="modal-close" onClick={onClose}>&times;</button>
+        </div>
+
+        {message && <div className={`modal-message ${message.type}`}>{message.text}</div>}
+
+        <form onSubmit={handleSubmit}>
+          <div className="modal-field">
+            <label>아이디 <span style={{ color: 'var(--danger, #e53e3e)' }}>*</span></label>
+            <input value={form.loginId} onChange={(e) => set('loginId', e.target.value)} autoFocus placeholder="로그인 아이디" />
+          </div>
+          <div className="modal-field">
+            <label>비밀번호 <span style={{ color: 'var(--danger, #e53e3e)' }}>*</span></label>
+            <input type="password" value={form.password} onChange={(e) => set('password', e.target.value)} placeholder="4자 이상" />
+          </div>
+          <div className="modal-field">
+            <label>이름 <span style={{ color: 'var(--danger, #e53e3e)' }}>*</span></label>
+            <input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="실명 (딜러 배정 시 표시됨)" />
+          </div>
+          <div className="modal-field">
+            <label>권한</label>
+            <select value={form.role} onChange={(e) => set('role', e.target.value)}>
+              <option value="매니저">매니저</option>
+              <option value="관리자">관리자</option>
+            </select>
+          </div>
+          <div className="modal-field">
+            <label>개인 시트 URL <span style={{ color: 'var(--muted)', fontSize: 12 }}>(선택)</span></label>
+            <input value={form.sheetUrl} onChange={(e) => set('sheetUrl', e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/..." />
+          </div>
+          <div className="modal-field">
+            <label>비고 <span style={{ color: 'var(--muted)', fontSize: 12 }}>(선택)</span></label>
+            <input value={form.note} onChange={(e) => set('note', e.target.value)} placeholder="메모" />
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="btn" onClick={onClose}>취소</button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? '생성 중...' : '계정 생성'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
