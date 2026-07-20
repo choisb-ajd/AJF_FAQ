@@ -1385,17 +1385,33 @@ function BulkManagerModal({ count, managerOptions, saving, onClose, onConfirm })
 }
 
 function GlobalSearchModal({ onClose }) {
-  const [q, setQ] = useState('');
-  const [results, setResults] = useState(null); // null=미검색, []= 결과없음
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [results, setResults] = useState(null); // null=미검색, []=결과없음
   const [searching, setSearching] = useState(false);
   useEscapeKey(onClose);
 
+  const nameTrimmed = name.trim();
+  const phoneDigits = phone.replace(/\D/g, '');
+
+  // 검색 가능 여부 판단
+  // - 이름 3자+ : 전화번호 없어도 검색 가능
+  // - 전화번호 8자리+ : 이름 없어도 검색 가능
+  // - 이름 2자 : 전화번호 8자리+ 도 함께 있어야 검색 가능
+  const nameOnlyWarnNeeded = nameTrimmed.length === 2 && phoneDigits.length < 8;
+  const canSearch =
+    (nameTrimmed.length >= 3) ||
+    (phoneDigits.length >= 8) ||
+    (nameTrimmed.length >= 2 && phoneDigits.length >= 8);
+
   async function doSearch() {
-    const trimmed = q.trim();
-    if (!trimmed) return;
+    if (!canSearch) return;
     setSearching(true);
     try {
-      const res = await fetch(`/api/members/search?q=${encodeURIComponent(trimmed)}`);
+      const params = new URLSearchParams();
+      if (nameTrimmed) params.set('name', nameTrimmed);
+      if (phoneDigits) params.set('phone', phoneDigits);
+      const res = await fetch(`/api/members/search?${params.toString()}`);
       const data = await res.json();
       setResults(data.rows || []);
     } catch {
@@ -1409,24 +1425,40 @@ function GlobalSearchModal({ onClose }) {
     if (e.key === 'Enter') doSearch();
   }
 
+  function handleChange(setter) {
+    return (e) => { setter(e.target.value); setResults(null); };
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" style={{ width: 580, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div>
             <h2>전체 딜러 검색</h2>
-            <div className="sub">이름 또는 연락처를 입력 후 돋보기를 누르거나 Enter를 누르세요.</div>
+            <div className="sub">이름(3자+) 또는 연락처(8자리+) 입력 후 🔍 또는 Enter</div>
           </div>
           <button className="modal-close" onClick={onClose}>&times;</button>
         </div>
         <div style={{ padding: '16px 24px', flex: 1, overflowY: 'auto' }}>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
             <input
               autoFocus
-              value={q}
-              onChange={(e) => { setQ(e.target.value); setResults(null); }}
+              value={name}
+              onChange={handleChange(setName)}
               onKeyDown={handleKeyDown}
-              placeholder="이름 또는 연락처 입력"
+              placeholder="이름 (2자 이상)"
+              style={{
+                flex: 1, padding: '9px 13px', fontSize: 14,
+                border: '1.5px solid var(--border)', borderRadius: 6,
+                background: 'var(--input-bg)', color: 'var(--text)',
+                boxSizing: 'border-box',
+              }}
+            />
+            <input
+              value={phone}
+              onChange={handleChange(setPhone)}
+              onKeyDown={handleKeyDown}
+              placeholder="연락처 (8자리 이상)"
               style={{
                 flex: 1, padding: '9px 13px', fontSize: 14,
                 border: '1.5px solid var(--border)', borderRadius: 6,
@@ -1436,18 +1468,23 @@ function GlobalSearchModal({ onClose }) {
             />
             <button
               onClick={doSearch}
-              disabled={searching || !q.trim()}
+              disabled={searching || !canSearch}
               style={{
                 padding: '0 16px', fontSize: 18, border: '1.5px solid var(--border)',
-                borderRadius: 6, background: 'var(--btn-bg, #f1f3f5)', cursor: 'pointer',
+                borderRadius: 6, background: 'var(--btn-bg, #f1f3f5)', cursor: canSearch ? 'pointer' : 'default',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                opacity: !q.trim() ? 0.4 : 1,
+                opacity: canSearch ? 1 : 0.4,
               }}
               title="검색"
             >
               🔍
             </button>
           </div>
+          {nameOnlyWarnNeeded && (
+            <div style={{ marginTop: 8, fontSize: 12, color: '#e57c00', fontWeight: 500 }}>
+              이름 2자 검색 시 연락처(8자리 이상)도 함께 입력해주세요.
+            </div>
+          )}
           {searching && (
             <div style={{ padding: '14px 0', color: 'var(--muted)', fontSize: 13 }}>검색 중...</div>
           )}
