@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   if (!session) return res.status(401).json({ error: '로그인이 필요합니다.' });
 
   const q = (req.query.q || '').trim();
-  if (q.length < 2) return res.status(200).json({ rows: [] });
+  if (!q) return res.status(200).json({ rows: [] });
 
   try {
     const { rows } = await getAdminRows({ useCache: true });

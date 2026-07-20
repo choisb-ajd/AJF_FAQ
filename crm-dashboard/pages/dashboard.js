@@ -1386,28 +1386,27 @@ function BulkManagerModal({ count, managerOptions, saving, onClose, onConfirm })
 
 function GlobalSearchModal({ onClose }) {
   const [q, setQ] = useState('');
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState(null); // null=미검색, []= 결과없음
   const [searching, setSearching] = useState(false);
-  const timerRef = useRef(null);
   useEscapeKey(onClose);
 
-  function handleInput(e) {
-    const val = e.target.value;
-    setQ(val);
-    clearTimeout(timerRef.current);
-    if (val.trim().length < 2) { setResults([]); return; }
-    timerRef.current = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const res = await fetch(`/api/members/search?q=${encodeURIComponent(val.trim())}`);
-        const data = await res.json();
-        setResults(data.rows || []);
-      } catch {
-        setResults([]);
-      } finally {
-        setSearching(false);
-      }
-    }, 350);
+  async function doSearch() {
+    const trimmed = q.trim();
+    if (!trimmed) return;
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/members/search?q=${encodeURIComponent(trimmed)}`);
+      const data = await res.json();
+      setResults(data.rows || []);
+    } catch {
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter') doSearch();
   }
 
   return (
@@ -1416,30 +1415,46 @@ function GlobalSearchModal({ onClose }) {
         <div className="modal-header">
           <div>
             <h2>전체 딜러 검색</h2>
-            <div className="sub">이름 또는 연락처로 전체 매니저 담당 딜러를 검색합니다.</div>
+            <div className="sub">이름 또는 연락처를 입력 후 돋보기를 누르거나 Enter를 누르세요.</div>
           </div>
           <button className="modal-close" onClick={onClose}>&times;</button>
         </div>
         <div style={{ padding: '16px 24px', flex: 1, overflowY: 'auto' }}>
-          <input
-            autoFocus
-            value={q}
-            onChange={handleInput}
-            placeholder="이름 또는 연락처 입력 (2자 이상)"
-            style={{
-              width: '100%', padding: '9px 13px', fontSize: 14,
-              border: '1.5px solid var(--border)', borderRadius: 6,
-              background: 'var(--input-bg)', color: 'var(--text)',
-              boxSizing: 'border-box',
-            }}
-          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              autoFocus
+              value={q}
+              onChange={(e) => { setQ(e.target.value); setResults(null); }}
+              onKeyDown={handleKeyDown}
+              placeholder="이름 또는 연락처 입력"
+              style={{
+                flex: 1, padding: '9px 13px', fontSize: 14,
+                border: '1.5px solid var(--border)', borderRadius: 6,
+                background: 'var(--input-bg)', color: 'var(--text)',
+                boxSizing: 'border-box',
+              }}
+            />
+            <button
+              onClick={doSearch}
+              disabled={searching || !q.trim()}
+              style={{
+                padding: '0 16px', fontSize: 18, border: '1.5px solid var(--border)',
+                borderRadius: 6, background: 'var(--btn-bg, #f1f3f5)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                opacity: !q.trim() ? 0.4 : 1,
+              }}
+              title="검색"
+            >
+              🔍
+            </button>
+          </div>
           {searching && (
             <div style={{ padding: '14px 0', color: 'var(--muted)', fontSize: 13 }}>검색 중...</div>
           )}
-          {!searching && q.trim().length >= 2 && results.length === 0 && (
+          {!searching && results !== null && results.length === 0 && (
             <div style={{ padding: '14px 0', color: 'var(--muted)', fontSize: 13 }}>검색 결과가 없습니다.</div>
           )}
-          {results.length > 0 && (
+          {results !== null && results.length > 0 && (
             <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse', marginTop: 14, color: 'var(--text)' }}>
               <thead>
                 <tr style={{ background: 'var(--table-head-bg)' }}>
