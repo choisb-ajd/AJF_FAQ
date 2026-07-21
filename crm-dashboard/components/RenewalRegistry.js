@@ -74,7 +74,7 @@ function buildPageList(current, total) {
 
 function getNoteClasses(text) {
   const t = (text || '').replace(/\s/g, '');
-  if (t.includes('계약완료')) return 'note-kw-contract';
+  if (t.includes('계약완료') || t.includes('체결완료')) return 'note-kw-contract';
   if (t.includes('타사가입')) return 'note-kw-other';
   if (t.includes('명의이전')) return 'note-kw-transfer';
   return '';
@@ -679,6 +679,9 @@ function RenewalDetailPanel({ row, isAdmin, saving, message, focusNote, onClose,
           <ReadOnlyField label="만기일자" value={formatDateDisplay(row.values.expiryDate)} />
           <ReadOnlyField label="가입보험사" value={row.values.insurer} />
           <ReadOnlyField label="갱신담당매니저" value={row.values.manager} />
+          <ReadOnlyField label="딜러연락처" value={row.values.dealerContact} />
+          <ReadOnlyField label="딜러이름" value={row.values.dealerName} />
+          <ReadOnlyField label="딜러유형" value={row.values.dealerType} />
         </div>
 
         <CollapsibleSection title="딜러 정보" defaultOpen>

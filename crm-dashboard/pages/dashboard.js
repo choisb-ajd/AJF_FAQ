@@ -102,7 +102,7 @@ function maskPhone(phone) {
 
 function getNoteClasses(text) {
   const t = (text || '').replace(/\s/g, '');
-  if (t.includes('계약완료')) return 'note-kw-contract';
+  if (t.includes('계약완료') || t.includes('체결완료')) return 'note-kw-contract';
   if (t.includes('타사가입')) return 'note-kw-other';
   if (t.includes('명의이전')) return 'note-kw-transfer';
   return '';
