@@ -420,7 +420,10 @@ export default function RenewalRegistry({ isAdmin, name, onPanelChange }) {
                   if (!res.ok) {
                     setImportMsg(`오류: ${data.error || '가져오기 실패'}`);
                   } else {
-                    setImportMsg(`완료: ${data.imported}건 추가 (${data.rowsUpdated}행 업데이트)`);
+                    const parts = [];
+                    if (data.imported > 0) parts.push(`${data.imported}건 추가`);
+                    if (data.converted > 0) parts.push(`${data.converted}행 형식변환`);
+                    setImportMsg(parts.length > 0 ? `완료: ${parts.join(', ')} (${data.rowsUpdated}행 업데이트)` : '완료: 새로 반영할 내용 없음');
                     await fetchRows({ force: true });
                   }
                 } catch {

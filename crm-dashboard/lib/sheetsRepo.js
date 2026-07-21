@@ -282,7 +282,8 @@ async function addRenewalCallNote(rowNumber, currentHistory, text, author) {
 }
 
 // U~AD열에 매니저별로 기록된 메모를 Q열(callHistory)로 가져옵니다.
-// 이미 NOTE 형식으로 등록된 동일 내용(author+text 쌍)은 중복 추가하지 않습니다.
+// ① Q열에 plain-text(NOTE 형식이 아닌) 내용이 있으면 갱신담당매니저 이름으로 NOTE 형식으로 변환합니다.
+// ② NOTE 형식으로 등록된 동일 내용(author+text 쌍)만 중복으로 간주하고 건너뜁니다.
 async function importManagerNotesToCallHistory() {
   const config = getRefSheetConfig('renewal');
   const MANAGER_COLS = [
@@ -305,21 +306,45 @@ async function importManagerNotesToCallHistory() {
   });
   const values = res.data.values || [];
   const baseIndex = letterToColumnIndex('B');
-  const qIndex = letterToColumnIndex('Q') - baseIndex; // index of Q in rowArray
 
   const data = [];
   let importedCount = 0;
+  let convertedCount = 0;
 
   for (let i = 0; i < values.length; i++) {
     const rowArray = values[i];
     const rowNumber = i + 3;
     const get = (col) => (rowArray[letterToColumnIndex(col) - baseIndex] || '').toString().trim();
 
+    const rowManager = get('E'); // 갱신담당매니저
     let currentHistory = get('Q');
-    const existingNotes = parseContactHistory(currentHistory);
-    const existingSet = new Set(existingNotes.map((n) => `${n.author}|||${n.text}`));
-
     let changed = false;
+
+    // ① Q열 plain-text 항목을 NOTE 형식으로 변환 (작성자 = 갱신담당매니저)
+    const rawLines = (currentHistory || '').split('\n').map((l) => l.trim()).filter(Boolean);
+    const hasPlainLines = rawLines.some((line) => {
+      const parts = line.split('\t');
+      return !(parts[0] === 'NOTE' && parts.length >= 4);
+    });
+    if (hasPlainLines) {
+      const newLines = rawLines.map((line) => {
+        const parts = line.split('\t');
+        if (parts[0] === 'NOTE' && parts.length >= 4) return line;
+        const safeText = line.replace(/[\n\r\t]+/g, ' ').trim();
+        return `NOTE\t\t${rowManager || ''}\t${safeText}`;
+      });
+      currentHistory = newLines.join('\n');
+      changed = true;
+      convertedCount++;
+    }
+
+    // ② NOTE 형식 기준으로 dedup set 구성 (author+text 쌍)
+    const existingNotes = parseContactHistory(currentHistory);
+    const existingSet = new Set(
+      existingNotes.filter((n) => n.author).map((n) => `${n.author}|||${n.text}`)
+    );
+
+    // ③ U~AD 매니저 컬럼 가져오기
     for (const { col, name } of MANAGER_COLS) {
       const cellText = get(col);
       if (!cellText) continue;
@@ -347,7 +372,7 @@ async function importManagerNotesToCallHistory() {
     invalidateRenewalCache();
   }
 
-  return { imported: importedCount, rowsUpdated: data.length };
+  return { imported: importedCount, converted: convertedCount, rowsUpdated: data.length };
 }
 
 // 메모장 형태(REF_SHEETS의 notepad:true)의 시트는 한 개의 셀(noteCell)에 리치텍스트(HTML)를
