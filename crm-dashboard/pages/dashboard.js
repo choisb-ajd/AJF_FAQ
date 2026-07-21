@@ -77,7 +77,7 @@ const FIELD_META = {
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
 
-// 회원관리 표에 표시할 칼럼 (9개)
+// 회원관리 표에 표시할 칼럼 (10개)
 const TABLE_COLUMNS = [
   { key: 'name', label: '이름' },
   { key: 'phone', label: '연락처' },
@@ -85,6 +85,7 @@ const TABLE_COLUMNS = [
   { key: 'group', label: '그룹' },
   { key: 'brand', label: '브랜드' },
   { key: 'branch', label: '지점/대리점' },
+  { key: 'last60dContracts', label: '직전 60일 계약' },
   { key: 'contacted', label: '컨택여부' },
   { key: 'firstContactDate', label: '최초컨택일자' },
   { key: 'contactHistory', label: '컨택 히스토리' },
@@ -153,6 +154,7 @@ const DEFAULT_COL_WIDTHS = {
   group: 90,
   brand: 90,
   branch: 160,
+  last60dContracts: 100,
   contacted: 90,
   firstContactDate: 120,
   contactHistory: 280,
@@ -897,7 +899,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                                     className="btn-add-note"
                                     title="메모 추가"
                                     onClick={(e) => { e.stopPropagation(); openEdit(row, true); }}
-                                  >신규</button>
+                                  >+</button>
                                 </div>
                               </td>
                             );
@@ -1059,6 +1061,9 @@ function DetailPanel({ row, isAdmin, saving, message, managerOptions, focusNote,
           <FieldInput fieldKey="name" value={form.name} onChange={update} />
           <FieldInput fieldKey="phone" value={form.phone} onChange={update} />
           <FieldInput fieldKey="contacted" value={form.contacted} onChange={update} />
+          <ReadOnlyField label="App가입일자" value={formatDateDisplay(row.appJoinDate)} />
+          <ReadOnlyField label="누적 계약체결건수" value={row.totalContracts} />
+          <ReadOnlyField label="직전 60일 계약건수" value={row.last60dContracts} />
         </div>
 
         {isAdmin && (
