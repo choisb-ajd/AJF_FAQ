@@ -71,7 +71,7 @@ const FIELD_META = {
   appJoinDate: { label: 'App가입일자', type: 'text' },
   totalContracts: { label: '누적 계약체결건수', type: 'text' },
   last60dContracts: { label: '직전 60일 계약체결건수', type: 'text' },
-  last1yTop10: { label: '직전 1년 본인 10% 횟수', type: 'text' },
+  last1yTop10: { label: '직전 1년 본인 계약 건수', type: 'text' },
   adminNote: { label: '관리자 특이사항', type: 'textarea' },
 };
 

@@ -51,7 +51,7 @@ const DISPLAY_COLUMNS = [
   { key: 'totalContracts', label: '누적계약' },
   { key: 'last60dContracts', label: '직전60일' },
   { key: 'assignedDate', label: '등록일자' },
-  { key: 'adminNote', label: '관리자 특이사항', adminOnly: true },
+  { key: 'adminNote', label: '관리자 특이사항' },
   { key: 'lastModifiedBy', label: '수정자', adminOnly: true },
 ];
 
@@ -88,7 +88,7 @@ const ADMIN_ONLY_EDITABLE = [
 ];
 
 // 매니저 화면에서 완전히 숨길 필드 (관리자만 보임)
-const ADMIN_ONLY_VISIBLE = ['adminNote', 'managerSheetLink', 'lastModifiedBy'];
+const ADMIN_ONLY_VISIBLE = ['managerSheetLink', 'lastModifiedBy'];
 
 // 딜러 상세/추가 모달에서 항상 보이는 기본 정보 항목 (관리자·매니저 공통 순서)
 const MODAL_PRIMARY_FIELDS = ['group', 'brand', 'branch', 'name', 'phone', 'contacted'];
