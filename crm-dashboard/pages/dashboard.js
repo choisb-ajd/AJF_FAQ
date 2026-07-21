@@ -77,8 +77,21 @@ const FIELD_META = {
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
 
-// 회원관리 표: 지점/대리점까지 열고정 (첫 6칼럼)
-const FROZEN_KEYS = ['name', 'phone', 'manager', 'group', 'brand', 'branch'];
+// 회원관리 표에 표시할 칼럼 (9개)
+const TABLE_COLUMNS = [
+  { key: 'name', label: '이름' },
+  { key: 'phone', label: '연락처' },
+  { key: 'manager', label: '담당매니저' },
+  { key: 'group', label: '그룹' },
+  { key: 'brand', label: '브랜드' },
+  { key: 'branch', label: '지점/대리점' },
+  { key: 'contacted', label: '컨택여부' },
+  { key: 'firstContactDate', label: '최초컨택일자' },
+  { key: 'contactHistory', label: '컨택 히스토리' },
+];
+
+// 이름·연락처·담당매니저만 열고정 (슬림한 9칼럼 표)
+const FROZEN_KEYS = ['name', 'phone', 'manager'];
 const FROZEN_KEY_SET = new Set(FROZEN_KEYS);
 
 function maskPhone(phone) {
@@ -139,19 +152,10 @@ const DEFAULT_COL_WIDTHS = {
   manager: 110,
   group: 90,
   brand: 90,
-  branch: 150,
+  branch: 160,
   contacted: 90,
   firstContactDate: 120,
-  reContactDate: 120,
-  smsSent: 90,
-  contactSentiment: 90,
-  contactHistory: 220,
-  appJoinDate: 120,
-  totalContracts: 90,
-  last60dContracts: 90,
-  assignedDate: 150,
-  adminNote: 200,
-  lastModifiedBy: 90,
+  contactHistory: 280,
 };
 const DEFAULT_COL_WIDTH = 110;
 const MIN_COL_WIDTH = 50;
@@ -196,6 +200,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [sortKey, setSortKey] = useState('assignedDate');
   const [sortDir, setSortDir] = useState('desc');
   const [colWidths, setColWidths] = useState(DEFAULT_COL_WIDTHS);
+  const [focusNote, setFocusNote] = useState(false);
 
   const [selectedPhones, setSelectedPhones] = useState(() => new Set());
   const [bulkManagerModal, setBulkManagerModal] = useState(false);
@@ -425,8 +430,9 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     router.push('/login');
   }
 
-  function openEdit(row) {
+  function openEdit(row, withFocusNote = false) {
     setEditing(row);
+    setFocusNote(withFocusNote);
     setSaveMsg(null);
   }
 
@@ -562,9 +568,8 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     }
   }
 
-  const visibleColumns = DISPLAY_COLUMNS.filter((c) => isAdmin || !c.adminOnly);
+  const visibleColumns = TABLE_COLUMNS;
 
-  // 각 열고정 칼럼의 left 위치를 누적 너비로 계산합니다.
   const frozenLefts = useMemo(() => {
     const result = {};
     let acc = isAdmin ? 40 : 0; // 관리자는 체크박스 칼럼(40px) 선행
@@ -606,7 +611,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
         <Announcement isAdmin={isAdmin} />
       </div>
 
-      <div className="page-body">
+      <div className={`page-body${editing ? ' panel-open' : ''}`}>
         <div className="page-heading">
           <div>
             <h1>회원 관리</h1>
@@ -782,7 +787,6 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                   {visibleColumns.map((c) => (
                     <col key={c.key} style={{ width: colWidths[c.key] || DEFAULT_COL_WIDTH }} />
                   ))}
-                  <col style={{ width: ACTION_COL_WIDTH }} />
                 </colgroup>
                 <thead>
                   <tr>
@@ -807,33 +811,38 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                       return (
                         <th
                           key={c.key}
-                          onClick={() => toggleSort(c.key)}
+                          onClick={() => c.key !== 'contactHistory' && toggleSort(c.key)}
                           style={{
-                            cursor: 'pointer',
+                            cursor: c.key !== 'contactHistory' ? 'pointer' : 'default',
                             ...(isFrozen ? { position: 'sticky', left: frozenLefts[c.key], zIndex: 6, background: '#FAFBFD' } : {}),
                           }}
                         >
                           {c.label}
                           {sortKey === c.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
-                          <span
-                            className="col-resize-handle"
-                            onMouseDown={(e) => startColumnResize(e, c.key)}
-                            onClick={(e) => e.stopPropagation()}
-                          />
+                          {c.key !== 'contactHistory' && (
+                            <span
+                              className="col-resize-handle"
+                              onMouseDown={(e) => startColumnResize(e, c.key)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          )}
                         </th>
                       );
                     })}
-                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {paged.length === 0 ? (
                     <tr className="empty-row">
-                      <td colSpan={visibleColumns.length + 1 + (isAdmin ? 1 : 0)}>검색 결과가 없습니다.</td>
+                      <td colSpan={visibleColumns.length + (isAdmin ? 1 : 0)}>검색 결과가 없습니다.</td>
                     </tr>
                   ) : (
                     paged.map((row) => (
-                      <tr key={row.phone + row.rowNumber} onClick={() => openEdit(row)}>
+                      <tr
+                        key={row.phone + row.rowNumber}
+                        onClick={() => openEdit(row)}
+                        className={editing && editing.phone === row.phone ? 'row-selected' : ''}
+                      >
                         {isAdmin && (
                           <td
                             className="frozen-cell"
@@ -855,15 +864,40 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                           </td>
                         )}
                         {visibleColumns.map((c) => {
+                          const isFrozen = FROZEN_KEY_SET.has(c.key);
+
+                          if (c.key === 'contactHistory') {
+                            const notes = parseContactHistory(row.contactHistory);
+                            const latest = notes[0];
+                            const latestText = latest ? latest.text : '';
+                            const tooltipText = latest
+                              ? `[${formatRelativeTime(latest.timestamp)} · ${latest.author || ''}]\n${latestText}`
+                              : '';
+                            const displayText = latestText.length > 55 ? latestText.slice(0, 55) + '…' : latestText;
+                            return (
+                              <td key="contactHistory">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span className="history-snippet" title={tooltipText || undefined}>
+                                    {displayText || <span style={{ color: '#C2C7CC' }}>-</span>}
+                                  </span>
+                                  <button
+                                    className="btn-add-note"
+                                    title="메모 추가"
+                                    onClick={(e) => { e.stopPropagation(); openEdit(row, true); }}
+                                  >+</button>
+                                </div>
+                              </td>
+                            );
+                          }
+
                           const val = row[c.key];
                           const isBadgeField = ['contacted', 'smsSent', 'priorityDealer', 'highEfficiency', 'contactSentiment'].includes(c.key);
                           const rawDisplay = DATE_DISPLAY_KEYS.includes(c.key) ? formatDateDisplay(val) : val;
                           const display = c.key === 'phone' ? maskPhone(val) : rawDisplay;
-                          const isFrozen = FROZEN_KEY_SET.has(c.key);
                           return (
                             <td
                               key={c.key}
-                              title={rawDisplay}
+                              title={rawDisplay || undefined}
                               className={isFrozen ? 'frozen-cell' : undefined}
                               style={isFrozen ? { position: 'sticky', left: frozenLefts[c.key], zIndex: 1 } : undefined}
                             >
@@ -871,17 +905,6 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                             </td>
                           );
                         })}
-                        <td>
-                          <button
-                            className="btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openEdit(row);
-                            }}
-                          >
-                            수정
-                          </button>
-                        </td>
                       </tr>
                     ))
                   )}
@@ -931,13 +954,15 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
       </div>
 
       {editing && (
-        <EditModal
+        <DetailPanel
+          key={editing.phone}
           row={editing}
           isAdmin={isAdmin}
           saving={saving}
           message={saveMsg}
           managerOptions={managerOptions}
-          onClose={() => setEditing(null)}
+          focusNote={focusNote}
+          onClose={() => { setEditing(null); setFocusNote(false); }}
           onSave={handleSave}
           onDelete={handleDelete}
           onRowUpdated={handleRowFieldsUpdated}
@@ -977,10 +1002,9 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   );
 }
 
-// 컨택여부 등 본문 저장 폼에서 다루는 필드 목록입니다. 컨택 히스토리/최초컨택일자는
-// 옆의 히스토리 패널이 전용으로 관리하므로(메모 추가 시 즉시 서버에 저장) 본문 저장 폼에서는
-// 제외합니다. 같은 값을 두 곳에서 동시에 들고 있다가 저장 시점이 엇갈리면 서로 덮어쓸 수 있기 때문입니다.
-function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onSave, onDelete, onRowUpdated }) {
+// 우측 고정 상세 패널 — 딜러 클릭 시 표 옆에 고정 표시됩니다.
+// 컨택 히스토리가 최상단에 위치해 전화 응대 중 바로 입력하기 편합니다.
+function DetailPanel({ row, isAdmin, saving, message, managerOptions, focusNote, onClose, onSave, onDelete, onRowUpdated }) {
   const editableKeys = (isAdmin ? [...MANAGER_EDITABLE, ...ADMIN_ONLY_EDITABLE] : MANAGER_EDITABLE).filter(
     (k) => k !== 'contactHistory' && k !== 'firstContactDate'
   );
@@ -999,93 +1023,81 @@ function EditModal({ row, isAdmin, saving, message, managerOptions, onClose, onS
   const adminExtraKeys = MODAL_ADMIN_COLLAPSIBLE_EXTRA.filter((k) => k !== 'lastModifiedBy');
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card modal-card-wide" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header-fixed">
-          <div className="modal-header">
-            <h2>{row.name}</h2>
-            <button className="modal-close" onClick={onClose}>&times;</button>
-          </div>
+    <div className="detail-side-panel">
+      {/* 헤더 */}
+      <div className="detail-panel-header">
+        <h2>{row.name}</h2>
+        <button className="modal-close" onClick={onClose}>&times;</button>
+      </div>
 
-          {message && <div className={`modal-message ${message.type}`}>{message.text}</div>}
+      {/* 컨택 히스토리 — 전화 응대용, 상단 고정 */}
+      <div className="detail-panel-history">
+        <ContactHistoryPanel row={row} focusNote={focusNote} onUpdated={onRowUpdated} />
+      </div>
 
-          <div className="modal-header-grid">
-            <FieldInput fieldKey="group" value={form.group} onChange={update} />
-            <FieldInput fieldKey="brand" value={form.brand} onChange={update} />
-            <FieldInput fieldKey="branch" value={form.branch} onChange={update} />
-            <FieldInput fieldKey="name" value={form.name} onChange={update} />
-            <FieldInput fieldKey="phone" value={form.phone} onChange={update} />
-            <FieldInput fieldKey="contacted" value={form.contacted} onChange={update} />
-          </div>
+      {/* 편집 폼 — 스크롤 가능 */}
+      <div className="detail-panel-body">
+        {message && <div className={`modal-message ${message.type}`}>{message.text}</div>}
+
+        <div className="modal-header-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px 14px', marginBottom: 4 }}>
+          <FieldInput fieldKey="group" value={form.group} onChange={update} />
+          <FieldInput fieldKey="brand" value={form.brand} onChange={update} />
+          <FieldInput fieldKey="branch" value={form.branch} onChange={update} />
+          <FieldInput fieldKey="name" value={form.name} onChange={update} />
+          <FieldInput fieldKey="phone" value={form.phone} onChange={update} />
+          <FieldInput fieldKey="contacted" value={form.contacted} onChange={update} />
         </div>
 
-        <div className="modal-split-body">
-          <div className="modal-main-col">
-            {isAdmin && (
-              <>
-                <div className="modal-section-divider">관리자 전용 항목</div>
-                {adminExtraKeys.map((key) => (
-                  <FieldInput
-                    key={key}
-                    fieldKey={key}
-                    value={form[key]}
-                    onChange={update}
-                    managerOptions={managerOptions}
-                  />
-                ))}
-                <ReadOnlyField label="수정자" value={row.lastModifiedBy} />
-              </>
-            )}
+        {isAdmin && (
+          <CollapsibleSection title="관리자 전용 항목">
+            {adminExtraKeys.map((key) => (
+              <FieldInput key={key} fieldKey={key} value={form[key]} onChange={update} managerOptions={managerOptions} />
+            ))}
+            <ReadOnlyField label="수정자" value={row.lastModifiedBy} />
+          </CollapsibleSection>
+        )}
 
-            <CollapsibleSection title="상세 정보">
-              {MODAL_COMMON_COLLAPSIBLE.map((key) => {
-                if (key === 'firstContactDate') {
-                  return (
-                    <ReadOnlyField
-                      key={key}
-                      label="최초컨택일자"
-                      value={formatDateDisplay(row.firstContactDate)}
-                      placeholder="컨택 히스토리 등록 시 자동 입력"
-                    />
-                  );
-                }
-                if (isAdmin || MANAGER_EDITABLE.includes(key)) {
-                  return <FieldInput key={key} fieldKey={key} value={form[key]} onChange={update} />;
-                }
-                return <ReadOnlyField key={key} label={FIELD_META[key].label} value={row[key]} />;
-              })}
-            </CollapsibleSection>
+        <CollapsibleSection title="상세 정보">
+          {MODAL_COMMON_COLLAPSIBLE.map((key) => {
+            if (key === 'firstContactDate') {
+              return (
+                <ReadOnlyField
+                  key={key}
+                  label="최초컨택일자"
+                  value={formatDateDisplay(row.firstContactDate)}
+                  placeholder="컨택 히스토리 등록 시 자동 입력"
+                />
+              );
+            }
+            if (isAdmin || MANAGER_EDITABLE.includes(key)) {
+              return <FieldInput key={key} fieldKey={key} value={form[key]} onChange={update} />;
+            }
+            return <ReadOnlyField key={key} label={FIELD_META[key].label} value={row[key]} />;
+          })}
+        </CollapsibleSection>
+      </div>
 
-            <div className="modal-actions">
-              {!confirmDelete && (
-                <button className="btn btn-danger" disabled={saving} onClick={() => setConfirmDelete(true)}>
-                  삭제
-                </button>
-              )}
-              {confirmDelete && (
-                <>
-                  <span className="delete-confirm-text">'{row.name}' 딜러를 삭제하시겠습니까?</span>
-                  <button className="btn" onClick={() => setConfirmDelete(false)}>취소</button>
-                  <button className="btn btn-danger" disabled={saving} onClick={() => onDelete(row.phone)}>
-                    {saving ? '삭제 중...' : '확인'}
-                  </button>
-                </>
-              )}
-              {!confirmDelete && (
-                <>
-                  <button className="btn" onClick={onClose}>닫기</button>
-                  <button className="btn btn-primary" disabled={saving} onClick={() => onSave(form)}>
-                    {saving ? '저장 중...' : '저장'}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="modal-side-col">
-            <ContactHistoryPanel row={row} onUpdated={onRowUpdated} />
-          </div>
-        </div>
+      {/* 하단 액션 버튼 — 항상 노출 */}
+      <div className="detail-panel-footer">
+        {!confirmDelete ? (
+          <>
+            <button className="btn btn-danger" disabled={saving} onClick={() => setConfirmDelete(true)}>삭제</button>
+            <button className="btn" onClick={onClose}>닫기</button>
+            <button className="btn btn-primary" disabled={saving} onClick={() => onSave(form)}>
+              {saving ? '저장 중...' : '저장'}
+            </button>
+          </>
+        ) : (
+          <>
+            <span style={{ fontSize: 12, color: 'var(--red)', marginRight: 'auto', alignSelf: 'center' }}>
+              '{row.name}' 딜러를 삭제하시겠습니까?
+            </span>
+            <button className="btn" onClick={() => setConfirmDelete(false)}>취소</button>
+            <button className="btn btn-danger" disabled={saving} onClick={() => onDelete(row.phone)}>
+              {saving ? '삭제 중...' : '확인'}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -1135,13 +1147,21 @@ function formatRelativeTime(timestamp) {
 
 // 딜러를 클릭했을 때 옆에 표시되는 상담 메모 피드입니다. 메모 추가는 본문 저장 폼과 별도로
 // 즉시 서버에 반영됩니다(같은 값을 두 곳에서 들고 있다가 저장 시점이 엇갈리는 걸 방지).
-function ContactHistoryPanel({ row, onUpdated }) {
+// focusNote=true면 패널이 열리자마자 입력창에 포커스 → 전화 응대 중 빠른 입력 지원.
+function ContactHistoryPanel({ row, focusNote, onUpdated }) {
   const [contactHistory, setContactHistory] = useState(row.contactHistory || '');
   const [noteText, setNoteText] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const textareaRef = useRef(null);
 
   const notes = useMemo(() => parseContactHistory(contactHistory), [contactHistory]);
+
+  useEffect(() => {
+    if (focusNote && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [focusNote]);
 
   async function submitNote() {
     const trimmed = noteText.trim();
@@ -1173,6 +1193,31 @@ function ContactHistoryPanel({ row, onUpdated }) {
   return (
     <div className="history-panel">
       <div className="history-section-title">컨택 히스토리</div>
+
+      {/* 입력창을 피드 위에 배치 — 전화하면서 바로 적기 */}
+      <div className="history-add-box">
+        {error && <div className="modal-message err">{error}</div>}
+        <textarea
+          ref={textareaRef}
+          value={noteText}
+          maxLength={300}
+          placeholder="상담 내용 입력 (Ctrl+Enter 저장)"
+          onChange={(e) => setNoteText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              submitNote();
+            }
+          }}
+        />
+        <div className="history-add-footer">
+          <span className="history-char-count">{noteText.length}/300자</span>
+          <button className="btn btn-primary" disabled={saving || !noteText.trim()} onClick={submitNote}>
+            {saving ? '저장 중...' : '메모 추가'}
+          </button>
+        </div>
+      </div>
+
       <div className="history-feed">
         {notes.length === 0 ? (
           <div className="history-empty">등록된 메모가 없습니다.</div>
@@ -1187,22 +1232,6 @@ function ContactHistoryPanel({ row, onUpdated }) {
             </div>
           ))
         )}
-      </div>
-
-      <div className="history-add-box">
-        {error && <div className="modal-message err">{error}</div>}
-        <textarea
-          value={noteText}
-          maxLength={300}
-          placeholder="상담 내용을 입력해주세요"
-          onChange={(e) => setNoteText(e.target.value)}
-        />
-        <div className="history-add-footer">
-          <span className="history-char-count">{noteText.length}/300자</span>
-          <button className="btn btn-primary" disabled={saving || !noteText.trim()} onClick={submitNote}>
-            {saving ? '저장 중...' : '메모 추가'}
-          </button>
-        </div>
       </div>
     </div>
   );

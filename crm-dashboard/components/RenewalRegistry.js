@@ -85,7 +85,7 @@ export default function RenewalRegistry({ isAdmin, name }) {
 
   const [search, setSearch] = useState('');
   const [managerFilter, setManagerFilter] = useState('');
-  const [monthFilter, setMonthFilter] = useState('');
+  const [expiryMonthFilter, setExpiryMonthFilter] = useState('');
   const [recent60dFilter, setRecent60dFilter] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
@@ -155,8 +155,8 @@ export default function RenewalRegistry({ isAdmin, name }) {
     return Array.from(set).sort();
   }, [rows]);
 
-  const months = useMemo(() => {
-    const set = new Set(rows.map((r) => r.values.renewalMonth).filter(Boolean));
+  const expiryMonths = useMemo(() => {
+    const set = new Set(rows.map((r) => (r.values.expiryDate || '').slice(0, 7)).filter(Boolean));
     return Array.from(set).sort();
   }, [rows]);
 
@@ -169,11 +169,11 @@ export default function RenewalRegistry({ isAdmin, name }) {
         if (!hay.includes(q)) return false;
       }
       if (isAdmin && managerFilter && v.manager !== managerFilter) return false;
-      if (monthFilter && v.renewalMonth !== monthFilter) return false;
+      if (expiryMonthFilter && (v.expiryDate || '').slice(0, 7) !== expiryMonthFilter) return false;
       if (recent60dFilter && (v.dealerRecent60d || '').toUpperCase() !== recent60dFilter) return false;
       return true;
     });
-  }, [rows, search, managerFilter, monthFilter, recent60dFilter, isAdmin]);
+  }, [rows, search, managerFilter, expiryMonthFilter, recent60dFilter, isAdmin]);
 
   const sorted = useMemo(() => {
     const list = [...filtered];
@@ -192,7 +192,7 @@ export default function RenewalRegistry({ isAdmin, name }) {
 
   useEffect(() => {
     setPage(1);
-  }, [search, managerFilter, monthFilter, recent60dFilter, pageSize]);
+  }, [search, managerFilter, expiryMonthFilter, recent60dFilter, pageSize]);
 
   function gotoPage() {
     const n = parseInt(gotoInput, 10);
@@ -204,7 +204,7 @@ export default function RenewalRegistry({ isAdmin, name }) {
   function resetFilters() {
     setSearch('');
     setManagerFilter('');
-    setMonthFilter('');
+    setExpiryMonthFilter('');
     setRecent60dFilter('');
   }
 
@@ -289,10 +289,10 @@ export default function RenewalRegistry({ isAdmin, name }) {
           </div>
         )}
         <div className="filter-field">
-          <label>갱신월</label>
-          <select value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)}>
+          <label>만기월</label>
+          <select value={expiryMonthFilter} onChange={(e) => setExpiryMonthFilter(e.target.value)}>
             <option value="">전체</option>
-            {months.map((m) => (
+            {expiryMonths.map((m) => (
               <option key={m} value={m}>{m}</option>
             ))}
           </select>

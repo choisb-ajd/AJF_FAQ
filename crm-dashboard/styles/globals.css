@@ -1034,8 +1034,103 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
 .history-add-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
 .history-char-count { font-size: 11px; color: var(--gray-lt); }
 
+/* ── 우측 고정 상세 패널 ── */
+.detail-side-panel {
+  position: fixed;
+  top: 57px;
+  right: 0;
+  bottom: 0;
+  width: 420px;
+  z-index: 19;
+  background: var(--white);
+  border-left: 1.5px solid var(--border);
+  box-shadow: -4px 0 24px rgba(20, 92, 230, 0.07);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.detail-panel-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+}
+.detail-panel-header h2 {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--navy);
+  margin: 0;
+}
+.detail-panel-history {
+  flex: 0 0 auto;
+  max-height: 44%;
+  overflow-y: auto;
+  padding: 12px 16px;
+  border-bottom: 1.5px solid var(--border);
+  background: var(--bg);
+}
+.detail-panel-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 12px 16px;
+}
+.detail-panel-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--white);
+}
+
+/* 패널이 열릴 때 본문이 패널에 가려지지 않도록 오른쪽 여백 확보 */
+.page-body.panel-open { padding-right: 436px; }
+
+/* 선택된 행 하이라이트 */
+tr.row-selected td { background: var(--blue-lt) !important; }
+tr.row-selected td.frozen-cell { background: #e4efff !important; }
+
+/* 컨택 히스토리 스니펫 (표 셀) */
+.history-snippet {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--navy);
+  cursor: default;
+}
+
+/* 히스토리 "+" 빠른 메모 추가 버튼 */
+.btn-add-note {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--blue);
+  background: var(--white);
+  color: var(--blue);
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.btn-add-note:hover { background: var(--blue); color: var(--white); }
+
 @media (max-width: 860px) {
   .modal-header-grid { grid-template-columns: repeat(2, 1fr); gap: 10px 14px; }
   .modal-split-body { flex-direction: column; overflow-y: auto; }
   .modal-side-col { flex: 0 0 auto; border-left: none; border-top: 1px solid var(--border); }
+  .detail-side-panel { width: 100%; top: auto; bottom: 0; height: 70vh; border-left: none; border-top: 1.5px solid var(--border); }
+  .page-body.panel-open { padding-right: 0; padding-bottom: 70vh; }
 }
