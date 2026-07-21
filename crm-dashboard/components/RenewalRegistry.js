@@ -72,6 +72,14 @@ function buildPageList(current, total) {
   return [1, '...', current - 1, current, current + 1, '...', total];
 }
 
+function getNoteClasses(text) {
+  const t = (text || '').replace(/\s/g, '');
+  if (t.includes('계약완료')) return 'note-kw-contract';
+  if (t.includes('타사가입')) return 'note-kw-other';
+  if (t.includes('명의이전')) return 'note-kw-transfer';
+  return '';
+}
+
 function Badge({ value }) {
   if (!value) return <span style={{ color: '#C2C7CC' }}>-</span>;
   const v = value.trim().toUpperCase();
@@ -131,6 +139,8 @@ export default function RenewalRegistry({ isAdmin, name, onPanelChange }) {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState(null);
   const [focusNote, setFocusNote] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState('');
 
   async function fetchRows({ silent = false, force = false } = {}) {
     if (!silent) setLoading(true);
@@ -397,7 +407,34 @@ export default function RenewalRegistry({ isAdmin, name, onPanelChange }) {
         <div className="filter-actions">
           <button className="btn" onClick={resetFilters}>초기화</button>
           <button className="btn" onClick={handleManualRefresh}>새로고침</button>
+          {isAdmin && (
+            <button
+              className="btn"
+              disabled={importing}
+              onClick={async () => {
+                setImporting(true);
+                setImportMsg('');
+                try {
+                  const res = await fetch('/api/renewal/import-manager-notes', { method: 'POST' });
+                  const data = await res.json();
+                  if (!res.ok) {
+                    setImportMsg(`오류: ${data.error || '가져오기 실패'}`);
+                  } else {
+                    setImportMsg(`완료: ${data.imported}건 추가 (${data.rowsUpdated}행 업데이트)`);
+                    await fetchRows({ force: true });
+                  }
+                } catch {
+                  setImportMsg('네트워크 오류가 발생했습니다.');
+                } finally {
+                  setImporting(false);
+                }
+              }}
+            >
+              {importing ? '가져오는 중...' : '히스토리 가져오기'}
+            </button>
+          )}
         </div>
+        {importMsg && <div style={{ fontSize: 12, color: importMsg.startsWith('오류') ? 'var(--red)' : 'var(--green)', marginTop: 4 }}>{importMsg}</div>}
       </div>
 
       {loading ? (
@@ -460,10 +497,13 @@ export default function RenewalRegistry({ isAdmin, name, onPanelChange }) {
                           const notes = parseContactHistory(row.values.callHistory);
                           const latest = notes[0];
                           const latestText = latest ? latest.text : '';
+                          const latestAuthor = latest ? latest.author : '';
                           const tooltipText = latest
-                            ? `[${formatRelativeTime(latest.timestamp)} · ${latest.author || ''}]\n${latestText}`
+                            ? `[${formatRelativeTime(latest.timestamp)} · ${latestAuthor || ''}]\n${latestText}`
                             : '';
-                          const displayText = latestText.length > 55 ? latestText.slice(0, 55) + '…' : latestText;
+                          const authorPrefix = latestAuthor ? `[${latestAuthor}] ` : '';
+                          const combined = latestText ? authorPrefix + latestText : '';
+                          const displayText = combined.length > 55 ? combined.slice(0, 55) + '…' : combined;
                           return (
                             <td key="callHistory">
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -738,7 +778,7 @@ function RenewalContactHistoryPanel({ row, focusNote, onUpdated }) {
           <div className="history-empty">등록된 메모가 없습니다.</div>
         ) : (
           notes.map((n, i) => (
-            <div className="history-note" key={i}>
+            <div className={`history-note ${getNoteClasses(n.text)}`} key={i}>
               <div className="history-note-meta">
                 {n.author && <span className="history-note-author">{n.author}</span>}
                 {n.timestamp && <span className="history-note-time">{formatRelativeTime(n.timestamp)}</span>}

@@ -100,6 +100,14 @@ function maskPhone(phone) {
   return String(phone).replace(/(\d{4})$/, '****');
 }
 
+function getNoteClasses(text) {
+  const t = (text || '').replace(/\s/g, '');
+  if (t.includes('계약완료')) return 'note-kw-contract';
+  if (t.includes('타사가입')) return 'note-kw-other';
+  if (t.includes('명의이전')) return 'note-kw-transfer';
+  return '';
+}
+
 // 현재 페이지를 기준으로 "1 2 3 4 5 ... 85" 같은 페이지 번호 목록을 만듭니다.
 // 페이지 수가 적으면 전부 보여주고, 많으면 앞/뒤 또는 현재 위치 주변만 보여주고 가운데는 '...'로 줄입니다.
 function buildPageList(current, total) {
@@ -885,10 +893,13 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                             const notes = parseContactHistory(row.contactHistory);
                             const latest = notes[0];
                             const latestText = latest ? latest.text : '';
+                            const latestAuthor = latest ? latest.author : '';
                             const tooltipText = latest
-                              ? `[${formatRelativeTime(latest.timestamp)} · ${latest.author || ''}]\n${latestText}`
+                              ? `[${formatRelativeTime(latest.timestamp)} · ${latestAuthor || ''}]\n${latestText}`
                               : '';
-                            const displayText = latestText.length > 55 ? latestText.slice(0, 55) + '…' : latestText;
+                            const authorPrefix = latestAuthor ? `[${latestAuthor}] ` : '';
+                            const combined = latestText ? authorPrefix + latestText : '';
+                            const displayText = combined.length > 55 ? combined.slice(0, 55) + '…' : combined;
                             return (
                               <td key="contactHistory">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1241,7 +1252,7 @@ function ContactHistoryPanel({ row, focusNote, onUpdated }) {
           <div className="history-empty">등록된 메모가 없습니다.</div>
         ) : (
           notes.map((n, i) => (
-            <div className="history-note" key={i}>
+            <div className={`history-note ${getNoteClasses(n.text)}`} key={i}>
               <div className="history-note-meta">
                 {n.author && <span className="history-note-author">{n.author}</span>}
                 {n.timestamp && <span className="history-note-time">{formatRelativeTime(n.timestamp)}</span>}

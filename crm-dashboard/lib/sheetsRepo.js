@@ -11,6 +11,7 @@ const {
   REF_SHEETS,
   RENEWAL_FIELDS,
   appendContactHistoryNote,
+  parseContactHistory,
   LMS_TEMPLATE_CATEGORIES,
   LEASE_PLEDGE_DEFAULTS,
   formatRegisteredAt,
@@ -278,6 +279,75 @@ async function addRenewalCallNote(rowNumber, currentHistory, text, author) {
   });
   invalidateRenewalCache();
   return newHistory;
+}
+
+// U~AD열에 매니저별로 기록된 메모를 Q열(callHistory)로 가져옵니다.
+// 이미 NOTE 형식으로 등록된 동일 내용(author+text 쌍)은 중복 추가하지 않습니다.
+async function importManagerNotesToCallHistory() {
+  const config = getRefSheetConfig('renewal');
+  const MANAGER_COLS = [
+    { col: 'U', name: '김미희' },
+    { col: 'V', name: '김경선' },
+    { col: 'W', name: '박순미' },
+    { col: 'X', name: '이선' },
+    { col: 'Y', name: '이선이' },
+    { col: 'Z', name: '조예나' },
+    { col: 'AA', name: '정혜령' },
+    { col: 'AB', name: '최현정' },
+    { col: 'AC', name: '신영란' },
+    { col: 'AD', name: '송민선' },
+  ];
+
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: ADMIN_SPREADSHEET_ID,
+    range: `${quoteSheetTitle(config.title)}!B3:AD`,
+  });
+  const values = res.data.values || [];
+  const baseIndex = letterToColumnIndex('B');
+  const qIndex = letterToColumnIndex('Q') - baseIndex; // index of Q in rowArray
+
+  const data = [];
+  let importedCount = 0;
+
+  for (let i = 0; i < values.length; i++) {
+    const rowArray = values[i];
+    const rowNumber = i + 3;
+    const get = (col) => (rowArray[letterToColumnIndex(col) - baseIndex] || '').toString().trim();
+
+    let currentHistory = get('Q');
+    const existingNotes = parseContactHistory(currentHistory);
+    const existingSet = new Set(existingNotes.map((n) => `${n.author}|||${n.text}`));
+
+    let changed = false;
+    for (const { col, name } of MANAGER_COLS) {
+      const cellText = get(col);
+      if (!cellText) continue;
+      const key = `${name}|||${cellText}`;
+      if (existingSet.has(key)) continue;
+      currentHistory = appendContactHistoryNote(currentHistory, { author: name, text: cellText });
+      existingSet.add(key);
+      changed = true;
+      importedCount++;
+    }
+
+    if (changed) {
+      data.push({
+        range: `${quoteSheetTitle(config.title)}!Q${rowNumber}`,
+        values: [[currentHistory]],
+      });
+    }
+  }
+
+  if (data.length > 0) {
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: ADMIN_SPREADSHEET_ID,
+      requestBody: { valueInputOption: 'RAW', data },
+    });
+    invalidateRenewalCache();
+  }
+
+  return { imported: importedCount, rowsUpdated: data.length };
 }
 
 // 메모장 형태(REF_SHEETS의 notepad:true)의 시트는 한 개의 셀(noteCell)에 리치텍스트(HTML)를
@@ -1622,6 +1692,7 @@ module.exports = {
   readRenewalRows,
   updateRenewalRecord,
   addRenewalCallNote,
+  importManagerNotesToCallHistory,
   readNotepadSheet,
   saveNotepadSheet,
   readTemplatesSheet,

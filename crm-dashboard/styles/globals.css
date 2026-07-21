@@ -1016,6 +1016,11 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
 .history-note-time { font-size: 11px; color: var(--gray-lt); }
 .history-note-text { font-size: 13px; color: var(--navy); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
 
+/* 키워드별 노트 색상 */
+.history-note.note-kw-contract .history-note-text { font-weight: 700; }
+.history-note.note-kw-other .history-note-text { color: #16a34a; }
+.history-note.note-kw-transfer .history-note-text { color: #aaa; }
+
 .history-add-box {
   flex: 0 0 auto;
   background: var(--white);
