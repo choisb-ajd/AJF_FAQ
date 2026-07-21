@@ -201,6 +201,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   const [sortDir, setSortDir] = useState('desc');
   const [colWidths, setColWidths] = useState(DEFAULT_COL_WIDTHS);
   const [focusNote, setFocusNote] = useState(false);
+  const topbarRef = useRef(null);
 
   const [selectedPhones, setSelectedPhones] = useState(() => new Set());
   const [bulkManagerModal, setBulkManagerModal] = useState(false);
@@ -246,6 +247,18 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
     if (!getEntry(MEMBERS_KEY)) {
       fetchRows();
     }
+  }, []);
+
+  // 공지 배너 유무에 따라 topbar 높이가 달라지므로 ResizeObserver로 측정 후 CSS 변수에 반영.
+  // detail-side-panel은 top: var(--topbar-h) 으로 topbar 바로 아래에 붙어 표시됩니다.
+  useEffect(() => {
+    const el = topbarRef.current;
+    if (!el) return;
+    const update = () => document.documentElement.style.setProperty('--topbar-h', el.offsetHeight + 'px');
+    update();
+    const obs = new ResizeObserver(update);
+    obs.observe(el);
+    return () => obs.disconnect();
   }, []);
 
   // 담당매니저 드롭박스에 쓸 매니저 이름 목록을 계정관리 탭 데이터에서 가져옵니다. (관리자만)
@@ -583,7 +596,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
   return (
     <div className="app-shell">
       <FaqWidget isAdmin={isAdmin} />
-      <div className="topbar">
+      <div className="topbar" ref={topbarRef}>
         <div className="topbar-main">
           <div className="topbar-left">
             <span className="topbar-title">My Dealer</span>
@@ -884,7 +897,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
                                     className="btn-add-note"
                                     title="메모 추가"
                                     onClick={(e) => { e.stopPropagation(); openEdit(row, true); }}
-                                  >+</button>
+                                  >신규</button>
                                 </div>
                               </td>
                             );

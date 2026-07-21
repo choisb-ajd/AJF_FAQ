@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   RENEWAL_FIELDS,
   RENEWAL_MANAGER_EDITABLE,
@@ -12,6 +12,20 @@ import { getEntry, fetchAndCache, mergeEntry } from '../lib/dataCache';
 const FIELD_META = Object.fromEntries(RENEWAL_FIELDS.map((f) => [f.key, f]));
 const DATE_KEYS = ['assignedDate', 'expiryDate', 'dealerLastContractDate'];
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
+
+// expiryDate가 "YYYY-MM-DD", "YYYY. M. D", "YY-MM-DD" 등 여러 형식으로 저장되는 경우를
+// 모두 "YYYY-MM" 으로 정규화합니다.
+function extractYearMonth(dateStr) {
+  if (!dateStr) return '';
+  const s = String(dateStr).trim();
+  const iso4 = s.match(/^(\d{4})-(\d{2})/);
+  if (iso4) return `${iso4[1]}-${iso4[2]}`;
+  const kor = s.match(/^(\d{4})\.\s*(\d{1,2})/);
+  if (kor) return `${kor[1]}-${String(kor[2]).padStart(2, '0')}`;
+  const iso2 = s.match(/^(\d{2})-(\d{2})/);
+  if (iso2) return `20${iso2[1]}-${iso2[2]}`;
+  return '';
+}
 
 // 갱신배정 표: 주민번호까지 열고정
 const FROZEN_RENEWAL_KEY_SET = new Set(['renewalMonth', 'assignedDate', 'assignOrder', 'manager', 'customerName', 'residentNumber']);
@@ -85,7 +99,9 @@ export default function RenewalRegistry({ isAdmin, name }) {
 
   const [search, setSearch] = useState('');
   const [managerFilter, setManagerFilter] = useState('');
-  const [expiryMonthFilter, setExpiryMonthFilter] = useState('');
+  const [expiryMonthFilters, setExpiryMonthFilters] = useState(() => new Set());
+  const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+  const monthDropdownRef = useRef(null);
   const [recent60dFilter, setRecent60dFilter] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
@@ -156,7 +172,7 @@ export default function RenewalRegistry({ isAdmin, name }) {
   }, [rows]);
 
   const expiryMonths = useMemo(() => {
-    const set = new Set(rows.map((r) => (r.values.expiryDate || '').slice(0, 7)).filter(Boolean));
+    const set = new Set(rows.map((r) => extractYearMonth(r.values.expiryDate)).filter(Boolean));
     return Array.from(set).sort();
   }, [rows]);
 
@@ -169,11 +185,11 @@ export default function RenewalRegistry({ isAdmin, name }) {
         if (!hay.includes(q)) return false;
       }
       if (isAdmin && managerFilter && v.manager !== managerFilter) return false;
-      if (expiryMonthFilter && (v.expiryDate || '').slice(0, 7) !== expiryMonthFilter) return false;
+      if (expiryMonthFilters.size > 0 && !expiryMonthFilters.has(extractYearMonth(v.expiryDate || ''))) return false;
       if (recent60dFilter && (v.dealerRecent60d || '').toUpperCase() !== recent60dFilter) return false;
       return true;
     });
-  }, [rows, search, managerFilter, expiryMonthFilter, recent60dFilter, isAdmin]);
+  }, [rows, search, managerFilter, expiryMonthFilters, recent60dFilter, isAdmin]);
 
   const sorted = useMemo(() => {
     const list = [...filtered];
@@ -192,7 +208,7 @@ export default function RenewalRegistry({ isAdmin, name }) {
 
   useEffect(() => {
     setPage(1);
-  }, [search, managerFilter, expiryMonthFilter, recent60dFilter, pageSize]);
+  }, [search, managerFilter, expiryMonthFilters, recent60dFilter, pageSize]);
 
   function gotoPage() {
     const n = parseInt(gotoInput, 10);
@@ -204,9 +220,22 @@ export default function RenewalRegistry({ isAdmin, name }) {
   function resetFilters() {
     setSearch('');
     setManagerFilter('');
-    setExpiryMonthFilter('');
+    setExpiryMonthFilters(new Set());
     setRecent60dFilter('');
+    setShowMonthDropdown(false);
   }
+
+  // 만기월 드롭다운 외부 클릭 시 닫기
+  useEffect(() => {
+    if (!showMonthDropdown) return;
+    function handler(e) {
+      if (monthDropdownRef.current && !monthDropdownRef.current.contains(e.target)) {
+        setShowMonthDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMonthDropdown]);
 
   function toggleSort(key) {
     if (sortKey === key) {
@@ -288,14 +317,44 @@ export default function RenewalRegistry({ isAdmin, name }) {
             </select>
           </div>
         )}
-        <div className="filter-field">
+        <div className="filter-field" ref={monthDropdownRef} style={{ position: 'relative' }}>
           <label>만기월</label>
-          <select value={expiryMonthFilter} onChange={(e) => setExpiryMonthFilter(e.target.value)}>
-            <option value="">전체</option>
-            {expiryMonths.map((m) => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
+          <button
+            className="multi-select-btn"
+            onClick={() => setShowMonthDropdown((v) => !v)}
+          >
+            {expiryMonthFilters.size === 0
+              ? '전체'
+              : `${expiryMonthFilters.size}개월 선택됨`}
+            <span style={{ fontSize: 10 }}>▾</span>
+          </button>
+          {showMonthDropdown && (
+            <div className="multi-select-dropdown">
+              <div className="multi-select-ctrl">
+                <button onClick={() => setExpiryMonthFilters(new Set(expiryMonths))}>전체 선택</button>
+                <button onClick={() => setExpiryMonthFilters(new Set())}>초기화</button>
+              </div>
+              <div className="multi-select-list">
+                {expiryMonths.map((m) => (
+                  <label key={m} className="multi-select-item">
+                    <input
+                      type="checkbox"
+                      checked={expiryMonthFilters.has(m)}
+                      onChange={() => {
+                        setExpiryMonthFilters((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(m)) next.delete(m);
+                          else next.add(m);
+                          return next;
+                        });
+                      }}
+                    />
+                    <span>{m}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <div className="filter-field">
           <label>딜러 직전 60일 계약여부</label>

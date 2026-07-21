@@ -1037,7 +1037,7 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
 /* ── 우측 고정 상세 패널 ── */
 .detail-side-panel {
   position: fixed;
-  top: 57px;
+  top: var(--topbar-h, 57px);
   right: 0;
   bottom: 0;
   width: 420px;
@@ -1107,30 +1107,86 @@ tr.row-selected td.frozen-cell { background: #e4efff !important; }
   cursor: default;
 }
 
-/* 히스토리 "+" 빠른 메모 추가 버튼 */
+/* 히스토리 "신규" 빠른 메모 추가 버튼 */
 .btn-add-note {
   flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
+  padding: 2px 7px;
+  border-radius: 5px;
   border: 1.5px solid var(--blue);
   background: var(--white);
   color: var(--blue);
-  font-size: 16px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
   transition: background .12s, color .12s;
 }
 .btn-add-note:hover { background: var(--blue); color: var(--white); }
 
+/* 만기월 다중선택 드롭다운 */
+.multi-select-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  font-size: 13px;
+  color: var(--navy);
+  cursor: pointer;
+  text-align: left;
+}
+.multi-select-btn:hover { border-color: var(--blue); }
+.multi-select-dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  min-width: 160px;
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.14);
+  z-index: 200;
+  overflow: hidden;
+}
+.multi-select-ctrl {
+  display: flex;
+  gap: 4px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.multi-select-ctrl button {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--gray);
+  cursor: pointer;
+}
+.multi-select-ctrl button:hover { background: var(--blue-lt); color: var(--blue); }
+.multi-select-list { max-height: 220px; overflow-y: auto; padding: 6px 0; }
+.multi-select-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  font-size: 13px;
+  color: var(--navy);
+  cursor: pointer;
+}
+.multi-select-item:hover { background: var(--blue-lt); }
+.multi-select-item input[type=checkbox] { cursor: pointer; width: 15px; height: 15px; accent-color: var(--blue); }
+
 @media (max-width: 860px) {
   .modal-header-grid { grid-template-columns: repeat(2, 1fr); gap: 10px 14px; }
   .modal-split-body { flex-direction: column; overflow-y: auto; }
   .modal-side-col { flex: 0 0 auto; border-left: none; border-top: 1px solid var(--border); }
-  .detail-side-panel { width: 100%; top: auto; bottom: 0; height: 70vh; border-left: none; border-top: 1.5px solid var(--border); }
-  .page-body.panel-open { padding-right: 0; padding-bottom: 70vh; }
+  .detail-side-panel { width: 100%; top: auto; bottom: 0; height: 70dvh; border-left: none; border-top: 1.5px solid var(--border); }
+  .page-body.panel-open { padding-right: 0; padding-bottom: 70dvh; }
 }
