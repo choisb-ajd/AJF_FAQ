@@ -450,7 +450,7 @@ export default function DashboardPage({ role, name, adminSheetUrl }) {
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/login');
+    window.location.href = '/login';
   }
 
   function openEdit(row, withFocusNote = false) {

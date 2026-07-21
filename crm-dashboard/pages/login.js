@@ -52,7 +52,7 @@ export default function LoginPage() {
       } else {
         window.localStorage.removeItem(REMEMBER_ID_KEY);
       }
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     } catch (e) {
       setError('네트워크 오류가 발생했습니다.');
       setLoading(false);
