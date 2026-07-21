@@ -1019,8 +1019,10 @@ tbody tr:hover { background: var(--blue-lt); cursor: pointer; }
 /* 키워드별 노트 색상 */
 .history-note.note-kw-contract { background: #FEF2F2; border-color: #FCA5A5; }
 .history-note.note-kw-contract .history-note-text { font-weight: 700; }
+.history-note.note-kw-other { background: #F0FDF4; border-color: #86EFAC; }
 .history-note.note-kw-other .history-note-text { color: #16a34a; }
-.history-note.note-kw-transfer .history-note-text { color: #aaa; }
+.history-note.note-kw-transfer { background: #F9FAFB; border-color: #D1D5DB; }
+.history-note.note-kw-transfer .history-note-text { color: #9CA3AF; }
 
 .history-add-box {
   flex: 0 0 auto;
