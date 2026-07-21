@@ -250,7 +250,7 @@ const RENEWAL_FIELDS = [
   { key: 'dealerType', label: '딜러유형', col: 'N' },
   { key: 'dealerRecent60d', label: '딜러 직전 60일 계약여부', col: 'O', type: 'select', options: ['', 'Y', 'N'] },
   { key: 'dealerLastContractDate', label: '딜러 최종 계약일자', col: 'P' },
-  { key: 'callHistory', label: '통화이력', col: 'Q' },
+  { key: 'callHistory', label: '컨택 히스토리', col: 'Q' },
 ];
 
 function splitDealerContactName(raw) {

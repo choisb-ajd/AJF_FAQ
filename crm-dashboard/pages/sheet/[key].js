@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import cookie from 'cookie';
@@ -51,10 +51,22 @@ export async function getServerSideProps({ req, params }) {
 export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUrl, isNotepad, isTemplates, isRegistry, isLinkHub, isRenewalTable }) {
   const router = useRouter();
   const isAdmin = role === '관리자';
+  const topbarRef = useRef(null);
+  const [renewalPanelOpen, setRenewalPanelOpen] = useState(false);
   const [grid, setGrid] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
+
+  useEffect(() => {
+    const el = topbarRef.current;
+    if (!el) return;
+    const update = () => document.documentElement.style.setProperty('--topbar-h', el.offsetHeight + 'px');
+    update();
+    const obs = new ResizeObserver(update);
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
   const [editingCell, setEditingCell] = useState(null); // { r, c }
   const [editValue, setEditValue] = useState('');
   const [savingCell, setSavingCell] = useState(false);
@@ -143,7 +155,7 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
   return (
     <div className="app-shell">
       {!isNotepad && <FaqWidget isAdmin={isAdmin} />}
-      <div className="topbar">
+      <div className="topbar" ref={topbarRef}>
         <div className="topbar-main">
           <div className="topbar-left">
             <span className="topbar-title">My Dealer</span>
@@ -177,7 +189,7 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
         <Announcement isAdmin={isAdmin} />
       </div>
 
-      <div className="page-body">
+      <div className={`page-body${renewalPanelOpen ? ' panel-open' : ''}`}>
         <div className="page-heading">
           <div>
             <h1>{sheetLabel}</h1>
@@ -198,8 +210,8 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
                   : '보기 전용 화면입니다. 수정은 관리자만 할 수 있습니다.'
                 : isRenewalTable
                 ? isAdmin
-                  ? '행을 클릭하면 상세 정보를 확인·수정할 수 있고, 통화이력은 회원관리의 컨택 히스토리처럼 기록이 계속 쌓입니다.'
-                  : '본인이 담당하는 갱신배정 건만 보입니다. 딜러 정보 수정과 통화이력 기록을 할 수 있습니다.'
+                  ? '행을 클릭하면 상세 정보를 확인·수정할 수 있고, 컨택 히스토리는 기록이 계속 쌓입니다.'
+                  : '본인이 담당하는 갱신배정 건만 보입니다. 딜러 정보 수정과 컨택 히스토리 기록을 할 수 있습니다.'
                 : isAdmin
                 ? '셀을 클릭하면 바로 수정할 수 있고, 저장하면 구글 시트에 즉시 반영됩니다.'
                 : '보기 전용 화면입니다. 수정은 관리자만 할 수 있습니다.'}
@@ -217,7 +229,7 @@ export default function RefSheetPage({ role, name, sheetKey, sheetLabel, sheetUr
         ) : isLinkHub ? (
           <LinkHub isAdmin={isAdmin} />
         ) : isRenewalTable ? (
-          <RenewalRegistry isAdmin={isAdmin} name={name} />
+          <RenewalRegistry isAdmin={isAdmin} name={name} onPanelChange={setRenewalPanelOpen} />
         ) : (
           <>
         {cellError && <div className="error-state ref-grid-error">{cellError}</div>}

@@ -13,8 +13,6 @@ const FIELD_META = Object.fromEntries(RENEWAL_FIELDS.map((f) => [f.key, f]));
 const DATE_KEYS = ['assignedDate', 'expiryDate', 'dealerLastContractDate'];
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
 
-// expiryDate가 "YYYY-MM-DD", "YYYY. M. D", "YY-MM-DD" 등 여러 형식으로 저장되는 경우를
-// 모두 "YYYY-MM" 으로 정규화합니다.
 function extractYearMonth(dateStr) {
   if (!dateStr) return '';
   const s = String(dateStr).trim();
@@ -27,26 +25,32 @@ function extractYearMonth(dateStr) {
   return '';
 }
 
-// 갱신배정 표: 주민번호까지 열고정
-const FROZEN_RENEWAL_KEY_SET = new Set(['renewalMonth', 'assignedDate', 'assignOrder', 'manager', 'customerName', 'residentNumber']);
+const TABLE_COLUMNS = [
+  { key: 'renewalMonth', label: '갱신월' },
+  { key: 'manager', label: '갱신담당매니저' },
+  { key: 'customerName', label: '고객명' },
+  { key: 'residentNumber', label: '주민번호' },
+  { key: 'phone', label: '연락처' },
+  { key: 'expiryDate', label: '만기일자' },
+  { key: 'insurer', label: '가입보험사' },
+  { key: 'callHistory', label: '컨택 히스토리' },
+];
 
-const RENEWAL_COL_WIDTHS = {
+const FROZEN_KEYS = ['renewalMonth', 'manager', 'customerName'];
+const FROZEN_KEY_SET = new Set(FROZEN_KEYS);
+
+const DEFAULT_COL_WIDTHS = {
   renewalMonth: 80,
-  assignedDate: 100,
-  assignOrder: 80,
   manager: 120,
   customerName: 100,
   residentNumber: 120,
   phone: 130,
-  carNumber: 110,
   expiryDate: 110,
   insurer: 120,
-  dealerContact: 120,
-  dealerName: 110,
-  dealerType: 90,
-  dealerRecent60d: 130,
-  dealerLastContractDate: 130,
+  callHistory: 260,
 };
+const DEFAULT_COL_WIDTH = 100;
+const MIN_COL_WIDTH = 50;
 
 function maskPhone(phone) {
   if (!phone) return '-';
@@ -85,12 +89,25 @@ function compareRows(a, b, key) {
   return av.toString().localeCompare(bv.toString(), 'ko');
 }
 
-const POLL_INTERVAL_MS = 60 * 60 * 1000; // 1시간 — 자동 업데이트 주기
+function formatRelativeTime(timestamp) {
+  if (!timestamp) return '';
+  const ts = Date.parse(timestamp.replace(' ', 'T'));
+  if (!ts) return timestamp;
+  const diffMs = Date.now() - ts;
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return '방금 전';
+  if (min < 60) return `${min}분 전`;
+  const hour = Math.floor(min / 60);
+  if (hour < 24) return `${hour}시간 전`;
+  const day = Math.floor(hour / 24);
+  if (day < 7) return `${day}일 전`;
+  return timestamp.slice(0, 10);
+}
+
+const POLL_INTERVAL_MS = 60 * 60 * 1000;
 const RENEWAL_KEY = 'renewal';
 
-export default function RenewalRegistry({ isAdmin, name }) {
-  // 로그인 직후 프리페치되었거나(_app.js) 다른 탭에서 이미 불러온 데이터가 캐시에 있으면
-  // 재방문/첫 진입 시 로딩 화면 없이 바로 표를 그립니다.
+export default function RenewalRegistry({ isAdmin, name, onPanelChange }) {
   const initialRenewal = getEntry(RENEWAL_KEY);
   const [rows, setRows] = useState(() => (initialRenewal ? initialRenewal.data.rows || [] : []));
   const [loading, setLoading] = useState(() => !initialRenewal);
@@ -106,14 +123,15 @@ export default function RenewalRegistry({ isAdmin, name }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [gotoInput, setGotoInput] = useState('');
-  const [sortKey, setSortKey] = useState('assignedDate');
-  const [sortDir, setSortDir] = useState('desc');
+  const [sortKey, setSortKey] = useState('expiryDate');
+  const [sortDir, setSortDir] = useState('asc');
+  const [colWidths, setColWidths] = useState(DEFAULT_COL_WIDTHS);
 
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState(null);
+  const [focusNote, setFocusNote] = useState(false);
 
-  // force=true면 서버 캐시까지 건너뛰고 구글 시트에서 바로 최신 데이터를 가져옵니다("새로고침" 버튼 전용).
   async function fetchRows({ silent = false, force = false } = {}) {
     if (!silent) setLoading(true);
     setError('');
@@ -127,8 +145,6 @@ export default function RenewalRegistry({ isAdmin, name }) {
     }
   }
 
-  // 로컬에서 즉시 반영하는 변경(저장/통화이력 추가)도 캐시에 함께 기록해둬야
-  // 다른 탭에 갔다가 돌아왔을 때 방금 한 수정 내용이 사라지지 않습니다.
   function updateRowsLocal(updater) {
     setRows((prev) => {
       const next = updater(prev);
@@ -148,8 +164,6 @@ export default function RenewalRegistry({ isAdmin, name }) {
     }
   }, []);
 
-  // 편집창이 열려있지 않을 때, 캐시된 데이터를 마지막으로 불러온 시점 기준 1시간 후에
-  // 자동으로 한 번 조용히 새 데이터를 가져옵니다. 그 전까지는 같은 데이터를 그대로 보여줍니다.
   useEffect(() => {
     if (editing) return;
     const entry = getEntry(RENEWAL_KEY);
@@ -206,9 +220,18 @@ export default function RenewalRegistry({ isAdmin, name }) {
   const rangeEnd = Math.min(page * pageSize, sorted.length);
   const pageNumbers = buildPageList(page, totalPages);
 
+  useEffect(() => { setPage(1); }, [search, managerFilter, expiryMonthFilters, recent60dFilter, pageSize]);
+
   useEffect(() => {
-    setPage(1);
-  }, [search, managerFilter, expiryMonthFilters, recent60dFilter, pageSize]);
+    if (!showMonthDropdown) return;
+    function handler(e) {
+      if (monthDropdownRef.current && !monthDropdownRef.current.contains(e.target)) {
+        setShowMonthDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMonthDropdown]);
 
   function gotoPage() {
     const n = parseInt(gotoInput, 10);
@@ -225,18 +248,6 @@ export default function RenewalRegistry({ isAdmin, name }) {
     setShowMonthDropdown(false);
   }
 
-  // 만기월 드롭다운 외부 클릭 시 닫기
-  useEffect(() => {
-    if (!showMonthDropdown) return;
-    function handler(e) {
-      if (monthDropdownRef.current && !monthDropdownRef.current.contains(e.target)) {
-        setShowMonthDropdown(false);
-      }
-    }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showMonthDropdown]);
-
   function toggleSort(key) {
     if (sortKey === key) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -246,9 +257,36 @@ export default function RenewalRegistry({ isAdmin, name }) {
     }
   }
 
-  function openEdit(row) {
+  function startColumnResize(e, key) {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startWidth = colWidths[key] || DEFAULT_COL_WIDTH;
+    const prevUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = 'none';
+    function onMouseMove(ev) {
+      setColWidths((prev) => ({ ...prev, [key]: Math.max(MIN_COL_WIDTH, startWidth + (ev.clientX - startX)) }));
+    }
+    function onMouseUp() {
+      document.body.style.userSelect = prevUserSelect;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    }
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }
+
+  function openEdit(row, withFocusNote = false) {
     setEditing(row);
+    setFocusNote(withFocusNote);
     setSaveMsg(null);
+    if (onPanelChange) onPanelChange(true);
+  }
+
+  function closeEdit() {
+    setEditing(null);
+    setFocusNote(false);
+    if (onPanelChange) onPanelChange(false);
   }
 
   async function handleSave(formValues) {
@@ -286,18 +324,15 @@ export default function RenewalRegistry({ isAdmin, name }) {
     setEditing((prev) => (prev ? { ...prev, values: { ...prev.values, callHistory } } : prev));
   }
 
-  const visibleColumns = RENEWAL_FIELDS.filter((f) => (isAdmin || !f.adminOnly) && f.key !== 'callHistory');
-
   const frozenLefts = useMemo(() => {
     const result = {};
     let acc = 0;
-    for (const c of visibleColumns) {
-      if (!FROZEN_RENEWAL_KEY_SET.has(c.key)) break;
-      result[c.key] = acc;
-      acc += RENEWAL_COL_WIDTHS[c.key] || 100;
+    for (const key of FROZEN_KEYS) {
+      result[key] = acc;
+      acc += colWidths[key] || DEFAULT_COL_WIDTH;
     }
     return result;
-  }, [visibleColumns]);
+  }, [colWidths]);
 
   return (
     <>
@@ -319,13 +354,8 @@ export default function RenewalRegistry({ isAdmin, name }) {
         )}
         <div className="filter-field" ref={monthDropdownRef} style={{ position: 'relative' }}>
           <label>만기월</label>
-          <button
-            className="multi-select-btn"
-            onClick={() => setShowMonthDropdown((v) => !v)}
-          >
-            {expiryMonthFilters.size === 0
-              ? '전체'
-              : `${expiryMonthFilters.size}개월 선택됨`}
+          <button className="multi-select-btn" onClick={() => setShowMonthDropdown((v) => !v)}>
+            {expiryMonthFilters.size === 0 ? '전체' : `${expiryMonthFilters.size}개월 선택됨`}
             <span style={{ fontSize: 10 }}>▾</span>
           </button>
           {showMonthDropdown && (
@@ -380,25 +410,32 @@ export default function RenewalRegistry({ isAdmin, name }) {
           <div className="table-wrap">
             <table className="resizable-table">
               <colgroup>
-                {visibleColumns.map((c) => (
-                  <col key={c.key} style={{ width: RENEWAL_COL_WIDTHS[c.key] || 100 }} />
+                {TABLE_COLUMNS.map((c) => (
+                  <col key={c.key} style={{ width: colWidths[c.key] || DEFAULT_COL_WIDTH }} />
                 ))}
               </colgroup>
               <thead>
                 <tr>
-                  {visibleColumns.map((c) => {
-                    const isFrozen = FROZEN_RENEWAL_KEY_SET.has(c.key);
+                  {TABLE_COLUMNS.map((c) => {
+                    const isFrozen = FROZEN_KEY_SET.has(c.key);
                     return (
                       <th
                         key={c.key}
-                        onClick={() => toggleSort(c.key)}
+                        onClick={() => c.key !== 'callHistory' && toggleSort(c.key)}
                         style={{
-                          cursor: 'pointer',
+                          cursor: c.key !== 'callHistory' ? 'pointer' : 'default',
                           ...(isFrozen ? { position: 'sticky', left: frozenLefts[c.key], zIndex: 6, background: '#FAFBFD' } : {}),
                         }}
                       >
                         {c.label}
                         {sortKey === c.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+                        {c.key !== 'callHistory' && (
+                          <span
+                            className="col-resize-handle"
+                            onMouseDown={(e) => startColumnResize(e, c.key)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        )}
                       </th>
                     );
                   })}
@@ -407,18 +444,47 @@ export default function RenewalRegistry({ isAdmin, name }) {
               <tbody>
                 {paged.length === 0 ? (
                   <tr className="empty-row">
-                    <td colSpan={visibleColumns.length}>검색 결과가 없습니다.</td>
+                    <td colSpan={TABLE_COLUMNS.length}>검색 결과가 없습니다.</td>
                   </tr>
                 ) : (
                   paged.map((row) => (
-                    <tr key={row.rowNumber} onClick={() => openEdit(row)}>
-                      {visibleColumns.map((c) => {
+                    <tr
+                      key={row.rowNumber}
+                      onClick={() => openEdit(row)}
+                      className={editing && editing.rowNumber === row.rowNumber ? 'row-selected' : ''}
+                    >
+                      {TABLE_COLUMNS.map((c) => {
+                        const isFrozen = FROZEN_KEY_SET.has(c.key);
+
+                        if (c.key === 'callHistory') {
+                          const notes = parseContactHistory(row.values.callHistory);
+                          const latest = notes[0];
+                          const latestText = latest ? latest.text : '';
+                          const tooltipText = latest
+                            ? `[${formatRelativeTime(latest.timestamp)} · ${latest.author || ''}]\n${latestText}`
+                            : '';
+                          const displayText = latestText.length > 55 ? latestText.slice(0, 55) + '…' : latestText;
+                          return (
+                            <td key="callHistory">
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span className="history-snippet" title={tooltipText || undefined}>
+                                  {displayText || <span style={{ color: '#C2C7CC' }}>-</span>}
+                                </span>
+                                <button
+                                  className="btn-add-note"
+                                  title="메모 추가"
+                                  onClick={(e) => { e.stopPropagation(); openEdit(row, true); }}
+                                >+</button>
+                              </div>
+                            </td>
+                          );
+                        }
+
                         const val = row.values[c.key];
                         const rawDisplay = DATE_KEYS.includes(c.key) ? formatDateDisplay(val) : val;
                         let display = rawDisplay;
                         if (c.key === 'residentNumber') display = maskResidentNumber(val);
-                        else if (c.key === 'phone' || c.key === 'dealerContact') display = maskPhone(val);
-                        const isFrozen = FROZEN_RENEWAL_KEY_SET.has(c.key);
+                        else if (c.key === 'phone') display = maskPhone(val);
                         return (
                           <td
                             key={c.key}
@@ -426,7 +492,7 @@ export default function RenewalRegistry({ isAdmin, name }) {
                             className={isFrozen ? 'frozen-cell' : undefined}
                             style={isFrozen ? { position: 'sticky', left: frozenLefts[c.key], zIndex: 1 } : undefined}
                           >
-                            {c.key === 'dealerRecent60d' ? <Badge value={val} /> : (display || '-')}
+                            {display || '-'}
                           </td>
                         );
                       })}
@@ -474,13 +540,14 @@ export default function RenewalRegistry({ isAdmin, name }) {
       )}
 
       {editing && (
-        <RenewalEditModal
+        <RenewalDetailPanel
+          key={editing.rowNumber}
           row={editing}
           isAdmin={isAdmin}
-          name={name}
           saving={saving}
           message={saveMsg}
-          onClose={() => setEditing(null)}
+          focusNote={focusNote}
+          onClose={closeEdit}
           onSave={handleSave}
           onHistoryUpdated={handleHistoryUpdated}
         />
@@ -518,8 +585,23 @@ function FieldInput({ fieldKey, value, onChange }) {
   );
 }
 
-function RenewalEditModal({ row, isAdmin, name, saving, message, onClose, onSave, onHistoryUpdated }) {
-  const editableKeys = isAdmin ? [...RENEWAL_MANAGER_EDITABLE, ...RENEWAL_ADMIN_ONLY_EDITABLE] : RENEWAL_MANAGER_EDITABLE;
+function CollapsibleSection({ title, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="collapsible-section">
+      <button type="button" className="collapsible-toggle" onClick={() => setOpen((o) => !o)}>
+        <span>{title}</span>
+        <span className={`collapsible-chevron ${open ? 'open' : ''}`}>▾</span>
+      </button>
+      {open && <div className="collapsible-body">{children}</div>}
+    </div>
+  );
+}
+
+function RenewalDetailPanel({ row, isAdmin, saving, message, focusNote, onClose, onSave, onHistoryUpdated }) {
+  const editableKeys = isAdmin
+    ? [...RENEWAL_MANAGER_EDITABLE, ...RENEWAL_ADMIN_ONLY_EDITABLE]
+    : RENEWAL_MANAGER_EDITABLE;
   const [form, setForm] = useState(() => {
     const init = {};
     for (const key of editableKeys) init[key] = row.values[key] || '';
@@ -531,87 +613,71 @@ function RenewalEditModal({ row, isAdmin, name, saving, message, onClose, onSave
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  const assignmentFields = RENEWAL_FIELDS.filter((f) =>
-    RENEWAL_ADMIN_ONLY_EDITABLE.includes(f.key) && f.key !== 'manager'
+  const assignmentFields = RENEWAL_FIELDS.filter(
+    (f) => RENEWAL_ADMIN_ONLY_EDITABLE.includes(f.key) && f.key !== 'manager'
   );
   const dealerFields = RENEWAL_FIELDS.filter((f) => RENEWAL_MANAGER_EDITABLE.includes(f.key));
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card modal-card-wide" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header-fixed">
-          <div className="modal-header">
-            <h2>{row.values.customerName}</h2>
-            <button className="modal-close" onClick={onClose}>&times;</button>
-          </div>
+    <div className="detail-side-panel">
+      <div className="detail-panel-header">
+        <h2>{row.values.customerName}</h2>
+        <button className="modal-close" onClick={onClose}>&times;</button>
+      </div>
 
-          {message && <div className={`modal-message ${message.type}`}>{message.text}</div>}
+      <div className="detail-panel-history">
+        <RenewalContactHistoryPanel row={row} focusNote={focusNote} onUpdated={onHistoryUpdated} />
+      </div>
 
-          <div className="modal-header-grid">
-            <ReadOnlyField label="연락처" value={row.values.phone} />
-            <ReadOnlyField label="차량번호" value={row.values.carNumber} />
-            <ReadOnlyField label="갱신월" value={row.values.renewalMonth} />
-            <ReadOnlyField label="만기일자" value={formatDateDisplay(row.values.expiryDate)} />
-            <ReadOnlyField label="가입보험사" value={row.values.insurer} />
-            <ReadOnlyField label="갱신담당매니저" value={row.values.manager} />
-          </div>
+      <div className="detail-panel-body">
+        {message && <div className={`modal-message ${message.type}`}>{message.text}</div>}
+
+        <div className="modal-header-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px 14px', marginBottom: 4 }}>
+          <ReadOnlyField label="연락처" value={row.values.phone} />
+          <ReadOnlyField label="차량번호" value={row.values.carNumber} />
+          <ReadOnlyField label="갱신월" value={row.values.renewalMonth} />
+          <ReadOnlyField label="만기일자" value={formatDateDisplay(row.values.expiryDate)} />
+          <ReadOnlyField label="가입보험사" value={row.values.insurer} />
+          <ReadOnlyField label="갱신담당매니저" value={row.values.manager} />
         </div>
 
-        <div className="modal-split-body">
-          <div className="modal-main-col">
-            {isAdmin && (
-              <>
-                <div className="modal-section-divider">배정 정보 (관리자 전용)</div>
-                {assignmentFields.map((f) => (
-                  <FieldInput key={f.key} fieldKey={f.key} value={form[f.key]} onChange={update} />
-                ))}
-              </>
-            )}
+        <CollapsibleSection title="딜러 정보" defaultOpen>
+          {dealerFields.map((f) => (
+            <FieldInput key={f.key} fieldKey={f.key} value={form[f.key]} onChange={update} />
+          ))}
+        </CollapsibleSection>
 
-            <div className="modal-section-divider">딜러 정보</div>
-            {dealerFields.map((f) => (
+        {isAdmin && (
+          <CollapsibleSection title="배정 정보 (관리자 전용)">
+            {assignmentFields.map((f) => (
               <FieldInput key={f.key} fieldKey={f.key} value={form[f.key]} onChange={update} />
             ))}
+          </CollapsibleSection>
+        )}
+      </div>
 
-            <div className="modal-actions">
-              <button className="btn" onClick={onClose}>취소</button>
-              <button className="btn btn-primary" disabled={saving} onClick={() => onSave(form)}>
-                {saving ? '저장 중...' : '저장'}
-              </button>
-            </div>
-          </div>
-
-          <div className="modal-side-col">
-            <RenewalCallHistoryPanel row={row} onUpdated={onHistoryUpdated} />
-          </div>
-        </div>
+      <div className="detail-panel-footer">
+        <button className="btn" onClick={onClose}>닫기</button>
+        <button className="btn btn-primary" disabled={saving} onClick={() => onSave(form)}>
+          {saving ? '저장 중...' : '저장'}
+        </button>
       </div>
     </div>
   );
 }
 
-function formatRelativeTime(timestamp) {
-  if (!timestamp) return '';
-  const ts = Date.parse(timestamp.replace(' ', 'T'));
-  if (!ts) return timestamp;
-  const diffMs = Date.now() - ts;
-  const min = Math.floor(diffMs / 60000);
-  if (min < 1) return '방금 전';
-  if (min < 60) return `${min}분 전`;
-  const hour = Math.floor(min / 60);
-  if (hour < 24) return `${hour}시간 전`;
-  const day = Math.floor(hour / 24);
-  if (day < 7) return `${day}일 전`;
-  return timestamp.slice(0, 10);
-}
-
-function RenewalCallHistoryPanel({ row, onUpdated }) {
+function RenewalContactHistoryPanel({ row, focusNote, onUpdated }) {
   const [callHistory, setCallHistory] = useState(row.values.callHistory || '');
   const [noteText, setNoteText] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const textareaRef = useRef(null);
 
   const notes = useMemo(() => parseContactHistory(callHistory), [callHistory]);
+
+  useEffect(() => {
+    if (focusNote && textareaRef.current) textareaRef.current.focus();
+  }, [focusNote]);
 
   async function submitNote() {
     const trimmed = noteText.trim();
@@ -642,10 +708,34 @@ function RenewalCallHistoryPanel({ row, onUpdated }) {
 
   return (
     <div className="history-panel">
-      <div className="history-section-title">통화이력</div>
+      <div className="history-section-title">컨택 히스토리</div>
+
+      <div className="history-add-box">
+        {error && <div className="modal-message err">{error}</div>}
+        <textarea
+          ref={textareaRef}
+          value={noteText}
+          maxLength={300}
+          placeholder="상담 내용 입력 (Ctrl+Enter 저장)"
+          onChange={(e) => setNoteText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              submitNote();
+            }
+          }}
+        />
+        <div className="history-add-footer">
+          <span className="history-char-count">{noteText.length}/300자</span>
+          <button className="btn btn-primary" disabled={saving || !noteText.trim()} onClick={submitNote}>
+            {saving ? '저장 중...' : '메모 추가'}
+          </button>
+        </div>
+      </div>
+
       <div className="history-feed">
         {notes.length === 0 ? (
-          <div className="history-empty">등록된 통화이력이 없습니다.</div>
+          <div className="history-empty">등록된 메모가 없습니다.</div>
         ) : (
           notes.map((n, i) => (
             <div className="history-note" key={i}>
@@ -657,22 +747,6 @@ function RenewalCallHistoryPanel({ row, onUpdated }) {
             </div>
           ))
         )}
-      </div>
-
-      <div className="history-add-box">
-        {error && <div className="modal-message err">{error}</div>}
-        <textarea
-          value={noteText}
-          maxLength={300}
-          placeholder="통화 내용을 입력해주세요"
-          onChange={(e) => setNoteText(e.target.value)}
-        />
-        <div className="history-add-footer">
-          <span className="history-char-count">{noteText.length}/300자</span>
-          <button className="btn btn-primary" disabled={saving || !noteText.trim()} onClick={submitNote}>
-            {saving ? '저장 중...' : '통화이력 추가'}
-          </button>
-        </div>
       </div>
     </div>
   );
