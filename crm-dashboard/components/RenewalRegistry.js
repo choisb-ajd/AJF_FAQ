@@ -72,6 +72,23 @@ function buildPageList(current, total) {
   return [1, '...', current - 1, current, current + 1, '...', total];
 }
 
+function CopyButton({ value }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      className="btn-copy"
+      onClick={(e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(value || '');
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+    >
+      {copied ? '✓' : '복사'}
+    </button>
+  );
+}
+
 function getNoteClasses(text) {
   const t = (text || '').replace(/\s/g, '');
   if (t.includes('계약완료') || t.includes('체결완료')) return 'note-kw-contract';
@@ -528,14 +545,20 @@ export default function RenewalRegistry({ isAdmin, name, onPanelChange }) {
                         let display = rawDisplay;
                         if (c.key === 'residentNumber') display = maskResidentNumber(val);
                         else if (c.key === 'phone') display = maskPhone(val);
+                        const showCopy = (c.key === 'residentNumber' || c.key === 'phone') && val;
                         return (
                           <td
                             key={c.key}
-                            title={rawDisplay}
+                            title={!showCopy ? rawDisplay : undefined}
                             className={isFrozen ? 'frozen-cell' : undefined}
                             style={isFrozen ? { position: 'sticky', left: frozenLefts[c.key], zIndex: 1 } : undefined}
                           >
-                            {display || '-'}
+                            {showCopy ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span>{display}</span>
+                                <CopyButton value={val} />
+                              </div>
+                            ) : (display || '-')}
                           </td>
                         );
                       })}
