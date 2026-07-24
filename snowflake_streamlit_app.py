@@ -89,19 +89,9 @@ def fmt_won(v):
 
 
 def fmt_won_full(v):
-    """전체 금액 표시 (억 단위 + 만원 단위 조합)"""
     if v is None or (isinstance(v, float) and pd.isna(v)):
         return "-"
-    v = int(v)
-    if abs(v) >= 100_000_000:
-        uk = v // 100_000_000
-        man = (abs(v) % 100_000_000) // 10_000
-        if man:
-            return f"{uk}억 {man:,}만원"
-        return f"{uk}억원"
-    if abs(v) >= 10_000:
-        return f"{v//10_000:,}만원"
-    return f"{v:,}원"
+    return f"{int(v):,}원"
 
 
 def kpi_card(label, value, delta=None, delta_type="neutral"):
