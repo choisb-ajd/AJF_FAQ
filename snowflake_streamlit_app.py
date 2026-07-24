@@ -133,7 +133,7 @@ def get_kpi_premium():
         LEFT JOIN AJDCAR_PROD.PUBLIC.COUNSEL_VEHICLE cv
             ON ca.COUNSEL_ID = cv.COUNSEL_ID
             AND (cv.IS_DELETED = FALSE OR cv.IS_DELETED IS NULL)
-        WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
+        WHERE ca.COUNSEL_STATUS = '가입완료'
           AND ca.JOIN_COMPLETED_AT IS NOT NULL
           AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
     """).collect()
@@ -161,7 +161,7 @@ def get_kpi_active_dealer():
         SELECT COUNT(DISTINCT ca.USER_ID) AS active_60
         FROM AJDCAR_PROD.PUBLIC.COUNSEL_APPLICATION ca
         JOIN AJDCAR_PROD.PUBLIC.USERS u ON ca.USER_ID = u.ID
-        WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
+        WHERE ca.COUNSEL_STATUS = '가입완료'
           AND ca.JOIN_COMPLETED_AT >= DATEADD('DAY', -60, CURRENT_DATE)
           AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
           AND u.IS_ASSOCIATE = 0
@@ -240,7 +240,7 @@ def get_dealer_dist(days):
             SELECT ca.USER_ID, COUNT(*) AS cnt
             FROM AJDCAR_PROD.PUBLIC.COUNSEL_APPLICATION ca
             JOIN AJDCAR_PROD.PUBLIC.USERS u ON ca.USER_ID = u.ID
-            WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
+            WHERE ca.COUNSEL_STATUS = '가입완료'
               AND ca.JOIN_COMPLETED_AT >= DATEADD('DAY', -{days}, CURRENT_DATE)
               AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
               AND u.IS_ASSOCIATE = 0
@@ -331,7 +331,7 @@ with ch_left:
             LEFT JOIN AJDCAR_PROD.PUBLIC.COUNSEL_VEHICLE cv
                 ON ca.COUNSEL_ID = cv.COUNSEL_ID
                 AND (cv.IS_DELETED = FALSE OR cv.IS_DELETED IS NULL)
-            WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
+            WHERE ca.COUNSEL_STATUS = '가입완료'
               AND ca.JOIN_COMPLETED_AT IS NOT NULL
               AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
               AND DATE_TRUNC('DAY', ca.JOIN_COMPLETED_AT)::DATE
@@ -460,7 +460,7 @@ def get_channel_premium(d_from, d_to, mgr_f, ch_f, unit):
             AND (cv.IS_DELETED = FALSE OR cv.IS_DELETED IS NULL)
         LEFT JOIN AJDCAR_PROD.PUBLIC.USERS u ON ca.USER_ID = u.ID
         LEFT JOIN AJDCAR_PROD.PUBLIC.MANAGER m ON ca.COUNSEL_MANAGER_ID = m.ID
-        WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
+        WHERE ca.COUNSEL_STATUS = '가입완료'
           AND ca.JOIN_COMPLETED_AT IS NOT NULL
           AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
           AND ca.JOIN_COMPLETED_AT::DATE BETWEEN '{d_from}' AND '{d_to}'
@@ -516,7 +516,7 @@ with dl1:
                 COUNT(DISTINCT ca.USER_ID) AS "가동딜러수"
             FROM AJDCAR_PROD.PUBLIC.COUNSEL_APPLICATION ca
             LEFT JOIN AJDCAR_PROD.PUBLIC.MANAGER m ON ca.COUNSEL_MANAGER_ID = m.ID
-            WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
+            WHERE ca.COUNSEL_STATUS = '가입완료'
               AND ca.JOIN_COMPLETED_AT IS NOT NULL
               AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
               AND ca.JOIN_COMPLETED_AT::DATE BETWEEN '{d_from}' AND '{d_to}'
@@ -555,7 +555,7 @@ with dl2:
                 ON ca.COUNSEL_ID = cv.COUNSEL_ID
                 AND (cv.IS_DELETED = FALSE OR cv.IS_DELETED IS NULL)
             LEFT JOIN AJDCAR_PROD.PUBLIC.USERS u ON ca.USER_ID = u.ID
-            WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
+            WHERE ca.COUNSEL_STATUS = '가입완료'
               AND ca.JOIN_COMPLETED_AT IS NOT NULL
               AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
               AND ca.JOIN_COMPLETED_AT::DATE BETWEEN '{d_from}' AND '{d_to}'
@@ -596,7 +596,7 @@ def get_insurer_monthly():
         LEFT JOIN AJDCAR_PROD.PUBLIC.COUNSEL_VEHICLE cv
             ON ca.COUNSEL_ID = cv.COUNSEL_ID
             AND (cv.IS_DELETED = FALSE OR cv.IS_DELETED IS NULL)
-        WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
+        WHERE ca.COUNSEL_STATUS = '가입완료'
           AND ca.JOIN_COMPLETED_AT IS NOT NULL
           AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
           AND DATE_TRUNC('MONTH', ca.JOIN_COMPLETED_AT) = DATE_TRUNC('MONTH', CURRENT_DATE)
@@ -655,7 +655,7 @@ def get_pivot_3m():
         LEFT JOIN AJDCAR_PROD.PUBLIC.COUNSEL_VEHICLE cv
             ON ca.COUNSEL_ID = cv.COUNSEL_ID
             AND (cv.IS_DELETED = FALSE OR cv.IS_DELETED IS NULL)
-        WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
+        WHERE ca.COUNSEL_STATUS = '가입완료'
           AND ca.JOIN_COMPLETED_AT IS NOT NULL
           AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
           AND ca.JOIN_COMPLETED_AT >= DATEADD('MONTH', -3, DATE_TRUNC('MONTH', CURRENT_DATE))
@@ -721,13 +721,13 @@ def get_retention_summary(base_str, ref_60):
                 u.IS_ASSOCIATE,
                 u.CREATED_AT::DATE                                       AS reg_date,
                 COUNT(ca.COUNSEL_ID)                                     AS total_cnt,
-                MAX(CASE WHEN ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
+                MAX(CASE WHEN ca.COUNSEL_STATUS = '가입완료'
                               AND ca.JOIN_COMPLETED_AT::DATE BETWEEN '{ref_60}' AND '{base_str}'
                          THEN 1 ELSE 0 END)                             AS recent_act
             FROM AJDCAR_PROD.PUBLIC.USERS u
             LEFT JOIN AJDCAR_PROD.PUBLIC.COUNSEL_APPLICATION ca
                 ON u.ID = ca.USER_ID
-                AND ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
+                AND ca.COUNSEL_STATUS = '가입완료'
                 AND ca.JOIN_COMPLETED_AT::DATE <= '{base_str}'
                 AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
             WHERE u.USER_NAME NOT LIKE '%테스트%'
@@ -764,13 +764,13 @@ def get_retention_raw(category, base_str, ref_60):
                 u.CREATED_AT::DATE                                       AS reg_date,
                 COUNT(ca.COUNSEL_ID)                                     AS total_cnt,
                 MAX(ca.JOIN_COMPLETED_AT::DATE)                          AS last_contract_date,
-                MAX(CASE WHEN ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
+                MAX(CASE WHEN ca.COUNSEL_STATUS = '가입완료'
                               AND ca.JOIN_COMPLETED_AT::DATE BETWEEN '{ref_60}' AND '{base_str}'
                          THEN 1 ELSE 0 END)                             AS recent_act
             FROM AJDCAR_PROD.PUBLIC.USERS u
             LEFT JOIN AJDCAR_PROD.PUBLIC.COUNSEL_APPLICATION ca
                 ON u.ID = ca.USER_ID
-                AND ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
+                AND ca.COUNSEL_STATUS = '가입완료'
                 AND ca.JOIN_COMPLETED_AT::DATE <= '{base_str}'
                 AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
             WHERE u.USER_NAME NOT LIKE '%테스트%'
