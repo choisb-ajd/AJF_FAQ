@@ -723,7 +723,6 @@ st.caption(f"기준일: {base_str} (해당 월 말일 기준)")
 
 @st.cache_data(ttl=600)
 def get_retention_summary(base_str, ref_60):
-    """4개 카테고리 딜러 수 요약"""
     r = session.sql(f"""
         WITH contract_summary AS (
             SELECT
@@ -757,7 +756,6 @@ def get_retention_summary(base_str, ref_60):
 
 @st.cache_data(ttl=600)
 def get_retention_raw(category, base_str, ref_60):
-    """카테고리별 raw 데이터"""
     if category == 1:
         cond = f"IS_ASSOCIATE = 0 AND total_cnt = 1 AND recent_act = 0"
     elif category == 2:
