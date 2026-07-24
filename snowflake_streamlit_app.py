@@ -54,8 +54,6 @@ CH_EXPR = """
     END
 """
 
-# USERS 필터: 준회원 제외(IS_ASSOCIATE=0이 정회원), 테스트 매니저 제외
-# USERS 테이블에 DELETED_AT 컬럼 없음
 USER_FILTER = "IS_ASSOCIATE = 0 AND USER_NAME NOT LIKE '%테스트%'"
 
 
@@ -133,16 +131,14 @@ def get_kpi_premium():
         LEFT JOIN AJDCAR_PROD.PUBLIC.COUNSEL_VEHICLE cv
             ON ca.COUNSEL_ID = cv.COUNSEL_ID
             AND (cv.IS_DELETED = FALSE OR cv.IS_DELETED IS NULL)
-        WHERE ca.COUNSEL_STATUS = '가입완료'
+        WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
           AND ca.JOIN_COMPLETED_AT IS NOT NULL
-          AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
     """).collect()
     return r[0]
 
 
 @st.cache_data(ttl=300)
 def get_kpi_users():
-    # 누적: IS_ASSOCIATE=0(정회원), 테스트 제외
     r = session.sql(f"""
         SELECT
             COUNT(CASE WHEN DATE_TRUNC('MONTH', CREATED_AT) = DATE_TRUNC('MONTH', CURRENT_DATE)
@@ -156,12 +152,11 @@ def get_kpi_users():
 
 @st.cache_data(ttl=300)
 def get_kpi_active_dealer():
-    # 직전 60일 내 계약체결 1건 이상인 정회원 딜러
     r = session.sql(f"""
         SELECT COUNT(DISTINCT ca.USER_ID) AS active_60
         FROM AJDCAR_PROD.PUBLIC.COUNSEL_APPLICATION ca
         JOIN AJDCAR_PROD.PUBLIC.USERS u ON ca.USER_ID = u.ID
-        WHERE ca.COUNSEL_STATUS = '가입완료'
+        WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
           AND ca.JOIN_COMPLETED_AT >= DATEADD('DAY', -60, CURRENT_DATE)
           AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
           AND u.IS_ASSOCIATE = 0
@@ -240,7 +235,7 @@ def get_dealer_dist(days):
             SELECT ca.USER_ID, COUNT(*) AS cnt
             FROM AJDCAR_PROD.PUBLIC.COUNSEL_APPLICATION ca
             JOIN AJDCAR_PROD.PUBLIC.USERS u ON ca.USER_ID = u.ID
-            WHERE ca.COUNSEL_STATUS = '가입완료'
+            WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
               AND ca.JOIN_COMPLETED_AT >= DATEADD('DAY', -{days}, CURRENT_DATE)
               AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
               AND u.IS_ASSOCIATE = 0
@@ -331,9 +326,8 @@ with ch_left:
             LEFT JOIN AJDCAR_PROD.PUBLIC.COUNSEL_VEHICLE cv
                 ON ca.COUNSEL_ID = cv.COUNSEL_ID
                 AND (cv.IS_DELETED = FALSE OR cv.IS_DELETED IS NULL)
-            WHERE ca.COUNSEL_STATUS = '가입완료'
+            WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
               AND ca.JOIN_COMPLETED_AT IS NOT NULL
-              AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
               AND DATE_TRUNC('DAY', ca.JOIN_COMPLETED_AT)::DATE
                   >= DATEADD('DAY', -50, CURRENT_DATE)
             GROUP BY 1 ORDER BY 1
@@ -460,9 +454,8 @@ def get_channel_premium(d_from, d_to, mgr_f, ch_f, unit):
             AND (cv.IS_DELETED = FALSE OR cv.IS_DELETED IS NULL)
         LEFT JOIN AJDCAR_PROD.PUBLIC.USERS u ON ca.USER_ID = u.ID
         LEFT JOIN AJDCAR_PROD.PUBLIC.MANAGER m ON ca.COUNSEL_MANAGER_ID = m.ID
-        WHERE ca.COUNSEL_STATUS = '가입완료'
+        WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
           AND ca.JOIN_COMPLETED_AT IS NOT NULL
-          AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
           AND ca.JOIN_COMPLETED_AT::DATE BETWEEN '{d_from}' AND '{d_to}'
           AND m.NAME NOT LIKE '%테스트%'
           {mgr_f} {ch_f}
@@ -516,7 +509,7 @@ with dl1:
                 COUNT(DISTINCT ca.USER_ID) AS "가동딜러수"
             FROM AJDCAR_PROD.PUBLIC.COUNSEL_APPLICATION ca
             LEFT JOIN AJDCAR_PROD.PUBLIC.MANAGER m ON ca.COUNSEL_MANAGER_ID = m.ID
-            WHERE ca.COUNSEL_STATUS = '가입완료'
+            WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
               AND ca.JOIN_COMPLETED_AT IS NOT NULL
               AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
               AND ca.JOIN_COMPLETED_AT::DATE BETWEEN '{d_from}' AND '{d_to}'
@@ -555,9 +548,8 @@ with dl2:
                 ON ca.COUNSEL_ID = cv.COUNSEL_ID
                 AND (cv.IS_DELETED = FALSE OR cv.IS_DELETED IS NULL)
             LEFT JOIN AJDCAR_PROD.PUBLIC.USERS u ON ca.USER_ID = u.ID
-            WHERE ca.COUNSEL_STATUS = '가입완료'
+            WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
               AND ca.JOIN_COMPLETED_AT IS NOT NULL
-              AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
               AND ca.JOIN_COMPLETED_AT::DATE BETWEEN '{d_from}' AND '{d_to}'
               AND u.USER_NAME NOT LIKE '%테스트%'
             GROUP BY 1 ORDER BY 2 DESC
@@ -596,9 +588,8 @@ def get_insurer_monthly():
         LEFT JOIN AJDCAR_PROD.PUBLIC.COUNSEL_VEHICLE cv
             ON ca.COUNSEL_ID = cv.COUNSEL_ID
             AND (cv.IS_DELETED = FALSE OR cv.IS_DELETED IS NULL)
-        WHERE ca.COUNSEL_STATUS = '가입완료'
+        WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
           AND ca.JOIN_COMPLETED_AT IS NOT NULL
-          AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
           AND DATE_TRUNC('MONTH', ca.JOIN_COMPLETED_AT) = DATE_TRUNC('MONTH', CURRENT_DATE)
         GROUP BY 1 ORDER BY 2 DESC
     """).to_pandas()
@@ -655,9 +646,8 @@ def get_pivot_3m():
         LEFT JOIN AJDCAR_PROD.PUBLIC.COUNSEL_VEHICLE cv
             ON ca.COUNSEL_ID = cv.COUNSEL_ID
             AND (cv.IS_DELETED = FALSE OR cv.IS_DELETED IS NULL)
-        WHERE ca.COUNSEL_STATUS = '가입완료'
+        WHERE ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
           AND ca.JOIN_COMPLETED_AT IS NOT NULL
-          AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
           AND ca.JOIN_COMPLETED_AT >= DATEADD('MONTH', -3, DATE_TRUNC('MONTH', CURRENT_DATE))
         GROUP BY 1,2,3 ORDER BY 1 DESC,2,3
     """).to_pandas()
@@ -693,7 +683,6 @@ st.markdown('<div class="empty-box">데이터 준비중입니다</div>', unsafe_
 # ════════════════════════════════════
 st.markdown('<div class="section-title">리텐션 딜러 현황</div>', unsafe_allow_html=True)
 
-# 기준월 선택 (최근 12개월)
 ret_months = []
 _d = today.replace(day=1)
 for _ in range(12):
@@ -706,7 +695,6 @@ _last_day = calendar.monthrange(_y, _m)[1]
 base_date = date(_y, _m, _last_day)
 base_str  = base_date.strftime("%Y-%m-%d")
 ref_60    = (base_date - timedelta(days=60)).strftime("%Y-%m-%d")
-ref_60_ago = (base_date - timedelta(days=60)).strftime("%Y-%m-%d")
 
 st.caption(f"기준일: {base_str} (해당 월 말일 기준)")
 
@@ -716,18 +704,18 @@ def get_retention_summary(base_str, ref_60):
     r = session.sql(f"""
         WITH contract_summary AS (
             SELECT
-                u.ID                                                    AS user_id,
+                u.ID                AS user_id,
                 u.USER_NAME,
                 u.IS_ASSOCIATE,
-                u.CREATED_AT::DATE                                       AS reg_date,
-                COUNT(ca.COUNSEL_ID)                                     AS total_cnt,
-                MAX(CASE WHEN ca.COUNSEL_STATUS = '가입완료'
+                u.CREATED_AT::DATE  AS reg_date,
+                COUNT(ca.COUNSEL_ID) AS total_cnt,
+                MAX(CASE WHEN ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
                               AND ca.JOIN_COMPLETED_AT::DATE BETWEEN '{ref_60}' AND '{base_str}'
-                         THEN 1 ELSE 0 END)                             AS recent_act
+                         THEN 1 ELSE 0 END) AS recent_act
             FROM AJDCAR_PROD.PUBLIC.USERS u
             LEFT JOIN AJDCAR_PROD.PUBLIC.COUNSEL_APPLICATION ca
                 ON u.ID = ca.USER_ID
-                AND ca.COUNSEL_STATUS = '가입완료'
+                AND ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
                 AND ca.JOIN_COMPLETED_AT::DATE <= '{base_str}'
                 AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
             WHERE u.USER_NAME NOT LIKE '%테스트%'
@@ -737,7 +725,7 @@ def get_retention_summary(base_str, ref_60):
             SUM(CASE WHEN IS_ASSOCIATE = 0 AND total_cnt = 1  AND recent_act = 0 THEN 1 ELSE 0 END) AS cat1,
             SUM(CASE WHEN IS_ASSOCIATE = 0 AND total_cnt >= 2 AND recent_act = 0 THEN 1 ELSE 0 END) AS cat2,
             SUM(CASE WHEN IS_ASSOCIATE = 0 AND total_cnt = 0
-                          AND reg_date <= DATEADD('DAY', -60, '{base_str}')      THEN 1 ELSE 0 END) AS cat3,
+                          AND reg_date <= DATEADD('DAY', -60, '{base_str}') THEN 1 ELSE 0 END) AS cat3,
             SUM(CASE WHEN IS_ASSOCIATE = 1 AND total_cnt >= 1 AND recent_act = 0 THEN 1 ELSE 0 END) AS cat4
         FROM contract_summary
     """).collect()
@@ -747,46 +735,52 @@ def get_retention_summary(base_str, ref_60):
 @st.cache_data(ttl=600)
 def get_retention_raw(category, base_str, ref_60):
     if category == 1:
-        cond = f"IS_ASSOCIATE = 0 AND total_cnt = 1 AND recent_act = 0"
+        cond = "IS_ASSOCIATE = 0 AND total_cnt = 1 AND recent_act = 0"
     elif category == 2:
-        cond = f"IS_ASSOCIATE = 0 AND total_cnt >= 2 AND recent_act = 0"
+        cond = "IS_ASSOCIATE = 0 AND total_cnt >= 2 AND recent_act = 0"
     elif category == 3:
         cond = f"IS_ASSOCIATE = 0 AND total_cnt = 0 AND reg_date <= DATEADD('DAY', -60, '{base_str}')"
     else:
-        cond = f"IS_ASSOCIATE = 1 AND total_cnt >= 1 AND recent_act = 0"
+        cond = "IS_ASSOCIATE = 1 AND total_cnt >= 1 AND recent_act = 0"
 
     df = session.sql(f"""
         WITH contract_summary AS (
             SELECT
-                u.ID                                                    AS user_id,
-                u.USER_NAME                                             AS "딜러명",
-                u.IS_ASSOCIATE                                          AS "준회원여부",
-                u.CREATED_AT::DATE                                       AS reg_date,
-                COUNT(ca.COUNSEL_ID)                                     AS total_cnt,
-                MAX(ca.JOIN_COMPLETED_AT::DATE)                          AS last_contract_date,
-                MAX(CASE WHEN ca.COUNSEL_STATUS = '가입완료'
+                u.ID                AS user_id,
+                u.USER_ID           AS login_id,
+                u.USER_NAME         AS dealer_name,
+                u.IS_ASSOCIATE,
+                u.CREATED_AT::DATE  AS reg_date,
+                m.NAME              AS manager_name,
+                COUNT(ca.COUNSEL_ID)            AS total_cnt,
+                MAX(ca.JOIN_COMPLETED_AT::DATE) AS last_contract_date,
+                MAX(CASE WHEN ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
                               AND ca.JOIN_COMPLETED_AT::DATE BETWEEN '{ref_60}' AND '{base_str}'
-                         THEN 1 ELSE 0 END)                             AS recent_act
+                         THEN 1 ELSE 0 END) AS recent_act
             FROM AJDCAR_PROD.PUBLIC.USERS u
+            LEFT JOIN AJDCAR_PROD.PUBLIC.MANAGER m
+                ON u.MANAGER_ID = m.ID
             LEFT JOIN AJDCAR_PROD.PUBLIC.COUNSEL_APPLICATION ca
                 ON u.ID = ca.USER_ID
-                AND ca.COUNSEL_STATUS = '가입완료'
+                AND ca.COUNSEL_STATUS = 'JOIN_COMPLETED'
                 AND ca.JOIN_COMPLETED_AT::DATE <= '{base_str}'
                 AND (ca.IS_DELETED = FALSE OR ca.IS_DELETED IS NULL)
             WHERE u.USER_NAME NOT LIKE '%테스트%'
-            GROUP BY 1,2,3,4
+            GROUP BY 1, 2, 3, 4, 5, 6
         )
         SELECT
-            "딜러명",
-            "준회원여부",
-            reg_date     AS "가입일",
-            total_cnt    AS "총체결건수",
+            login_id           AS "로그인ID",
+            dealer_name        AS "딜러명",
+            manager_name       AS "담당매니저",
+            IS_ASSOCIATE       AS "준회원여부",
+            reg_date           AS "가입일",
+            total_cnt          AS "총체결건수",
             last_contract_date AS "마지막체결일"
         FROM contract_summary
         WHERE {cond}
         ORDER BY total_cnt DESC, reg_date
     """).to_pandas()
-    df.columns = ["딜러명", "준회원여부", "가입일", "총체결건수", "마지막체결일"]
+    df.columns = ["로그인ID", "딜러명", "담당매니저", "준회원여부", "가입일", "총체결건수", "마지막체결일"]
     return df
 
 
